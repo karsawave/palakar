@@ -1,72 +1,52 @@
 <?php
 
+/*
+ * Database connections. All of them run on PDO with prepared statements.
+ * 'driver' is one of: mysql (also MariaDB), pgsql, sqlite.
+ *
+ * Use one in your code with:
+ *   new \Resources\Database();          // 'default'
+ *   new \Resources\Database('pgsql');   // a named connection
+ */
+
 return [
 
+    // Works out of the box: a SQLite file inside app/storage/.
     'default' => [
-        'driver' => 'mysqli',
+        'driver' => 'sqlite',
+        'database' => APP.'storage/database.sqlite',
+    ],
+
+    /*
+    'mysql' => [
+        'driver' => 'mysql',
         'host' => 'localhost',
         'port' => 3306,
         'user' => 'root',
         'password' => '',
         'database' => 'panada',
-        'tablePrefix' => '',
-        'charset' => 'utf8',
-        'collate' => 'utf8_general_ci',
+        'charset' => 'utf8mb4',
         'persistent' => false,
     ],
 
-    /*
-    'postgre' => [
+    'pgsql' => [
         'driver' => 'pgsql',
         'host' => 'localhost',
         'port' => 5432,
         'user' => 'postgres',
         'password' => '',
-        'database' => '',
-        'tablePrefix' => '',
-        'charset' => 'utf8',
-        'collate' => 'utf8_general_ci',
-        'persistent' => false,
-    ],
-
-    'sqlite' => [
-        'driver' => 'sqlite',
-        'host' => '',
-        'user' => '',
-        'password' => '',
-        'database' => '/path/to/sqlitedb/my.db',
-        'charset' => '',
-        'collate' => '',
-        'persistent' => false,
-    ],
-
-    'mongodb' => [
-        'driver' => 'mongodb',
-        'host' => 'localhost',
-        'port' => 27017,
-        'user' => '',
-        'password' => '',
-        'database' => '',
-        'tablePrefix' => '',
-        'charset' => '',
-        'collate' => '',
-        'persistent' => false,
-        'options' => [],
-    ],
-
-    'cubrid' => [
-        'driver' => 'cubrid',
-        'host' => 'localhost',
-        'user' => 'root',
-        'port' => 33000,
-        'password' => '',
         'database' => 'panada',
-        'tablePrefix' => '',
-        'charset' => 'utf8',
-        'collate' => 'utf8_general_ci',
+        'charset' => 'UTF8',
         'persistent' => false,
-        'autoCommit' => true,
+    ],
+
+    // Any PDO DSN and PDO options can also be given directly:
+    'custom' => [
+        'driver' => 'pgsql',
+        'dsn' => 'pgsql:host=db;port=5432;dbname=panada;sslmode=require',
+        'user' => 'panada',
+        'password' => 'secret',
+        'options' => [PDO::ATTR_TIMEOUT => 5],
     ],
     */
-
 ];

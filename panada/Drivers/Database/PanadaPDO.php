@@ -1,231 +1,271 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada PDO Database Driver.
+ * Panada PDO Database Driver, the only database driver since Panada 2.
+ *
+ * Supports MySQL/MariaDB, PostgreSQL and SQLite through PHP's PDO extension.
+ * Every query is a prepared statement: values are bound, never concatenated.
  *
  * @author	Azhari Harahap <azhari@harahap.us>
  *
  * @since	Version 1.0
  */
+
 namespace Drivers\Database;
 
-use Resources\RunException as RunException;
+use Drivers\Abstraction\Sql;
 use PDO;
 use PDOException;
+use PDOStatement;
+use Resources\Interfaces\Database as DatabaseInterface;
+use Resources\RunException;
 
-class PanadaPDO extends \Drivers\Abstraction\Sql implements \Resources\Interfaces\Database
+class PanadaPDO extends Sql implements DatabaseInterface
 {
-    protected $port = null;
-    private $dsn;
+    private ?PDO $link = null;
+    private ?PDOStatement $lastStatement = null;
 
-    /**
-     * Check if PDO enabled
-     * Define all properties needed.
-     */
-    public function __construct($config, $connectionName)
+    public function __construct(private array $config, private string $connection = 'default')
     {
-        // Check for PDO
-    if (!extension_loaded('PDO')) {
-        throw new RunException('PDO extension not installed.');
-    }
-
-        $this->config = $config;
-        $this->connection = $connectionName;
+        if (!extension_loaded('pdo')) {
+            throw new RunException('PDO extension not installed.');
+        }
     }
 
     /**
-     * Establish a new connection.
-     *
-     * @return string | boolean
+     * Build the PDO DSN from a connection in app/config/database.php.
      */
-    private function establishConnection()
+    public static function dsn(array $config): string
     {
-        // Persistent connection?
-    $options[PDO::ATTR_PERSISTENT] = $this->config['persistent'];
+        if (!empty($config['dsn'])) {
+            return $config['dsn'];
+        }
 
-    // Build DSN
-    $this->dsn = $this->config['driver'].':host='.$this->config['host'].
-        ';port='.$this->config['port'].';dbname='.$this->config['database'];
+        $driver = $config['driver'] ?? '';
+        $database = (string) ($config['database'] ?? '');
+
+        return match ($driver) {
+            'mysql' => empty($config['socket'])
+                ? sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $config['host'] ?? 'localhost', $config['port'] ?? 3306, $database, $config['charset'] ?? 'utf8mb4')
+                : sprintf('mysql:unix_socket=%s;dbname=%s;charset=%s', $config['socket'], $database, $config['charset'] ?? 'utf8mb4'),
+            'pgsql' => sprintf("pgsql:host=%s;port=%d;dbname=%s;options='--client_encoding=%s'", $config['host'] ?? 'localhost', $config['port'] ?? 5432, $database, $config['charset'] ?? 'UTF8'),
+            'sqlite' => 'sqlite:'.$database,
+            default => throw new RunException('Unsupported database driver "'.$driver.'". Use mysql, pgsql or sqlite.'),
+        };
+    }
+
+    /**
+     * The PDO connection, opened on first use.
+     */
+    public function link(): PDO
+    {
+        if ($this->link !== null) {
+            return $this->link;
+        }
+
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
+            PDO::ATTR_PERSISTENT => (bool) ($this->config['persistent'] ?? false),
+        ];
+
+        if (($this->config['driver'] ?? '') === 'mysql') {
+            // Real prepared statements on the MySQL server, not emulated ones.
+            $options[PDO::ATTR_EMULATE_PREPARES] = false;
+        }
 
         try {
-            return new PDO($this->dsn, $this->config['user'], $this->config['password'], $options);
+            $this->link = new PDO(
+                self::dsn($this->config),
+                $this->config['user'] ?? null,
+                $this->config['password'] ?? null,
+                ($this->config['options'] ?? []) + $options
+            );
         } catch (PDOException $e) {
-            throw new RunException($e->getMessage());
+            throw new RunException('Unable to connect to database "'.$this->connection.'": '.$e->getMessage(), 0, E_ERROR, null, null, $e);
         }
+
+        return $this->link;
     }
 
     /**
-     * Initial for all process.
+     * Run any SQL with bound values. Use "?" or ":name" placeholders.
+     *
+     *   query('UPDATE posts SET views = views + 1 WHERE id = ?', [$id])
      */
-    private function init()
+    public function query(string $sql, array $bindings = []): PDOStatement
     {
-        if (is_null($this->link)) {
-            $this->link = $this->establishConnection();
-        }
+        $bindings = $this->takeBindings($sql, $bindings);
+        $this->lastQuery = $sql;
+        $this->lastBindings = $bindings;
 
         try {
-            if (!$this->link) {
-                throw new RunException('Unable connect to database in <strong>'.$this->connection.'</strong> connection.');
+            $statement = $this->link()->prepare($sql);
+            $position = 0;
+
+            foreach ($bindings as $key => $value) {
+                $parameter = is_int($key) ? ++$position : ':'.ltrim($key, ':');
+                $statement->bindValue($parameter, ...$this->bindable($value, (string) $key));
             }
-        } catch (RunException $e) {
-            RunException::outputError($e->getMessage());
-        }
-    }
 
-    /**
-     * Start transaction.
-     */
-    public function begin()
-    {
-        $this->link->beginTransaction();
-    }
-
-    /**
-     * Commit transaction.
-     */
-    public function commit()
-    {
-        $this->link->commit();
-    }
-
-    public function rollback()
-    {
-        $this->link->rollBack();
-    }
-
-    /**
-     * Escape all unescaped string.
-     *
-     * @param string $string
-     */
-    public function escape($string)
-    {
-        return $string;
-    }
-
-    public function query($sql)
-    {
-        if (is_null($this->link)) {
-            $this->init();
+            $statement->execute();
+        } catch (PDOException $e) {
+            throw new RunException('Database error: '.$e->getMessage().' | SQL: '.$sql, 0, E_ERROR, null, null, $e);
         }
 
-        $query = $this->link->query($sql);
-        $this->lastQuery = $sql;
-
-        if ($this->link->errorCode() != 00000) {
-            $this->lastError = implode(' ', $this->link->errorInfo());
-
-            if ($this->throwError) {
-                throw new \Exception($this->lastError);
-            } else {
-                $this->printError();
-
-                return false;
-            }
-        }
-
-        return $query;
+        return $this->lastStatement = $statement;
     }
 
     /**
      * Get multiple records.
      *
-     * @param string $query The sql query
-     * @param string $type  return data type option. the default is "object"
+     *   results('SELECT * FROM users WHERE city = ?', ['Bandung'])
+     *   results($sql, 'array')   // old style, still works
      */
-    public function results($query, $returnType = false)
+    public function results(?string $query = null, array|string $bindings = [], ?string $returnType = null): array|PDOStatement
     {
-        $return = false;
-
-        if ($returnType) {
-            $this->returnType = $returnType;
+        if (is_string($bindings)) {
+            [$returnType, $bindings] = [$bindings, []];
         }
 
-        if (is_null($query)) {
-            $query = $this->command();
+        $statement = $this->query($query ?? $this->command(), $bindings);
+        $type = $this->consumeReturnType($returnType);
+
+        if ($type === 'iterator') {
+            return $statement;
         }
 
-        $result = $this->query($query);
+        return $statement->fetchAll(...$this->fetchMode($type));
+    }
 
-        if ($this->returnType == 'object' || $this->returnType == 'array') {
-            $fetch = $this->returnType == 'object' ? PDO::FETCH_OBJ : PDO::FETCH_ASSOC;
+    /**
+     * Get single record, or false when nothing matches.
+     */
+    public function row(?string $query = null, array|string $bindings = [], ?string $returnType = null): object|array|false
+    {
+        if (is_string($bindings)) {
+            [$returnType, $bindings] = [$bindings, []];
+        }
 
-            while ($row = $result->fetch($fetch)) {
-                $return[] = $row;
+        $statement = $this->query($query ?? $this->command(), $bindings);
+        $statement->setFetchMode(...$this->fetchMode($this->consumeReturnType($returnType)));
+        $row = $statement->fetch();
+        $statement->closeCursor();
+
+        return $row;
+    }
+
+    /**
+     * Run $callback inside a transaction. Any exception rolls it back.
+     *
+     *   $db->transaction(function ($db) { ...two inserts... });
+     */
+    public function transaction(callable $callback): mixed
+    {
+        $this->begin();
+
+        try {
+            $result = $callback($this);
+            $this->commit();
+
+            return $result;
+        } catch (\Throwable $e) {
+            if ($this->link()->inTransaction()) {
+                $this->rollback();
             }
 
-            return $return;
+            throw $e;
         }
+    }
 
-        if ($this->returnType == 'iterator') {
-            return $result;
-        }
+    public function begin(): bool
+    {
+        return $this->link()->beginTransaction();
+    }
 
-        return $return;
+    public function commit(): bool
+    {
+        return $this->link()->commit();
+    }
+
+    public function rollback(): bool
+    {
+        return $this->link()->rollBack();
     }
 
     /**
-     * Get single record.
-     *
-     * @param string $query The sql query
-     * @param string $type  return data type option. the default is "object"
+     * @deprecated Pass values as bindings instead. Kept so old code still runs.
      */
-    public function row($query, $returnType = false)
+    public function escape(string $string): string
     {
-        if ($returnType) {
-            $this->returnType = $returnType;
-        }
-
-        if (is_null($query)) {
-            $query = $this->command();
-        }
-
-        if (is_null($this->link)) {
-            $this->init();
-        }
-
-        $result = $this->query($query);
-
-        return $result->fetch($this->returnType == 'object' ? PDO::FETCH_OBJ : PDO::FETCH_ASSOC);
+        return substr($this->link()->quote($string), 1, -1);
     }
 
     /**
-     * Get the id form last insert.
-     *
-     * @return int
+     * Get the id from last insert. PostgreSQL may need the sequence name.
      */
-    public function insertId()
+    public function insertId(?string $name = null): string|false
     {
-        return $this->link->lastInsertId();
+        return $this->link()->lastInsertId($name);
+    }
+
+    /**
+     * Rows changed by the last INSERT, UPDATE or DELETE.
+     */
+    public function affectedRows(): int
+    {
+        return $this->lastStatement?->rowCount() ?? 0;
     }
 
     /**
      * Get this db version.
      */
-    public function version()
+    public function version(): string
     {
-        return $this->link->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
+        return (string) $this->link()->getAttribute(PDO::ATTR_SERVER_VERSION);
     }
 
     /**
      * Close db connection.
      */
-    public function close()
+    public function close(): void
     {
+        $this->lastStatement = null;
         $this->link = null;
     }
 
     /**
      * Prepares a statement for execution and returns a statement object.
-     *
-     * @return PDOStatement
      */
-    public function prepare($query)
+    public function prepare(string $query): PDOStatement
     {
-        if (is_null($this->link)) {
-            $this->init();
+        return $this->link()->prepare($query);
+    }
+
+    /**
+     * @return array{0: mixed, 1: int}
+     */
+    private function bindable(mixed $value, string $name): array
+    {
+        return match (true) {
+            $value === null => [null, PDO::PARAM_NULL],
+            is_bool($value) => [$value, PDO::PARAM_BOOL],
+            is_int($value) => [$value, PDO::PARAM_INT],
+            is_float($value) => [(string) $value, PDO::PARAM_STR],
+            is_string($value), $value instanceof \Stringable => [(string) $value, PDO::PARAM_STR],
+            $value instanceof \DateTimeInterface => [$value->format('Y-m-d H:i:s'), PDO::PARAM_STR],
+            default => throw new RunException('Value bound to "'.$name.'" must be a scalar, got '.get_debug_type($value)),
+        };
+    }
+
+    private function fetchMode(string $type): array
+    {
+        if ($type === 'array') {
+            return [PDO::FETCH_ASSOC];
         }
 
-        return $this->link->prepare($query);
+        return $this->instantiateClass ? [PDO::FETCH_CLASS, $this->instantiateClass] : [PDO::FETCH_OBJ];
     }
 }

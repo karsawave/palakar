@@ -1,6 +1,8 @@
 <?php
 
-declare(strict_types=1);
+// No strict_types here on purpose: this class forwards calls coming from
+// your code (or from URL segments, which are always strings), so it must not
+// change the typing mode the caller is used to.
 
 /**
  * This is the heart of the whole Panada system.
@@ -275,8 +277,8 @@ final class Gear
     /**
      * Call the controller's method and keep its output in Response::$body.
      *
-     * call_user_func_array() passes URL segments in coercive mode, so a method
-     * declared as show(int $id) receives "15" from /post/show/15 as 15.
+     * This file is not in strict mode, so a method declared as show(int $id)
+     * receives "15" from /post/show/15 as the integer 15.
      */
     private function run(object $instance, string $method, array $request): void
     {

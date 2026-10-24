@@ -1,82 +1,96 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada SQL Database Abstraction.
+ * Panada SQL query builder.
+ *
+ * Golden rule of this class: every VALUE travels to the database as a bound
+ * parameter of a prepared statement ("?"), never glued into the SQL string.
+ * That is what makes SQL injection impossible here.
+ *
+ * Table and column NAMES cannot be bound, so they are checked against a strict
+ * pattern (letters, digits, underscore, "table.column") and rejected otherwise.
+ *
+ * Only select() and whereRaw() accept raw SQL. Never put user input in them.
  *
  * @author	Iskandar Soesman.
  *
  * @since	Version 1.1.0
  */
+
 namespace Drivers\Abstraction;
+
+use Resources\RunException;
 
 abstract class Sql
 {
-    protected $column = '*';
-    protected $distinct = false;
-    protected $tables = array();
-    protected $joins = null;
-    protected $joinsType = null;
-    protected $joinsOn = array();
-    protected $criteria = array();
-    protected $groupBy = null;
-    protected $isHaving = array();
-    protected $limit = null;
-    protected $offset = null;
-    protected $orderBy = null;
-    protected $order = null;
-    protected $isQuotes = true;
-    protected $link;
-    protected $connection;
-    protected $config;
-    protected $lastQuery;
-    protected $lastError;
-    protected $throwError = false;
-    protected $returnType = 'object'; // return data type option: object, array and iterator (pointer)
-    public $insertId;
-    public $clientFlags = 0;
-    public $newLink = true;
-    public $persistentConnection = false;
-    public $instantiateClass = 'stdClass';
+    private const OPERATORS = [
+        '=', '!=', '<>', '<', '>', '<=', '>=',
+        'LIKE', 'NOT LIKE', 'ILIKE', 'NOT ILIKE',
+        'IN', 'NOT IN', 'BETWEEN', 'NOT BETWEEN', 'IS', 'IS NOT',
+    ];
+
+    private const JOIN_TYPES = ['', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'CROSS', 'LEFT OUTER', 'RIGHT OUTER', 'FULL OUTER'];
+
+    /** name, table.name, table.* or * */
+    private const IDENTIFIER = '/^(?:\*|[A-Za-z_][A-Za-z0-9_]*(?:\.(?:[A-Za-z_][A-Za-z0-9_]*|\*))?)$/';
+
+    /** COUNT(*), SUM(price), COUNT(DISTINCT user_id) ... */
+    private const AGGREGATE = '/^(?:COUNT|SUM|AVG|MIN|MAX)\(\s*(?:DISTINCT\s+)?(?:\*|[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?)\s*\)$/i';
+
+    protected array $columns = ['*'];
+    protected bool $distinct = false;
+    protected array $tables = [];
+    protected array $joins = [];
+    protected array $criteria = [];
+    protected array $groupBy = [];
+    protected array $having = [];
+    protected array $orderBy = [];
+    protected ?int $limit = null;
+    protected ?int $offset = null;
+
+    /** Return data type option: object, array or iterator (the PDOStatement). */
+    protected string $returnType = 'object';
+
+    /** Fetch rows into this class instead of stdClass (used by ActiveRecord). */
+    public string|false $instantiateClass = false;
+
+    protected string $lastQuery = '';
+    protected array $lastBindings = [];
+
+    private ?string $compiledSql = null;
+    private array $compiledBindings = [];
 
     /**
-     * Throw the error instead handle it automaticly.
-     * User should catch this error for there own purpose.
-     *
-     * @param bool $set
+     * Run a statement with its bound values. Implemented by the driver.
      */
-    public function setThrowError($set = false)
-    {
-        $this->throwError = $set;
-    }
+    abstract public function query(string $sql, array $bindings = []): \PDOStatement;
+
+    abstract public function results(?string $query = null, array|string $bindings = [], ?string $returnType = null): array|\PDOStatement;
+
+    abstract public function row(?string $query = null, array|string $bindings = [], ?string $returnType = null): object|array|false;
 
     /**
-     * API for "SELECT ... " statement.
+     * API for "SELECT ... " statement. Raw SQL: columns, aliases and functions.
      *
-     * @param string $column1, $column2 etc ...
-     *
-     * @return object
+     *   select('id', 'name')   select(['id', 'name'])   select('COUNT(*) AS total')
      */
-    public function select()
+    public function select(string|array ...$columns): static
     {
-        $column = func_get_args();
-
-        if (!empty($column)) {
-            $this->column = $column;
-
-            if (is_array($column[0])) {
-                $this->column = $column[0];
-            }
+        if (isset($columns[0]) && is_array($columns[0])) {
+            $columns = $columns[0];
         }
+
+        $this->columns = $columns === [] ? ['*'] : array_values($columns);
 
         return $this;
     }
 
     /**
      * API for "... DISTINCT " statement.
-     *
-     * @return object
      */
-    public function distinct()
+    public function distinct(): static
     {
         $this->distinct = true;
 
@@ -84,481 +98,544 @@ abstract class Sql
     }
 
     /**
-     * API for "...FROM ... " statement.
-     *
-     * @param string $table1, $table2 etc ...
-     *
-     * @return object
+     * API for "... FROM ... " statement. Accepts aliases: from('users u').
      */
-    public function from()
+    public function from(string|array ...$tables): static
     {
-        $tables = func_get_args();
-
-        if (is_array($tables[0])) {
+        if (isset($tables[0]) && is_array($tables[0])) {
             $tables = $tables[0];
         }
 
-        $this->tables = $tables;
+        $this->tables = array_map(fn (string $table) => $this->table($table), $tables);
 
         return $this;
     }
 
     /**
-     * API for "... JOIN ..." statement.
+     * API for "... JOIN ..." statement. Call on() right after it.
      *
-     * @param string $table Table to join
-     * @param string $type  Type of join: LEFT, RIGHT, INNER
+     * @param string|null $type LEFT, RIGHT, INNER, ...
      */
-    public function join($table, $type = null)
+    public function join(string $table, ?string $type = null): static
     {
-        $this->joins = $table;
-        $this->joinsType = $type;
+        $type = strtoupper(trim((string) $type));
+
+        if (!in_array($type, self::JOIN_TYPES, true)) {
+            throw new RunException('Invalid join type: '.$type);
+        }
+
+        $this->joins[] = ['type' => $type, 'table' => $this->table($table), 'on' => []];
 
         return $this;
     }
 
     /**
-     * Create criteria condition. It use in on, where and having method.
+     * API for "... JOIN ... ON ..." statement. Compares two columns.
      *
-     * @param string $column
-     * @param string $operator
-     * @param string $value
-     * @param mix    $separator
+     *   ->join('posts p', 'LEFT')->on('p.user_id', '=', 'u.id')
      */
-    protected function createCriteria($column, $operator, $value, $separator)
+    public function on(string $column, string $operator, string $value, string|false $separator = false): static
     {
-        if (is_string($value) && $this->isQuotes) {
-            $value = $this->escape($value);
-            $value = " '$value'";
+        if ($this->joins === []) {
+            throw new RunException('Call join() before on()');
         }
 
-        $operator = strtoupper($operator);
-
-        if ($operator == 'IN') {
-            if (is_array($value)) {
-                $value = "('".implode("', '", $value)."')";
-            }
-        }
-
-        if ($operator == 'BETWEEN') {
-            $value = $value[0].' AND '.$value[1];
-        }
-
-        $return = $column.' '.$operator.' '.$value;
-
-        if ($separator) {
-            $return .= ' '.strtoupper($separator);
-        }
-
-        return $return;
-    }
-
-    /**
-     * API for "... JOIN ON..." statement.
-     *
-     * @param string $column
-     * @param string $operator
-     * @param string $value
-     * @param mix    $separator
-     */
-    public function on($column, $operator, $value, $separator = false)
-    {
-        $this->isQuotes = false;
-        $this->joinsOn[] = $this->createCriteria($column, $operator, $value, $separator);
-        $this->isQuotes = true;
+        $operator = $this->operator($operator);
+        $this->joins[array_key_last($this->joins)]['on'][] = [
+            $this->column($column).' '.$operator.' '.$this->column($value),
+            $this->separator($separator),
+            [],
+        ];
 
         return $this;
     }
 
     /**
-     * API for "... WHERE ... " statement.
+     * API for "... WHERE ... " statement. The value is always bound.
      *
-     * @param string $column    Column name
-     * @param string $operator  SQL operator string: =,<,>,<= dll
-     * @param string $value     Where value
-     * @param string $separator Such as: AND, OR
+     *   where('email', '=', $email)
+     *   where('status', 'IN', ['draft', 'published'])
+     *   where('price', 'BETWEEN', [10, 50])
+     *   where('deleted_at', '=', null)            // deleted_at IS NULL
+     *   where('a', '=', 1, 'OR')->where('b', '=', 2)
      *
-     * @return object
+     * @param string|false $separator AND / OR placed after this condition
      */
-    public function where($column, $operator, $value, $separator = false)
+    public function where(string $column, string $operator, mixed $value, string|false $separator = false): static
     {
-        if (is_string($value)) {
-            $value_arr = explode('.', $value);
-            if (count($value_arr) > 1) {
-                if (array_search($value_arr[0], $this->tables) !== false) {
-                    $this->isQuotes = false;
-                }
-            }
-        }
+        [$sql, $bindings] = $this->condition($column, $operator, $value);
+        $this->criteria[] = [$sql, $this->separator($separator), $bindings];
 
-        $this->criteria[] = $this->createCriteria($column, $operator, $value, $separator);
-        $this->isQuotes = true;
+        return $this;
+    }
+
+    /**
+     * A hand written condition, for what where() cannot express.
+     * Use "?" for values and pass them in $bindings.
+     *
+     *   whereRaw('(status = ? OR author_id = ?)', ['published', $userId])
+     */
+    public function whereRaw(string $sql, array $bindings = [], string|false $separator = false): static
+    {
+        $this->criteria[] = [$sql, $this->separator($separator), array_values($bindings)];
 
         return $this;
     }
 
     /**
      * API for "... GROUP BY ... " statement.
-     *
-     * @param string $column1, $column2 etc ...
-     *
-     * @return object
      */
-    public function groupBy()
+    public function groupBy(string ...$columns): static
     {
-        $this->groupBy = implode(', ', func_get_args());
-
-        return $this;
-    }
-
-    /**
-     * API for "... HAVING..." statement.
-     *
-     * @param string $column
-     * @param string $operator
-     * @param string $value
-     * @param mix    $separator
-     */
-    public function having($column, $operator, $value, $separator = false)
-    {
-        $this->isHaving[] = $this->createCriteria($column, $operator, $value, $separator);
-
-        return $this;
-    }
-
-    /**
-     * API for "... ORDER BY..." statement.
-     *
-     * @param string $column1, $column2 etc ...
-     *
-     * @return object
-     */
-    public function orderBy($column, $order = null)
-    {
-        $this->orderBy = $column;
-        $this->order = $order;
-
-        return $this;
-    }
-
-    /**
-     * API for "... LIMIT ..." statement.
-     *
-     * @param int
-     * @param int Optional offset value
-     *
-     * @return object
-     */
-    public function limit($limit, $offset = null)
-    {
-        $this->limit = $limit;
-        $this->offset = $offset;
-
-        return $this;
-    }
-
-    /**
-     * Build the SQL statement.
-     *
-     * @return string The complited SQL statement
-     */
-    public function command()
-    {
-        $query = 'SELECT ';
-
-        if ($this->distinct) {
-            $query .= 'DISTINCT ';
-            $this->distinct = false;
+        foreach ($columns as $column) {
+            $this->groupBy[] = $this->column($column);
         }
 
-        $column = '*';
+        return $this;
+    }
 
-        if (is_array($this->column)) {
-            $column = implode(', ', $this->column);
-            $this->column = '*';
-        }
+    /**
+     * API for "... HAVING..." statement. having('COUNT(id)', '>', 5)
+     */
+    public function having(string $column, string $operator, mixed $value, string|false $separator = false): static
+    {
+        [$sql, $bindings] = $this->condition($column, $operator, $value);
+        $this->having[] = [$sql, $this->separator($separator), $bindings];
 
-        $query .= $column;
+        return $this;
+    }
 
-        if (!empty($this->tables)) {
-            $query .= ' FROM '.implode(', ', $this->tables);
-            $this->tables = array();
-        }
-
-        if (!is_null($this->joins)) {
-            if (!is_null($this->joinsType)) {
-                $query .= ' '.strtoupper($this->joinsType);
-                $this->joinsType = null;
+    /**
+     * API for "... ORDER BY..." statement. Safe to feed with a sort parameter
+     * from the URL: anything that is not a plain column name is rejected.
+     *
+     *   orderBy('created_at', 'DESC')      orderBy('name ASC, id DESC')
+     */
+    public function orderBy(string $column, ?string $order = null): static
+    {
+        foreach (explode(',', $column) as $part) {
+            if (!preg_match('/^\s*(\S+)(?:\s+(ASC|DESC))?\s*$/i', $part, $match)) {
+                throw new RunException('Invalid ORDER BY: '.$part);
             }
 
-            $query .= ' JOIN '.$this->joins;
+            $direction = strtoupper($match[2] ?? '') ?: strtoupper(trim((string) $order));
 
-            if (!empty($this->joinsOn)) {
-                $query .= ' ON ('.implode(' ', $this->joinsOn).')';
-                $this->joinsOn = array();
+            if (!in_array($direction, ['', 'ASC', 'DESC'], true)) {
+                throw new RunException('Invalid ORDER BY direction: '.$direction);
             }
 
-            $this->joins = null;
+            $this->orderBy[] = trim($this->column($match[1]).' '.$direction);
         }
 
-        if (!empty($this->criteria)) {
-            $cr = implode(' ', $this->criteria);
-            $query .= ' WHERE '.rtrim(rtrim($cr, 'AND'), 'OR');
-            $this->criteria = array();
-        }
+        return $this;
+    }
 
-        if (!is_null($this->groupBy)) {
-            $query .= ' GROUP BY '.$this->groupBy;
-            $this->groupBy = null;
-        }
+    /**
+     * API for "... LIMIT ... OFFSET ..." statement.
+     */
+    public function limit(int $limit, ?int $offset = null): static
+    {
+        $this->limit = max(0, $limit);
+        $this->offset = $offset === null ? null : max(0, $offset);
 
-        if (!empty($this->isHaving)) {
-            $query .= ' HAVING '.implode(' ', $this->isHaving);
-            $this->isHaving = array();
-        }
+        return $this;
+    }
 
-        if (!is_null($this->orderBy)) {
-            $query .= ' ORDER BY '.$this->orderBy.' '.strtoupper($this->order);
-            $this->orderBy = null;
-        }
+    /**
+     * Build the SELECT statement and return its SQL (with "?" placeholders).
+     * The values are kept and used by the next query() with the same SQL.
+     */
+    public function command(): string
+    {
+        [$this->compiledSql, $this->compiledBindings] = $this->compileSelect();
 
-        if (!is_null($this->limit)) {
-            $query .= ' LIMIT '.$this->limit;
-
-            if (!is_null($this->offset)) {
-                $query .= ' OFFSET '.$this->offset;
-                $this->offset = null;
-            }
-
-            $this->limit = null;
-        }
-
-	$this->returnType = 'object';
-
-        return $query;
+        return $this->compiledSql;
     }
 
     /**
      * Flag to get return type. The options is: object, array and iterator.
-     *
-     * @param string $returnType
-     *
-     * @return object
      */
-    public function fetchAs($returnType = 'object')
+    public function fetchAs(string $returnType = 'object'): static
     {
+        if (!in_array($returnType, ['object', 'array', 'iterator'], true)) {
+            throw new RunException('fetchAs() accepts object, array or iterator');
+        }
+
         $this->returnType = $returnType;
 
         return $this;
     }
 
     /**
-     * Previously called get_results.
+     * Get many rows.
      *
-     * @since Version 0.3.1
-     *
-     * @param mix
-     * @param array
-     * @param array
-     *
-     * @return object
+     *   getAll('users', ['status' => 'active'], ['id', 'name'])
+     *   select('id')->from('users')->where('id', '>', 10)->getAll()
      */
-    public function getAll($table = false, $where = array(), $fields = array(), $returnType = false)
+    public function getAll(string|false|null $table = null, array $where = [], array|string $fields = [], string|false|null $returnType = null): array|\PDOStatement
     {
-        if (!$table) {
-	    $result = $this->results($this->command());
-            $this->returnType = 'object';
-            
-            return $result;
-        }
-
         if ($returnType) {
-            $this->returnType = $returnType;
+            $this->fetchAs($returnType);
         }
 
-        $column = '*';
+        if ($table) {
+            $this->select($fields ?: '*')->from($table);
 
-        if (!empty($fields)) {
-            $column = $fields;
-        }
-
-        $this->select($column)->from($table);
-
-        if (!empty($where)) {
-            foreach ($where as $key => $val) {
-                $this->where($key, '=', $val, 'AND');
+            foreach ($where as $column => $value) {
+                $this->where((string) $column, '=', $value, 'AND');
             }
         }
 
-        return $this->getAll();
+        return $this->results();
     }
 
     /**
-     * Previously called get_row.
-     *
-     * @since Version 0.3.1
-     *
-     * @param mix
-     * @param array
-     * @param array
-     *
-     * @return object
+     * Get one row (or false).
      */
-    public function getOne($table = false, $where = array(), $fields = array(), $returnType = false)
+    public function getOne(string|false|null $table = null, array $where = [], array|string $fields = [], string|false|null $returnType = null): object|array|false
     {
-        if (!$table) {
-	    $row = $this->row($this->command());
-            $this->returnType = 'object';
-
-            return $row;
-        }
-
         if ($returnType) {
-            $this->returnType = $returnType;
+            $this->fetchAs($returnType);
         }
 
-        $column = '*';
+        if ($table) {
+            $this->select($fields ?: '*')->from($table);
 
-        if (!empty($fields)) {
-            $column = $fields;
-        }
-
-        $this->select($column)->from($table);
-
-        if (!empty($where)) {
-            foreach ($where as $key => $val) {
-                $this->where($key, '=', $val, 'AND');
+            foreach ($where as $column => $value) {
+                $this->where((string) $column, '=', $value, 'AND');
             }
         }
 
-        return $this->getOne();
+        if ($this->limit === null && $this->tables !== []) {
+            $this->limit(1);
+        }
+
+        return $this->row();
     }
 
     /**
-     * Get value directly from single field. Previusly called get_var().
+     * Value of the first column of the first row, or null.
      *
-     * @since Version 0.3.1
-     *
-     * @param string @query
-     *
-     * @return string|int Depen on it record value.
+     *   select('COUNT(*)')->from('users')->getVar()
      */
-    public function getVar($query = null)
+    public function getVar(?string $query = null, array $bindings = []): mixed
     {
-        if (is_null($query)) {
-            $query = $this->command();
-        }
+        $row = $this->query($query ?? $this->command(), $bindings)->fetch(\PDO::FETCH_NUM);
 
-        $result = $this->row($query);
-        $key = array_keys(get_object_vars($result));
-
-        return $result->$key[0];
+        return $row === false ? null : $row[0];
     }
 
     /**
-     * Abstraction for insert.
-     *
-     * @param string $table
-     * @param array  $data
-     *
-     * @return bool
+     * INSERT INTO table (a, b) VALUES (?, ?)
      */
-    public function insert($table, $data = array())
+    public function insert(string $table, array $data = []): bool
     {
-        $fields = array_keys($data);
-
-        foreach ($data as $key => $val) {
-            $escaped_date[$key] = $this->escape($val);
+        if ($data === []) {
+            throw new RunException('insert() needs at least one column');
         }
 
-        return $this->query("INSERT INTO $table (".implode(',', $fields).") VALUES ('".implode("','", $escaped_date)."')");
+        $columns = array_map(fn ($column) => $this->column((string) $column, false), array_keys($data));
+
+        $this->query(
+            'INSERT INTO '.$this->table($table, false).' ('.implode(', ', $columns).') VALUES ('.$this->placeholders(count($data)).')',
+            array_values($data)
+        );
+
+        return true;
     }
 
     /**
-     * Abstraction for update.
+     * UPDATE table SET a = ? WHERE ...
      *
-     * @param string $table
-     * @param array  $dat
-     * @param array  $where
-     *
-     * @return bool
+     *   update('users', ['name' => $name], ['id' => $id])
+     *   where('id', '=', $id)->update('users', ['name' => $name])
      */
-    public function update($table, $dat, $where = null)
+    public function update(string $table, array $data, ?array $where = null): bool
     {
-        foreach ($dat as $key => $val) {
-            $data[$key] = $this->escape($val);
+        if ($data === []) {
+            throw new RunException('update() needs at least one column');
         }
 
-        $bits = $wheres = array();
-        foreach ((array) array_keys($data) as $k) {
-            $bits[] = "$k = '$data[$k]'";
+        $set = [];
+
+        foreach (array_keys($data) as $column) {
+            $set[] = $this->column((string) $column, false).' = ?';
         }
 
-        if (!empty($this->criteria)) {
-            $criteria = implode(' ', $this->criteria);
-            unset($this->criteria);
-        } elseif (is_array($where)) {
-            foreach ($where as $c => $v) {
-                $wheres[] = "$c = '".$this->escape($v)."'";
-            }
+        [$whereSql, $whereBindings] = $this->writeCondition('update', $where);
 
-            $criteria = implode(' AND ', $wheres);
-        } else {
-            return false;
-        }
+        $this->query(
+            'UPDATE '.$this->table($table, false).' SET '.implode(', ', $set).' WHERE '.$whereSql,
+            [...array_values($data), ...$whereBindings]
+        );
 
-        return $this->query("UPDATE $table SET ".implode(', ', $bits).' WHERE '.$criteria);
+        return true;
     }
 
     /**
-     * Abstraction for delete.
-     *
-     * @param string
-     * @param array
-     *
-     * @return bool
+     * DELETE FROM table WHERE ...
      */
-    public function delete($table, $where = null)
+    public function delete(string $table, ?array $where = null): bool
     {
-        if (!empty($this->criteria)) {
-            $criteria = implode(' ', $this->criteria);
-            unset($this->criteria);
-        } elseif (is_array($where)) {
-            foreach ($where as $c => $v) {
-                $wheres[] = "$c = '".$this->escape($v)."'";
-            }
+        [$whereSql, $whereBindings] = $this->writeCondition('delete', $where);
 
-            $criteria = implode(' AND ', $wheres);
-        } else {
-            return false;
-        }
+        $this->query('DELETE FROM '.$this->table($table, false).' WHERE '.$whereSql, $whereBindings);
 
-        return $this->query("DELETE FROM $table WHERE ".$criteria);
+        return true;
     }
 
     /**
-     * Print the error.
-     *
-     * @return string
+     * Get last query (with "?" placeholders).
      */
-    protected function printError()
-    {
-        if ($caller = \Resources\RunException::getErrorCaller(5)) {
-            $error_str = sprintf('Database error %1$s for query %2$s made by %3$s', $this->lastError, $this->lastQuery, $caller);
-        } else {
-            $error_str = sprintf('Database error %1$s for query %2$s', $this->lastError, $this->lastQuery);
-        }
-
-        \Resources\RunException::outputError($error_str);
-    }
-
-    /**
-     * Get last query.
-     *
-     * @return string
-     */
-    public function getLastQuery()
+    public function getLastQuery(): string
     {
         return $this->lastQuery;
+    }
+
+    /**
+     * Values bound to the last query.
+     */
+    public function getLastBindings(): array
+    {
+        return $this->lastBindings;
+    }
+
+    /**
+     * @deprecated Errors are always thrown as RunException since PHP 8 support.
+     */
+    public function setThrowError(bool $set = false): void
+    {
+    }
+
+    /**
+     * Turns the SELECT parts into [sql, bindings] and empties the builder.
+     */
+    protected function compileSelect(): array
+    {
+        $sql = 'SELECT '.($this->distinct ? 'DISTINCT ' : '').implode(', ', $this->columns);
+        $bindings = [];
+
+        if ($this->tables !== []) {
+            $sql .= ' FROM '.implode(', ', $this->tables);
+        }
+
+        foreach ($this->joins as $join) {
+            $sql .= ' '.ltrim($join['type'].' JOIN ').$join['table'];
+
+            if ($join['on'] !== []) {
+                $sql .= ' ON ('.$this->conditions($join['on'])[0].')';
+            }
+        }
+
+        if ($this->criteria !== []) {
+            [$where, $bindings] = $this->conditions($this->criteria);
+            $sql .= ' WHERE '.$where;
+        }
+
+        if ($this->groupBy !== []) {
+            $sql .= ' GROUP BY '.implode(', ', $this->groupBy);
+        }
+
+        if ($this->having !== []) {
+            [$having, $havingBindings] = $this->conditions($this->having);
+            $sql .= ' HAVING '.$having;
+            $bindings = [...$bindings, ...$havingBindings];
+        }
+
+        if ($this->orderBy !== []) {
+            $sql .= ' ORDER BY '.implode(', ', $this->orderBy);
+        }
+
+        if ($this->limit !== null) {
+            $sql .= ' LIMIT '.$this->limit.($this->offset !== null ? ' OFFSET '.$this->offset : '');
+        }
+
+        $this->reset();
+
+        return [$sql, $bindings];
+    }
+
+    /**
+     * When query() receives the SQL just built by command(), reuse its values.
+     */
+    protected function takeBindings(string $sql, array $bindings): array
+    {
+        if ($bindings === [] && $sql === $this->compiledSql) {
+            $bindings = $this->compiledBindings;
+        }
+
+        $this->compiledSql = null;
+        $this->compiledBindings = [];
+
+        return $bindings;
+    }
+
+    /**
+     * Read the requested return type once, then go back to the default.
+     */
+    protected function consumeReturnType(?string $returnType): string
+    {
+        if ($returnType) {
+            $this->fetchAs($returnType);
+        }
+
+        $type = $this->returnType;
+        $this->returnType = 'object';
+
+        return $type;
+    }
+
+    protected function reset(): void
+    {
+        $this->columns = ['*'];
+        $this->distinct = false;
+        $this->tables = $this->joins = $this->criteria = $this->groupBy = $this->having = $this->orderBy = [];
+        $this->limit = $this->offset = null;
+    }
+
+    /**
+     * @return array{0: string, 1: array}
+     */
+    private function condition(string $column, string $operator, mixed $value): array
+    {
+        $column = $this->column($column);
+        $operator = $this->operator($operator);
+
+        // Old Panada code wrote where('col', 'IS', 'NULL').
+        if (($operator === 'IS' || $operator === 'IS NOT') && is_string($value) && strtoupper($value) === 'NULL') {
+            $value = null;
+        }
+
+        if ($value === null) {
+            return match ($operator) {
+                '=', 'IS' => [$column.' IS NULL', []],
+                '!=', '<>', 'IS NOT' => [$column.' IS NOT NULL', []],
+                default => throw new RunException('NULL can only be used with =, !=, IS or IS NOT'),
+            };
+        }
+
+        if ($operator === 'IN' || $operator === 'NOT IN') {
+            $values = array_values(is_array($value) ? $value : [$value]);
+
+            if ($values === []) {
+                return [$operator === 'IN' ? '1 = 0' : '1 = 1', []];
+            }
+
+            return [$column.' '.$operator.' ('.$this->placeholders(count($values)).')', $values];
+        }
+
+        if ($operator === 'BETWEEN' || $operator === 'NOT BETWEEN') {
+            if (!is_array($value) || count($value) !== 2) {
+                throw new RunException($operator.' needs an array with two values');
+            }
+
+            return [$column.' '.$operator.' ? AND ?', array_values($value)];
+        }
+
+        if (is_array($value)) {
+            throw new RunException('Operator '.$operator.' expects one value, array given');
+        }
+
+        return [$column.' '.$operator.' ?', [$value]];
+    }
+
+    /**
+     * Join conditions with their AND / OR separators.
+     *
+     * @return array{0: string, 1: array}
+     */
+    private function conditions(array $conditions): array
+    {
+        $sql = '';
+        $bindings = [];
+
+        foreach (array_values($conditions) as $i => [$condition, $separator, $values]) {
+            $sql .= $i === 0 ? $condition : ' '.$conditions[$i - 1][1].' '.$condition;
+            array_push($bindings, ...$values);
+        }
+
+        return [$sql, $bindings];
+    }
+
+    /**
+     * WHERE part for update() and delete(): conditions from where(), or the
+     * $where array. Refuses to touch the whole table by accident.
+     *
+     * @return array{0: string, 1: array}
+     */
+    private function writeCondition(string $action, ?array $where): array
+    {
+        if ($this->criteria === [] && $where) {
+            foreach ($where as $column => $value) {
+                $this->where((string) $column, '=', $value, 'AND');
+            }
+        }
+
+        if ($this->criteria === []) {
+            throw new RunException($action.'() without a WHERE condition is refused. Use whereRaw(\'1 = 1\') if you really mean every row.');
+        }
+
+        $result = $this->conditions($this->criteria);
+        $this->reset();
+
+        return $result;
+    }
+
+    private function operator(string $operator): string
+    {
+        $operator = strtoupper(trim(preg_replace('/\s+/', ' ', $operator)));
+
+        if (!in_array($operator, self::OPERATORS, true)) {
+            throw new RunException('Invalid SQL operator: '.$operator);
+        }
+
+        return $operator;
+    }
+
+    private function separator(string|false $separator): string
+    {
+        $separator = $separator === false ? 'AND' : strtoupper(trim($separator));
+
+        if ($separator !== 'AND' && $separator !== 'OR') {
+            throw new RunException('Separator must be AND or OR');
+        }
+
+        return $separator;
+    }
+
+    /**
+     * A column name: name, table.name, * or an aggregate like COUNT(id).
+     */
+    private function column(string $column, bool $allowAggregate = true): string
+    {
+        $column = trim($column);
+
+        if (preg_match(self::IDENTIFIER, $column) || ($allowAggregate && preg_match(self::AGGREGATE, $column))) {
+            return $column;
+        }
+
+        throw new RunException('Invalid column name: '.$column);
+    }
+
+    /**
+     * A table name with an optional alias: "users", "users u", "users AS u".
+     */
+    private function table(string $table, bool $allowAlias = true): string
+    {
+        $table = trim(preg_replace('/\s+/', ' ', $table));
+        $pattern = $allowAlias
+            ? '/^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?(?: (?:AS )?[A-Za-z_][A-Za-z0-9_]*)?$/i'
+            : '/^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?$/';
+
+        if (!preg_match($pattern, $table)) {
+            throw new RunException('Invalid table name: '.$table);
+        }
+
+        return $table;
+    }
+
+    private function placeholders(int $count): string
+    {
+        return implode(', ', array_fill(0, $count, '?'));
     }
 }

@@ -12,6 +12,11 @@
  */
 namespace Resources;
 
+/**
+ * Columns become properties of the model object, so dynamic properties are
+ * allowed here on purpose (PHP 8.2+ needs this attribute).
+ */
+#[\AllowDynamicProperties]
 class ActiveRecord
 {
     // Define the constants for db relations.
@@ -40,8 +45,6 @@ class ActiveRecord
 
     public function __construct()
     {
-        $this->cache = new Cache('default', 'Dummy');
-
         // get passed arguments
         $args = func_get_args();
 
@@ -127,7 +130,6 @@ class ActiveRecord
                 $this->fields['db'],
                 $this->fields['primaryKey'],
                 $this->fields['setInstantiateClass'],
-                $this->fields['cache'],
                 $this->fields['modulPrefix']
             );
         }
@@ -193,8 +195,6 @@ class ActiveRecord
     {
         $args = func_get_args();
         $total = count($args);
-        $cacheKey = 'select'.$this->select.$this->table;
-
         $this->db->select($this->select)->from($this->table);
 
         if ($this->setInstantiateClass) {
@@ -203,13 +203,6 @@ class ActiveRecord
 
         // A condition where primary key used for condition. It instead only 1 row result.
         if ($total == 1) {
-            $cacheKey .= $this->primaryKey.'='.$args[0];
-            $cacheKey = md5($cacheKey);
-
-            if ($cached = $this->cache->getValue($cacheKey)) {
-                return $cached;
-            }
-
             if (!$return = $this->db->where($this->primaryKey, '=', $args[0])->getOne()) {
                 return false;
             }
@@ -218,8 +211,6 @@ class ActiveRecord
                 $this->$key = $val;
             }
 
-            $this->cache->setValue($cacheKey, $return);
-
             $this->setInstantiateClass = false;
 
             return $return;
@@ -227,16 +218,7 @@ class ActiveRecord
 
         // Condition for IN criteria.
         if ($total > 1) {
-            $cacheKey .= $this->primaryKey.'IN'.http_build_query($args);
-            $cacheKey = md5($cacheKey);
-
-            if ($cached = $this->cache->getValue($cacheKey)) {
-                return $cached;
-            }
-
             $return = $this->db->where($this->primaryKey, 'IN', $args)->getAll();
-
-            $this->cache->setValue($cacheKey, $return);
 
             $this->setInstantiateClass = false;
 
@@ -245,44 +227,23 @@ class ActiveRecord
 
         // Its time for user defined condition implementation.
         if (!empty($this->condition)) {
-            foreach ($this->condition as $condition) {
-                if (is_array($condition[2])) {
-                    $cacheKey .= $condition[0].$condition[1].http_build_query($condition[2]).$condition[3];
-                } else {
-                    $cacheKey .= $condition[0].$condition[1].$condition[2].$condition[3];
-                }
-
-                $this->db->where($condition[0], $condition[1], $condition[2], $condition[3]);
-            }
-
-            unset($this->condition);
+            $this->applyConditions();
         }
 
         if (!empty($this->groupBy)) {
-            $cacheKey .= http_build_query($this->groupBy);
             call_user_func_array(array($this->db, 'groupBy'), $this->groupBy);
         }
 
         // Set order if user defined it
         if (!is_null($this->orderBy)) {
-            $cacheKey .= $this->orderBy.$this->order;
             $this->db->orderBy($this->orderBy, $this->order);
         }
 
         if (!is_null($this->limit)) {
-            $cacheKey .= $this->limit.$this->offset;
             $this->db->limit($this->limit, $this->offset);
         }
 
-        $cacheKey = md5($cacheKey);
-
-        if ($cached = $this->cache->getValue($cacheKey)) {
-            return $cached;
-        }
-
         $return = $this->db->getAll();
-
-        $this->cache->setValue($cacheKey, $return);
 
         $this->setInstantiateClass = false;
 
@@ -300,11 +261,7 @@ class ActiveRecord
     public function delete($args = null)
     {
         if (!empty($this->condition)) {
-            foreach ($this->condition as $condition) {
-                $this->db->where($condition[0], $condition[1], $condition[2], $condition[3]);
-            }
-
-            unset($this->condition);
+            $this->applyConditions();
             $condition = null;
         } elseif (is_array($args)) {
             $condition = $args;
@@ -326,11 +283,7 @@ class ActiveRecord
     public function update($args = null)
     {
         if (!empty($this->condition)) {
-            foreach ($this->condition as $condition) {
-                $this->db->where($condition[0], $condition[1], $condition[2], $condition[3]);
-            }
-
-            unset($this->condition);
+            $this->applyConditions();
             $condition = null;
         } elseif (is_array($args)) {
             $condition = $args;
@@ -361,6 +314,39 @@ class ActiveRecord
         $this->condition[] = $args;
 
         return $this;
+    }
+
+    /**
+     * Compare two columns (values are always bound, so where() cannot do this).
+     */
+    public function conditionColumns($left, $right)
+    {
+        foreach ([$left, $right] as $column) {
+            if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $column)) {
+                throw new RunException('Invalid column name: '.$column);
+            }
+        }
+
+        $this->condition[] = array('raw', $left.' = '.$right);
+
+        return $this;
+    }
+
+    /**
+     * Pass the stored conditions to the query builder.
+     */
+    private function applyConditions()
+    {
+        foreach ($this->condition as $condition) {
+            if ($condition[0] === 'raw') {
+                $this->db->whereRaw($condition[1]);
+                continue;
+            }
+
+            $this->db->where($condition[0], $condition[1], $condition[2], $condition[3]);
+        }
+
+        $this->condition = array();
     }
 
     /**
@@ -437,49 +423,31 @@ class ActiveRecord
      */
     public function __call($name, $arguments = array())
     {
-        $cacheKey = 'select'.$this->select.$this->table;
         $this->db->select($this->select)->from($this->table);
 
         if ($name == 'first') {
-            $cacheKey .= $this->primaryKey.'ASC';
-
             return $this->db->orderBy($this->primaryKey, 'ASC')->limit(1)->getOne();
         }
 
         if ($name == 'last') {
-            $cacheKey .= $this->primaryKey.'DESC';
-
             return $this->db->orderBy($this->primaryKey, 'DESC')->limit(1)->getOne();
         }
 
         $splitedName = substr($name, 5, strlen($name));
 
         if ($splitedName) {
-            try {
-                if (empty($arguments)) {
-                    throw new RunException('getBy<b>'.$splitedName.'</b>() in Active Record method expects 1 parameter and you dont given anything yet.');
-                }
-            } catch (RunException $e) {
-                $arr = $e->getTrace();
-                RunException::outputError($e->getMessage(), $arr[1]['file'], $arr[1]['line']);
+            if (empty($arguments)) {
+                throw new RunException('getBy'.$splitedName.'() in Active Record method expects 1 parameter and you dont given anything yet.');
             }
 
-            $cacheKey .= $splitedName.'='.$arguments[0];
             $this->db->where($splitedName, '=', $arguments[0]);
 
             if (!is_null($this->limit)) {
-                $cacheKey .= $this->limit.$this->offset;
                 $this->db->limit($this->limit, $this->offset);
             }
 
             if ($this->setInstantiateClass) {
                 $this->db->instantiateClass = $this->setInstantiateClass;
-            }
-
-            $cacheKey = md5($cacheKey);
-
-            if ($cached = $this->cache->getValue($cacheKey)) {
-                return $cached;
             }
 
             if (!$results = $this->db->getAll()) {
@@ -492,12 +460,8 @@ class ActiveRecord
                 $pk = $this->primaryKey;
                 $this->$pk = $results[0]->$pk;
 
-                $this->cache->setValue($cacheKey, $results[0]);
-
                 return $results[0];
             }
-
-            $this->cache->setValue($cacheKey, $results);
 
             return $results;
         }
@@ -538,7 +502,7 @@ class ActiveRecord
                 if ($relations[0] == 1) {
                     $name->limit(1);
 
-                    return $name->$findBy($this->$relations[2]);
+                    return $name->$findBy($this->{$relations[2]});
                 } elseif ($relations[0] == 2) {
                     $findBy = 'getBy'.$relations[2];
                     $pk = $this->primaryKey;
@@ -557,7 +521,7 @@ class ActiveRecord
                     $name->select($relations[1].'.*');
                     $name->from($relations[2][0]);
                     $name->condition($relations[2][0].'.'.$relations[2][2], '=', $this->$pk, 'AND');
-                    $name->condition($relations[2][0].'.'.$relations[2][1], '=', $relations[1].'.'.$name->primaryKey, 'AND');
+                    $name->conditionColumns($relations[2][0].'.'.$relations[2][1], $relations[1].'.'.$name->primaryKey);
 
                     return $name;
                 }

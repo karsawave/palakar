@@ -1,6 +1,8 @@
 <?php
 
-declare(strict_types=1);
+// No strict_types here on purpose: this class forwards calls coming from
+// your code (or from URL segments, which are always strings), so it must not
+// change the typing mode the caller is used to.
 
 /**
  * Properties Loader: the object behind $this->model->name().
