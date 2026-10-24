@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada Active Record API.
  *
@@ -10,11 +12,34 @@
  *
  * @since	Version 0.3
  */
+
 namespace Resources;
 
 /**
- * Columns become properties of the model object, so dynamic properties are
- * allowed here on purpose (PHP 8.2+ needs this attribute).
+ * One table as a class. Columns become properties of the object, so dynamic
+ * properties are allowed here on purpose.
+ *
+ *   namespace Models;
+ *
+ *   class Users extends \Resources\ActiveRecord
+ *   {
+ *       protected $table = 'users';      // default: the class name in lower case
+ *   }
+ *
+ *   $user = new \Models\Users();
+ *   $user->name = 'Budi';
+ *   $user->save();                       // INSERT, then $user->id is set
+ *   $user->name = 'Budi Santoso';
+ *   $user->save();                       // UPDATE users SET ... WHERE id = ?
+ *
+ *   $user->condition('score', '>', 10)->order('score', 'DESC')->limit(5)->get();
+ *   $user->getByEmail($email);
+ *
+ * Every value goes through the query builder, so it is always bound.
+ *
+ * $table, $connection, $primaryKey and the public methods have no declared
+ * types: models redeclare them without types, which PHP refuses when the
+ * parent declares one.
  */
 #[\AllowDynamicProperties]
 class ActiveRecord
@@ -26,304 +51,161 @@ class ActiveRecord
         HAS_MANY = 3,
         MANY_MANY = 4;
 
-    protected $db,
-        $table,
-        $connection = 'default',
-        $setInstantiateClass = false;
+    protected Database $db;
+    protected $table;
+    protected $connection = 'default';
 
-    private $fields = array(),
-        $condition = array(),
-        $limit = null,
-        $offset = null,
-        $select = '*',
-        $orderBy = null,
-        $order = null,
-        $groupBy = array(),
-        $modulPrefix = null;
+    /** Class the rows are fetched into, so relations also work on them. */
+    protected $setInstantiateClass = false;
 
     public $primaryKey = 'id';
 
+    /** Values passed to save() or the constructor, instead of the properties. */
+    private array $fields = [];
+
+    // Parts of the next query. They are emptied as soon as it runs.
+    private array $condition = [];
+    private array $from = [];
+    private string|array $select = '*';
+    private ?string $orderBy = null;
+    private ?string $order = null;
+    private ?int $limit = null;
+    private ?int $offset = null;
+    private array $groupBy = [];
+
+    private string $modulPrefix = '';
+
+    /**
+     *   new Users()                       'default' connection
+     *   new Users('pg')                   another connection
+     *   new Users(['name' => 'Budi'])     INSERT right away (UPDATE when the primary key is given)
+     */
     public function __construct()
     {
-        // get passed arguments
         $args = func_get_args();
+        $data = [];
 
-        // New data that willing to save.
-        $newData = array();
-
-        // If first argument is set, it could be string or array data type.
-        if (isset($args[0]) && !empty($args[0])) {
+        if (!empty($args[0])) {
             if (is_array($args[0])) {
-                $newData = $args[0];
-
-                // we got a primaryKey with value, si it should be update operation
-                if (isset($newData[$this->primaryKey])) {
-                    $primaryKey = $this->primaryKey;
-                    $this->$primaryKey = $newData[$this->primaryKey];
-                }
+                $data = $args[0];
             } else {
                 $this->connection = $args[0];
             }
 
-            // If second argument are set, its a db connection name.
             if (isset($args[1])) {
                 $this->connection = $args[1];
             }
         }
 
-        $getClass           = get_class($this);
-        $splitedClassName   = explode('\\', $getClass);
-        $childClassName     = end($splitedClassName);
+        $class = explode('\\', static::class);
+        $this->table ??= strtolower(end($class));
+        $this->db = new Database($this->connection);
 
-        // Get table name from model class name.
-        $this->table    = strtolower($childClassName);
-
-        // Initeate db connection
-        $this->db       = new Database($this->connection);
-
-        // We'll gonna save new data if $newData not empty.
-        if (!empty($newData)) {
-            $this->fields = $newData;
-
-            return $this->save();
+        if ($class[0] === 'Modules') {
+            $this->modulPrefix = $class[0].'\\'.$class[1].'\\';
         }
 
-        if ($relations = $this->relations()) {
-            $childClassName = 'Models\\'.$childClassName;
+        if ($this->setInstantiateClass === false && $this->relations()) {
+            $this->setInstantiateClass = static::class;
+        }
 
-            if ($splitedClassName[0] == 'Modules') {
-                $childClassName = $getClass;
-                $this->modulPrefix = $splitedClassName[0].'\\'.$splitedClassName[1].'\\';
+        if ($data !== []) {
+            if (isset($data[$this->primaryKey])) {
+                $this->{$this->primaryKey} = $data[$this->primaryKey];
             }
 
-            foreach ($relations as $relations) {
-                if ($relations[0] == 1 || $relations[0] == 4) {
-                    $this->setInstantiateClass = $childClassName;
-                }
-            }
+            $this->save($data);
         }
     }
 
     /**
-     * Return the fields and the value for insert
-     * to db.
+     * INSERT a new record, or UPDATE it when the primary key is known.
      *
-     * @return array
-     */
-    private function getFields()
-    {
-        if (empty($this->fields)) {
-            $this->fields = get_object_vars($this);
-
-            unset(
-                $this->fields['table'],
-                $this->fields['condition'],
-                $this->fields['limit'],
-                $this->fields['offset'],
-                $this->fields['select'],
-                $this->fields['orderBy'],
-                $this->fields['order'],
-                $this->fields['groupBy'],
-                $this->fields['classVars'],
-                $this->fields['connection'],
-                $this->fields['fields'],
-                $this->fields['db'],
-                $this->fields['primaryKey'],
-                $this->fields['setInstantiateClass'],
-                $this->fields['modulPrefix']
-            );
-        }
-
-        return !empty($this->fields) ? $this->fields : array();
-    }
-
-    public function from($tables)
-    {
-        if (is_string($tables)) {
-            $this->table = array($this->table, $tables);
-
-            return;
-        }
-
-        if (is_array($tables)) {
-            $tables[] = $this->table;
-            $this->table = $tables;
-
-            return;
-        }
-    }
-
-    /**
-     * Saving new record to db.
-     *
-     * @return booelan
+     * @return mixed the new id after an INSERT, true after an UPDATE
      */
     public function save($data = false)
     {
-        if ($data && is_array($data)) {
+        if (is_array($data) && $data !== []) {
             $this->fields = $data;
         }
 
-        $primaryKey = $this->primaryKey;
+        $fields = $this->getFields();
+        $pk = $this->primaryKey;
 
-        if (isset($this->$primaryKey)) {
-            $return = $this->db->update($this->table, $this->getFields(), array($this->primaryKey => $this->$primaryKey));
-            $this->fields = array();
-
-            return $return;
+        if (isset($this->$pk)) {
+            return $this->db->update($this->table, $fields, [$pk => $this->$pk]);
         }
 
-        if ($this->db->insert($this->table, $this->getFields())) {
-            $insert_id = $this->db->insertId();
-            $this->fields = array();
+        $this->db->insert($this->table, $fields);
 
-            return $insert_id;
-        }
-
-        return false;
+        // Remember the id, so the next save() updates this same record.
+        return $this->$pk = $this->db->insertId();
     }
 
     /**
-     * Get records from db.
+     * get()          every row matching condition(), order(), limit() ...
+     * get(5)         one row by primary key, also copied into this object
+     * get(1, 2, 3)   rows whose primary key is in the list
      *
-     * @param array $where
-     * @param int   $limit
-     *
-     * @return object if true else false
+     * @return mixed array of rows, or one row / false for a single id
      */
     public function get()
     {
-        $args = func_get_args();
-        $total = count($args);
-        $this->db->select($this->select)->from($this->table);
+        $ids = func_get_args();
+        $db = $this->buildQuery();
 
-        if ($this->setInstantiateClass) {
-            $this->db->instantiateClass = $this->setInstantiateClass;
-        }
+        if (count($ids) === 1) {
+            $row = $db->where($this->primaryKey, '=', $ids[0])->getOne();
 
-        // A condition where primary key used for condition. It instead only 1 row result.
-        if ($total == 1) {
-            if (!$return = $this->db->where($this->primaryKey, '=', $args[0])->getOne()) {
-                return false;
+            if ($row) {
+                $this->fill($row);
             }
 
-            foreach (get_object_vars($return) as $key => $val) {
-                $this->$key = $val;
-            }
-
-            $this->setInstantiateClass = false;
-
-            return $return;
+            return $row;
         }
 
-        // Condition for IN criteria.
-        if ($total > 1) {
-            $return = $this->db->where($this->primaryKey, 'IN', $args)->getAll();
-
-            $this->setInstantiateClass = false;
-
-            return $return;
+        if ($ids !== []) {
+            $db->where($this->primaryKey, 'IN', $ids);
         }
 
-        // Its time for user defined condition implementation.
-        if (!empty($this->condition)) {
-            $this->applyConditions();
-        }
-
-        if (!empty($this->groupBy)) {
-            call_user_func_array(array($this->db, 'groupBy'), $this->groupBy);
-        }
-
-        // Set order if user defined it
-        if (!is_null($this->orderBy)) {
-            $this->db->orderBy($this->orderBy, $this->order);
-        }
-
-        if (!is_null($this->limit)) {
-            $this->db->limit($this->limit, $this->offset);
-        }
-
-        $return = $this->db->getAll();
-
-        $this->setInstantiateClass = false;
-
-        return $return;
+        return $db->getAll();
     }
 
     /**
-     * Delete record base on $args or $this->condition var
-     * Criteria.
-     *
-     * @param mix $args
-     *
-     * @return bool
+     * Delete by condition(), by an id or array of columns, or the loaded record.
      */
     public function delete($args = null)
     {
-        $condition = null;
-
-        if (!empty($this->condition)) {
-            $this->applyConditions();
-            $condition = null;
-        } elseif (is_array($args)) {
-            $condition = $args;
-        } elseif (!is_null($args)) {
-            $condition = array($this->primaryKey => $args);
-        }
-
-        return $this->db->delete($this->table, $condition);
+        return $this->db->delete($this->table, $this->writeWhere($args));
     }
 
     /**
-     * Update recored without assigning the values
-     * into class properties.
-     *
-     * @param mix $args
-     *
-     * @return bool
+     * Update by condition(), by an id or array of columns, or the loaded
+     * record, with the values of the properties (or of save()'s fields).
      */
     public function update($args = null)
     {
-        $condition = null;
+        $where = $this->writeWhere($args);
 
-        if (!empty($this->condition)) {
-            $this->applyConditions();
-            $condition = null;
-        } elseif (is_array($args)) {
-            $condition = $args;
-        } elseif (!is_null($args)) {
-            $condition = array($this->primaryKey => $args);
-        }
-
-        return $this->db->update(
-                            $this->table,
-                            $this->getFields(),
-                            $condition
-                        );
+        return $this->db->update($this->table, $this->getFields(), $where);
     }
 
     /**
-     * Set condition.
+     * condition('score', '>', 10)->condition('city', '=', 'Bandung')
      *
-     * @param string $column
-     * @param string $operator
-     * @param string $value
-     * @param mix    $separator
-     *
-     * @return object
+     * @param string|false $separator AND / OR placed after this condition
      */
-    public function condition($column, $operator, $value, $separator = false)
+    public function condition(string $column, string $operator, mixed $value, string|false $separator = false)
     {
-        $args = array($column, $operator, $value, $separator);
-        $this->condition[] = $args;
+        $this->condition[] = [$column, $operator, $value, $separator];
 
         return $this;
     }
 
     /**
-     * Compare two columns (values are always bound, so where() cannot do this).
+     * Compare two columns (values are always bound, so condition() cannot).
      */
-    public function conditionColumns($left, $right)
+    public function conditionColumns(string $left, string $right)
     {
         foreach ([$left, $right] as $column) {
             if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $column)) {
@@ -331,37 +213,25 @@ class ActiveRecord
             }
         }
 
-        $this->condition[] = array('raw', $left.' = '.$right);
+        $this->condition[] = [$left.' = '.$right];
 
         return $this;
     }
 
     /**
-     * Pass the stored conditions to the query builder.
+     * Extra tables for the next query, next to this model's table.
      */
-    private function applyConditions()
+    public function from(string|array $tables)
     {
-        foreach ($this->condition as $condition) {
-            if ($condition[0] === 'raw') {
-                $this->db->whereRaw($condition[1]);
-                continue;
-            }
+        $this->from = [...$this->from, ...(array) $tables];
 
-            $this->db->where($condition[0], $condition[1], $condition[2], $condition[3]);
-        }
-
-        $this->condition = array();
+        return $this;
     }
 
     /**
-     * Short the results.
-     *
-     * @param string $column
-     * @param string $order  ASC | DESC
-     *
-     * @return object
+     * @param string|null $order ASC | DESC
      */
-    public function order($column, $order = null)
+    public function order(string $column, ?string $order = null)
     {
         $this->orderBy = $column;
         $this->order = $order;
@@ -369,35 +239,14 @@ class ActiveRecord
         return $this;
     }
 
-    /**
-     * Select certain column.
-     *
-     * @param string | array $select
-     *
-     * @return object
-     */
-    public function select()
+    public function select(string ...$columns)
     {
-        $select = func_get_args();
-
-        if (empty($select)) {
-            $select = '*';
-        }
-
-        $this->select = $select;
+        $this->select = $columns === [] ? '*' : $columns;
 
         return $this;
     }
 
-    /**
-     * Limit the results.
-     *
-     * @param int $limit
-     * @param int $offset
-     *
-     * @return object
-     */
-    public function limit($limit, $offset = null)
+    public function limit(int $limit, ?int $offset = null)
     {
         $this->limit = $limit;
         $this->offset = $offset;
@@ -405,74 +254,55 @@ class ActiveRecord
         return $this;
     }
 
-    /**
-     * Group the results.
-     *
-     * @param string $column1, $column2 etc ...
-     *
-     * @return object
-     */
-    public function group()
+    public function group(string ...$columns)
     {
-        $this->groupBy = func_get_args();
+        $this->groupBy = $columns;
 
         return $this;
     }
 
     /**
-     * Dynamic finder method handler.
+     * first(), last() and getByColumn($value).
      *
-     * @param string $name      Method name
-     * @param array  $arguments Method arguments
+     * getBy...() returns false, one row (also copied into this object) or an
+     * array of rows.
      */
-    public function __call($name, $arguments = array())
+    public function __call(string $name, array $arguments)
     {
-        $this->db->select($this->select)->from($this->table);
-
-        if ($name == 'first') {
-            return $this->db->orderBy($this->primaryKey, 'ASC')->limit(1)->getOne();
+        if ($name === 'first' || $name === 'last') {
+            return $this->buildQuery()->orderBy($this->primaryKey, $name === 'first' ? 'ASC' : 'DESC')->limit(1)->getOne();
         }
 
-        if ($name == 'last') {
-            return $this->db->orderBy($this->primaryKey, 'DESC')->limit(1)->getOne();
+        if (!str_starts_with($name, 'getBy') || $name === 'getBy') {
+            throw new RunException('Call to undefined method '.static::class.'::'.$name.'()');
         }
 
-        $splitedName = substr($name, 5, strlen($name));
-
-        if ($splitedName) {
-            if (empty($arguments)) {
-                throw new RunException('getBy'.$splitedName.'() in Active Record method expects 1 parameter and you dont given anything yet.');
-            }
-
-            $this->db->where($splitedName, '=', $arguments[0]);
-
-            if (!is_null($this->limit)) {
-                $this->db->limit($this->limit, $this->offset);
-            }
-
-            if ($this->setInstantiateClass) {
-                $this->db->instantiateClass = $this->setInstantiateClass;
-            }
-
-            if (!$results = $this->db->getAll()) {
-                return false;
-            }
-
-            $this->setInstantiateClass = false;
-
-            if (count($results) == 1) {
-                $pk = $this->primaryKey;
-                $this->$pk = $results[0]->$pk;
-
-                return $results[0];
-            }
-
-            return $results;
+        if ($arguments === []) {
+            throw new RunException($name.'() in Active Record expects 1 parameter, none given.');
         }
+
+        if (!$results = $this->buildQuery()->where(substr($name, 5), '=', $arguments[0])->getAll()) {
+            return false;
+        }
+
+        if (count($results) === 1) {
+            $this->fill($results[0]);
+
+            return $results[0];
+        }
+
+        return $results;
     }
 
     /**
-     * overrided method for relations scheme.
+     * Override it in your model to declare relations, e.g.
+     *
+     *   'posts'   => [self::HAS_MANY, 'post', 'user_id'],
+     *   'profile' => [self::HAS_ONE, 'profile', 'user_id'],
+     *   'user'    => [self::BELONGS_TO, 'user', 'user_id'],
+     *   'tags'    => [self::MANY_MANY, 'tag', ['post_tag', 'tag_id', 'post_id']],
+     *
+     * The second value is the model (Models\Post), the third the key(s).
      */
     public function relations()
     {
@@ -480,56 +310,125 @@ class ActiveRecord
     }
 
     /**
-     * Magic method for lazy call relations.
-     *
-     * @param string $name Property name
-     *
-     * @return mix
+     * Lazy relations: $user->posts->get(), $post->user->name ...
+     * Unknown properties are false, like in Panada 1.
      */
-    public function __get($name = false)
+    public function __get($name)
     {
-        if (!$name) {
+        $relation = ($this->relations() ?: [])[$name] ?? null;
+
+        if ($relation === null) {
             return false;
         }
 
-        if (!$relations = $this->relations()) {
-            return false;
+        $class = $this->modulPrefix.'Models\\'.ucwords($relation[1]);
+        $related = new $class();
+        $pk = $this->primaryKey;
+
+        return match ($relation[0]) {
+            self::BELONGS_TO => $related->limit(1)->{'getBy'.$related->primaryKey}($this->{$relation[2]}),
+            self::HAS_ONE => $related->limit(1)->{'getBy'.$relation[2]}($this->$pk),
+            self::HAS_MANY => $related->condition($relation[2], '=', $this->$pk, 'AND'),
+            self::MANY_MANY => $related->select($related->table.'.*')
+                ->from($relation[2][0])
+                ->condition($relation[2][0].'.'.$relation[2][2], '=', $this->$pk, 'AND')
+                ->conditionColumns($relation[2][0].'.'.$relation[2][1], $related->table.'.'.$related->primaryKey),
+            default => throw new RunException('Unknown relation type for '.static::class.'::$'.$name),
+        };
+    }
+
+    /**
+     * Hand the parts of the next query to the query builder, then forget them
+     * so they never leak into the following query.
+     */
+    private function buildQuery(): Database
+    {
+        $this->db->select($this->select)->from([$this->table, ...$this->from]);
+        $this->db->instantiateClass = $this->setInstantiateClass;
+        $this->applyConditions();
+
+        if ($this->groupBy !== []) {
+            $this->db->groupBy(...$this->groupBy);
         }
 
-        foreach ($relations as $key => $relations) {
-            if ($name == $key) {
-                $className = $this->modulPrefix.'Models\\'.ucwords($relations[1]);
+        if ($this->orderBy !== null) {
+            $this->db->orderBy($this->orderBy, $this->order);
+        }
 
-                $name = new $className();
-                $findBy = 'getBy'.$name->primaryKey;
+        if ($this->limit !== null) {
+            $this->db->limit($this->limit, $this->offset);
+        }
 
-                if ($relations[0] == 1) {
-                    $name->limit(1);
+        $this->select = '*';
+        $this->from = $this->groupBy = [];
+        $this->orderBy = $this->order = null;
+        $this->limit = $this->offset = null;
 
-                    return $name->$findBy($this->{$relations[2]});
-                } elseif ($relations[0] == 2) {
-                    $findBy = 'getBy'.$relations[2];
-                    $pk = $this->primaryKey;
+        return $this->db;
+    }
 
-                    $name->limit(1);
-
-                    return $name->$findBy($this->$pk);
-                } elseif ($relations[0] == 3) {
-                    $pk = $this->primaryKey;
-                    $name->condition($relations[2], '=', $this->$pk, 'AND');
-
-                    return $name;
-                } elseif ($relations[0] == 4) {
-                    $pk = $this->primaryKey;
-
-                    $name->select($relations[1].'.*');
-                    $name->from($relations[2][0]);
-                    $name->condition($relations[2][0].'.'.$relations[2][2], '=', $this->$pk, 'AND');
-                    $name->conditionColumns($relations[2][0].'.'.$relations[2][1], $relations[1].'.'.$name->primaryKey);
-
-                    return $name;
-                }
+    private function applyConditions(): void
+    {
+        foreach ($this->condition as $condition) {
+            if (count($condition) === 1) {
+                $this->db->whereRaw($condition[0]);
+                continue;
             }
+
+            $this->db->where(...$condition);
         }
+
+        $this->condition = [];
+    }
+
+    /**
+     * WHERE of update()/delete(): condition() first, then $args (an id or an
+     * array of columns), then the primary key of the loaded record. With none
+     * of them the query builder refuses to touch the whole table.
+     */
+    private function writeWhere($args): ?array
+    {
+        if ($this->condition !== []) {
+            $this->applyConditions();
+
+            return null;
+        }
+
+        // Not "??": without __isset() PHP would ask __get(), which says false.
+        $pk = $this->primaryKey;
+        $args ??= isset($this->$pk) ? $this->$pk : null;
+
+        return match (true) {
+            $args === null => null,
+            is_array($args) => $args,
+            default => [$pk => $args],
+        };
+    }
+
+    /**
+     * Values to write: the array given to save(), or the column properties.
+     */
+    private function getFields(): array
+    {
+        $fields = $this->fields ?: self::columns($this);
+        $this->fields = [];
+
+        return $fields;
+    }
+
+    private function fill(object $row): void
+    {
+        foreach (self::columns($row) as $column => $value) {
+            $this->$column = $value;
+        }
+    }
+
+    /**
+     * The column values of a record: its properties, minus the ones this
+     * class declares for itself.
+     */
+    private static function columns(object $record): array
+    {
+        return array_diff_key(get_object_vars($record), get_class_vars(self::class));
     }
 }

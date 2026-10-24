@@ -214,6 +214,40 @@ berbasis token dikecualikan di `app/config/security.php` → `csrf.except`
 - `Resources\Encryption` sekarang libsodium (authenticated encryption). Versi
   lama hanya menggeser karakter, bukan enkripsi.
 
+## 7. Komponen lama: strict types, test, perbaikan bug
+
+Komponen yang dulu hanya "lolos lint" kini punya test sendiri. Bug yang
+ditemukan saat menulis test langsung diperbaiki.
+
+### ActiveRecord
+
+```php
+namespace Models;
+
+class Users extends \Resources\ActiveRecord
+{
+    protected $table = 'users';         // default: nama class huruf kecil
+}
+
+$user = new \Models\Users();
+$user->name = 'Budi';
+$user->save();                          // INSERT, lalu $user->id terisi
+$user->name = 'Budi Santoso';
+$user->save();                          // UPDATE ... WHERE id = ?
+```
+
+- `$table` yang ditulis di model kini dipakai. Dulu selalu ditimpa nama class.
+- Setelah INSERT, primary key diisi ke objek, jadi `save()` kedua meng-update
+  record yang sama (dulu menyisipkan baris baru lagi).
+- `condition()`, `order()`, `limit()`, `select()`, `group()`, `from()` hanya
+  berlaku untuk satu query berikutnya. Dulu ikut terbawa ke query sesudahnya.
+- `delete()` / `update()` tanpa argumen pada record yang sudah dimuat
+  (`get($id)`, `getByEmail()`) memakai primary key record itu.
+- Baris dari model yang punya relasi selalu berupa objek model, jadi
+  `$posts[0]->user` jalan (dulu hanya pada query pertama).
+- Method selain `getBy...()`, `first()`, `last()` melempar exception (dulu diam-diam
+  `null`, salah ketik tidak ketahuan).
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -247,6 +281,14 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
 13. Controller yang mengembalikan array otomatis dikirim sebagai JSON.
 14. Cache query di `ActiveRecord` dihapus (rawan data basi setelah update).
 15. Driver cache `apc` sekarang memakai APCu.
+16. ActiveRecord: `protected $table` di model dipakai; query ke tabel bernama
+    class (huruf kecil) hanya terjadi kalau `$table` tidak ditulis.
+17. ActiveRecord: `condition()`/`order()`/`limit()`/... tidak lagi terbawa ke
+    query berikutnya pada objek yang sama.
+18. ActiveRecord: `delete()`/`update()` tanpa argumen pada record yang sudah
+    dimuat kini menghapus/meng-update record itu (dulu exception "without a
+    WHERE").
+19. ActiveRecord: memanggil method yang tidak ada melempar `RunException`.
 
 ---
 
@@ -272,5 +314,6 @@ Isi test suite:
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
 PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`, `Image`,
-`Upload`, `Pagination`, `Rest`, `Tools`, driver cache (`Redis`, `Memcache`,
-`Memcached`, `Apc`, `Dummy`), dan `ActiveRecord` (sudah di-port, belum diuji).
+`Upload`, `Pagination`, `Rest`, `Tools`, dan driver cache (`Redis`, `Memcache`,
+`Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
+`phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.
