@@ -15,27 +15,27 @@ Upload, dll.) punya bug serta celah keamanan. Hampir tidak ada test.
 
 | Commit | Langkah |
 |---|---|
-| `432e26e` | Baseline: Panada asli (upstream `dc904d0`) |
-| `f135dac` | Core PHP 8.2+, Composer PSR-4 + autoloader Panada sebagai cadangan |
-| `1ff2fb0` | Database PDO-only, semua nilai di-bind |
-| `56bf2dc` | Validation dengan sanitize otomatis, CSRF bawaan |
-| `ead6958` | Halaman error (Whoops opsional), cookie session modern |
-| `b1d6206` | Perbaikan PHP 8 di resource lama (temuan PHPStan) |
-| `02b2c3a` | Test PHPUnit 11 (unit + HTTP sungguhan), `check.php` |
-| `df34cc2`, `dd06bc1` | MODERNISASI.md, README, CHANGELOG, CLAUDE.md |
-| `ed44d2d` | `Uri` memahami path Windows |
-| `59bfbf0` | `composer.lock` |
-| `5568258` | PHPStan level 2 (`composer analyse`) |
-| `f3fdfe5` | ActiveRecord: strict types, test, bug |
-| `5654306` | Pagination |
-| `75f6835` | Rest |
-| `8dcde67` | Upload (celah: file `.php`, path traversal) |
-| `8a90334` | Image |
-| `9f3ddf3` | Email (celah: header injection, STARTTLS) |
-| `063c9e1` | Tools |
-| `9f73b5b` | Driver cache (celah: `Apc::__call`) |
-| `73bd7d7` | CI GitHub Actions |
-| `a86ab20` | Aturan open source di CLAUDE.md |
+| `cb111a1` | Baseline: Panada asli (upstream `dc904d0`) |
+| `b6a9463` | Core PHP 8.2+, Composer PSR-4 + autoloader Panada sebagai cadangan |
+| `b6e3478` | Database PDO-only, semua nilai di-bind |
+| `1d742f2` | Validation dengan sanitize otomatis, CSRF bawaan |
+| `db68a79` | Halaman error (Whoops opsional), cookie session modern |
+| `cd6b46c` | Perbaikan PHP 8 di resource lama (temuan PHPStan) |
+| `c5934b2` | Test PHPUnit 11 (unit + HTTP sungguhan), `check.php` |
+| `e06382d`, `880bf20` | MODERNISASI.md, README, CHANGELOG, CLAUDE.md |
+| `fa3676d` | `Uri` memahami path Windows |
+| `0d90f25` | `composer.lock` |
+| `9dca81f` | PHPStan level 2 (`composer analyse`) |
+| `8ed0476` | ActiveRecord: strict types, test, bug |
+| `402c8c1` | Pagination |
+| `dc88d15` | Rest |
+| `4292f7e` | Upload (celah: file `.php`, path traversal) |
+| `fe16317` | Image |
+| `17ebd8a` | Email (celah: header injection, STARTTLS) |
+| `b778e74` | Tools |
+| `474a8c9` | Driver cache (celah: `Apc::__call`) |
+| `a92e39b` | CI GitHub Actions |
+| `dc811ed` | Aturan open source di CLAUDE.md |
 
 ## Hasil verifikasi
 

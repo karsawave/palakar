@@ -1,6 +1,6 @@
 # palakar-spec-007: Ganti email pribadi di riwayat git sebelum push pertama
 
-- **Status:** plan (menunggu `ACC SPEC 007`)
+- **Status:** done (ACC SPEC 007, 2026-10-25)
 - **Dibuat:** 2026-10-25
 
 ## Masalah
@@ -52,3 +52,18 @@ Isi file kode, tanggal commit, pesan commit, urutan commit.
 - Jumlah commit sama, `git diff <bundle-HEAD> HEAD` hanya berisi perubahan
   rujukan hash di dokumen.
 - `composer test` dan `composer analyse` hijau.
+
+## Hasil
+
+- Cadangan: `../panadax-before-spec-007.bundle` (diverifikasi `git bundle
+  verify`). Masih berisi email lama; hapus setelah yakin, jangan di-push.
+- 31 commit ditulis ulang; author dan committer semuanya
+  `Roma <606799+rombyar@users.noreply.github.com>`. Pesan commit identik
+  dengan sebelumnya (dicek dengan `diff`).
+- `git log --all -p | grep -c <email lama>` = 0 setelah `refs/original`
+  dihapus, reflog di-expire, dan `git gc --prune=now`.
+- Identitas lokal repo diatur; konfigurasi global tidak diubah.
+- Rujukan hash diperbarui di spec-000 (satu-satunya dokumen yang memuat
+  hash). Spec lain merujuk lewat `git log --grep "spec-NNN"`.
+- `composer test`: 135 test, 18 di-skip; `composer analyse`: tanpa temuan.
+- Langkah manual GitHub (Keep email private, Block pushes) belum dikonfirmasi.
