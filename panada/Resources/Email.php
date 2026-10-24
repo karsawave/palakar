@@ -1,7 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada email API.
+ * Panada email API: PHP's mail() or SMTP.
+ *
+ *   $email = new \Resources\Email();
+ *   $email->setOption([
+ *       'smtpHost' => 'smtp.example.com',
+ *       'smtpPort' => 587,
+ *       'smtpSecure' => 'tls',          // STARTTLS; 'ssl' for port 465
+ *       'smtpUsername' => 'app@example.com',
+ *       'smtpPassword' => getenv('SMTP_PASSWORD'),
+ *       'messageType' => 'html',
+ *   ]);
+ *
+ *   $sent = $email->from('app@example.com', 'Toko Kopi')
+ *       ->to($customer)
+ *       ->subject('Pesanan diterima')
+ *       ->message($this->output('emails/order', ['order' => $order]))
+ *       ->attach(APP.'storage/invoice-15.pdf')
+ *       ->mail();
+ *
+ *   if (!$sent) {
+ *       error_log(implode("\n", $email->printDebug(false)));
+ *   }
+ *
+ * Messages are UTF-8. Addresses are validated and line breaks are removed
+ * from header values, so form input cannot add headers (e.g. a Bcc).
  *
  * @link	http://panadaframework.com/
  *
@@ -10,274 +36,110 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 class Email
 {
-    /*
-        * @var array   Define the reception array variable.
-        */
-        public $rcptTo = array(),
-        /*
-        * @var array   Define the reception (cc) array variable.
-        */
-        $rcptCc = array(),
-        /*
-        * @var array   Define the reception (bcc) array variable.
-        */
-        $rcptBcc = array(),
-        /*
-        * @var string Define the Reply-To address.
-        */
-        $replyTo = null,
-        /*
-        * @var string  Define email subject.
-        */
-        $subject = '',
-        /*
-        * @var string  Define email content.
-        */
-        $message = '',
-        /*
-        * @var string  Define email content type; plain or html.
-        */
-        $messageType = 'plain',
-        /*
-        * @var string  Define alternative email content.
-        */
-        $altMessage = '',
-        /*
-        * @var string  Define sender's email.
-        */
-        $fromEmail = '',
-        /*
-        * @var string  The sender name.
-        */
-        $fromName = '',
-        /*
-        * @var string  Mail application option. The option is: native (PHP mail function) or smtp.
-        */
-        $mailerType = 'native',
-        /*
-        * @var integer 1 = High, 3 = Normal, 5 = low.
-        */
-        $priority = 3,
-        /*
-        * @var string  SMTP server host.
-        */
-        $smtpHost = '',
-        /*
-        * @var integer SMTP server port.
-        */
-        $smtpPort = 25,
-        /*
-        * @var string | bool SMTP secure type.
-        */
-        $smtpSecure = false,
-        /*
-        * @var string  SMTP username.
-        */
-        $smtpUsername = '',
-        /*
-        * @var string  SMTP password.
-        */
-        $smtpPassword = '',
-        /*
-        * @var string  String to say "helo/ehlo" to smtp server.
-        */
-        $smtpEhloHost = 'localhost';
+    use Configurable;
 
-    /*
-        * @var string  Var for saving user email(s) that just converted from $rcptTo array.
-        */
-        private $rcptToCtring = '',
-        /*
-        * @var string  Var for saving user email(s) that just converted from $rcptCc array.
-        */
-        $rcptCcString = '',
-        /*
-        * @var string  Var for saving user email(s) that just converted from $rcptBcc array.
-        */
-        $rcptBccString = '',
-        /*
-         * @var integer Define SMTP connection.
-         */
-        $smtpConnection = 0,
-        /*
-         * @var integer The SMTP connection timeout, in seconds.
-         */
-        $timeoutConnection = 30,
-        /*
-         * @var string Character set.
-         */
-        $charset = 'iso-8859-1',
-        /*
-         * @var string Character encoding.
-         */
-        $encoding = '8bit',
-        /*
-         * @var string  Enter character.
-         */
-        $breakLine = "\r\n",
-        /*
-         * @var array Group of debug messages.
-         */
-        $debugMessages = array(),
-        /*
-         * @var array  Attachment.
-         */
-        $attachment = array(),
-        /*
-         * @var string  Boundary
-         */
-        $boundary = 'Panada-Mail-',
-        /*
-         * @var string  Mailer useragent.
-         */
-        $panadaXMailer = 'Panada Mailer Version 0.5';
+    public array $rcptTo = [];
+    public array $rcptCc = [];
+    public array $rcptBcc = [];
+    public ?string $replyTo = null;
+    public string $subject = '';
+    public string $message = '';
 
-    public function __construct()
+    /** plain | html */
+    public string $messageType = 'plain';
+
+    /** Plain text version of an html message. */
+    public string $altMessage = '';
+
+    public string $fromEmail = '';
+    public string $fromName = '';
+
+    /** native (PHP's mail()) | smtp. Setting smtpHost also means smtp. */
+    public string $mailerType = 'native';
+
+    /** 1 = High, 3 = Normal, 5 = low. */
+    public int $priority = 3;
+
+    public string $smtpHost = '';
+    public int $smtpPort = 25;
+
+    /** 'ssl' (port 465), 'tls' (STARTTLS, port 587) or false. */
+    public string|false $smtpSecure = false;
+
+    public string $smtpUsername = '';
+    public string $smtpPassword = '';
+
+    /** Host name told to the server in EHLO. */
+    public string $smtpEhloHost = 'localhost';
+
+    /** Seconds to wait for the SMTP server. */
+    public int $timeoutConnection = 30;
+
+    /** @var resource|null */
+    private $smtpConnection = null;
+
+    private array $debugMessages = [];
+    private array $attachment = [];
+
+    public function from(string $fromEmail = '', string $fromName = ''): static
     {
-        $this->boundary = $this->boundary.md5(time());
-    }
-
-    /**
-     * Setter for option.
-     *
-     * @param string | array $var
-     * @param mix            $value
-     *
-     * @return object
-     */
-    public function setOption($var, $value = false)
-    {
-        if (is_string($var)) {
-            $this->$var = $value;
-        }
-
-        if (is_array($var)) {
-            foreach ($var as $key => $value) {
-                $this->$key = $value;
-            }
-        }
+        $this->fromEmail = strtolower(trim($fromEmail));
+        $this->fromName = $fromName;
 
         return $this;
     }
 
     /**
-     * FROM part.
-     *
-     * @param string | array
-     *
-     * @return object
+     * @param string|array $rcptTo 'a@example.com, b@example.com' or an array
      */
-    public function from($fromEmail = '', $fromName = '')
+    public function to(string|array $rcptTo = ''): static
     {
-        $this->fromEmail    = $fromEmail;
-        $this->fromName     = $fromName;
+        $this->rcptTo = $this->addresses($rcptTo);
 
         return $this;
     }
 
-    /**
-     * TO part.
-     *
-     * @param string | array
-     *
-     * @return object
-     */
-    public function to($rcptTo = '')
+    public function cc(string|array $rcptCc = ''): static
     {
-        $this->rcptTo = $this->strToArray($rcptTo);
-        $this->rcptToCtring = implode(', ', $this->rcptTo);
+        $this->rcptCc = $this->addresses($rcptCc);
 
         return $this;
     }
 
-    /**
-     * CC part.
-     *
-     * @param string | array
-     *
-     * @return object
-     */
-    public function cc($rcptCc = '')
+    public function bcc(string|array $rcptBcc = ''): static
     {
-        if (!empty($rcptCc)) {
-            $this->rcptCc  = $this->strToArray($rcptCc);
-            $this->rcptCcString   = implode(', ', $this->rcptCc);
-        }
+        $this->rcptBcc = $this->addresses($rcptBcc);
 
         return $this;
     }
 
-    /**
-     * BCC part.
-     *
-     * @param string | array
-     *
-     * @return object
-     */
-    public function bcc($rcptBcc = '')
+    public function replyTo(?string $replyTo = null): static
     {
-        if (!empty($rcptBcc)) {
-            $this->rcptBcc = $this->strToArray($rcptBcc);
-            $this->rcptBccString = implode(', ', $this->rcptBcc);
-        }
+        $this->replyTo = $replyTo === null ? null : strtolower(trim($replyTo));
 
         return $this;
     }
 
-    /**
-     * Reply-To.
-     *
-     * @param string
-     *
-     * @return object
-     */
-    public function replyTo($replyTo = null)
-    {
-        $this->replyTo = $replyTo;
-
-        return $this;
-    }
-
-    /**
-     * SUBJECT part.
-     *
-     * @param string | array
-     *
-     * @return object
-     */
-    public function subject($subject = '')
+    public function subject(string $subject = ''): static
     {
         $this->subject = $subject;
 
         return $this;
     }
 
-    /**
-     * MESSAGE part.
-     *
-     * @param string | array
-     *
-     * @return object
-     */
-    public function message($message = '')
+    public function message(string $message = ''): static
     {
         $this->message = $message;
 
         return $this;
     }
 
-    /**
-     * ALTERNATIVE MESSAGE part.
-     *
-     * @param string | array
-     *
-     * @return object
-     */
-    public function altMessage($altMessage = '')
+    public function altMessage(string $altMessage = ''): static
     {
         $this->altMessage = $altMessage;
 
@@ -285,314 +147,328 @@ class Email
     }
 
     /**
-     * ATTACH part.
-     *
-     * @param string | array
-     *
-     * @return object
+     * Attach a file from disk.
      */
-    public function attach($filename = '')
+    public function attach(string $filename = ''): static
     {
         $this->attachment[] = $filename;
-        $this->messageType = 'attach';
 
         return $this;
     }
 
     /**
-     * Main Panada method to send the email.
-     *
-     * @param string | array
-     * @param string
-     * @param string
-     * @param string
-     * @param string
-     * @param string | array
-     * @param string | array
-     *
-     * @return bool
+     * Send the email. The arguments are a shortcut for the methods above.
      */
-    public function mail($rcptTo = '', $subject = '', $message = '', $fromEmail = '', $fromName = '', $rcptCc = '', $rcptBcc = '')
+    public function mail(string|array $rcptTo = '', string $subject = '', string $message = '', string $fromEmail = '', string $fromName = '', string|array $rcptCc = '', string|array $rcptBcc = ''): bool
     {
-        if (!empty($rcptTo)) {
-            $this->rcptTo = $this->strToArray($rcptTo);
-            $this->rcptToCtring = implode(', ', $this->rcptTo);
+        if ($rcptTo) {
+            $this->to($rcptTo);
         }
 
-        if (!empty($subject)) {
+        if ($subject !== '') {
             $this->subject = $subject;
         }
 
-        if (!empty($message)) {
+        if ($message !== '') {
             $this->message = $message;
         }
 
-        if (!empty($fromEmail)) {
-            $this->fromEmail = $fromEmail;
+        if ($fromEmail !== '') {
+            $this->from($fromEmail, $fromName ?: $this->fromName);
         }
 
-        if (!empty($fromName)) {
-            $this->fromName = $fromName;
+        if ($rcptCc) {
+            $this->cc($rcptCc);
         }
 
-        if (!empty($rcptCc)) {
-            $this->rcptCc  = $this->strToArray($rcptCc);
-            $this->rcptCcString = implode(', ', $this->rcptCc);
+        if ($rcptBcc) {
+            $this->bcc($rcptBcc);
         }
 
-        if (!empty($rcptBcc)) {
-            $this->rcptBcc = $this->strToArray($rcptBcc);
-            $this->rcptBccString = implode(', ', $this->rcptBcc);
+        if (!$this->validate()) {
+            return false;
         }
 
-        if ($this->messageType == 'html') {
-            $this->formatMessage();
+        [$headers, $body] = $this->build();
 
-            if (!$this->altMessageExist()) {
-                $this->altMessage = 'Your mail client does not support HTML email.';
-            }
-        }
-
-        if ($this->smtpHost != '' || $this->mailerType == 'smtp') {
+        if ($this->smtpHost !== '' || $this->mailerType === 'smtp') {
             $this->mailerType = 'smtp';
 
-            return $this->smtpSend();
-        } else {
-            return $this->mailerNative();
+            return $this->smtpSend($headers, $body);
         }
+
+        return $this->mailerNative($headers, $body);
     }
 
     /**
-     * Print the debug messages.
-     *
-     * @return string
+     * What happened, line by line: printDebug() prints it (escaped),
+     * printDebug(false) returns the array.
      */
-    public function printDebug($isEcho = true)
+    public function printDebug(bool $isEcho = true): ?array
     {
         if (!$isEcho) {
             return $this->debugMessages;
         }
 
-        echo implode('<br>', $this->debugMessages);
+        echo implode('<br>', array_map('e', $this->debugMessages));
+
+        return null;
+    }
+
+    private function addresses(string|array $emails): array
+    {
+        $emails = is_array($emails) ? $emails : explode(',', $emails);
+
+        return array_values(array_filter(array_map(fn ($email) => strtolower(trim((string) $email)), $emails)));
     }
 
     /**
-     *  Make the email address string lower and unspace.
-     *
-     * @param string
-     *
-     * @return array
+     * Every address must be valid. FILTER_VALIDATE_EMAIL also refuses line
+     * breaks, so an address cannot smuggle in another header.
      */
-    private function cleanEmail($email)
+    private function validate(): bool
     {
-        $return = array();
+        if ($this->rcptTo === []) {
+            $this->debugMessages[] = 'Error: No recipient';
 
-        foreach ($email as $email) {
-            $return[] = trim(strtolower($email));
+            return false;
         }
 
-        return $return;
-    }
+        $addresses = [$this->fromEmail, ...$this->rcptTo, ...$this->rcptCc, ...$this->rcptBcc];
 
-    /**
-     *  Convert the email address to array.
-     *
-     * @param string | array
-     *
-     * @return array
-     */
-    private function strToArray($email)
-    {
-        if (is_array($email)) {
-            return $this->cleanEmail($email);
-        } else {
-            $rcpt_break = explode(',', $email);
+        if ($this->replyTo !== null) {
+            $addresses[] = $this->replyTo;
+        }
 
-            if (count($rcpt_break) > 0) {
-                return $this->cleanEmail($rcpt_break);
-            } else {
-                return $this->cleanEmail(array($email));
+        foreach ($addresses as $address) {
+            if (!filter_var($address, FILTER_VALIDATE_EMAIL)) {
+                $this->debugMessages[] = 'Error: Invalid email address "'.$address.'"';
+
+                return false;
             }
         }
+
+        foreach ($this->attachment as $file) {
+            if (!is_file($file) || !is_readable($file)) {
+                $this->debugMessages[] = 'Error: Attachment '.$file.' not found';
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
-     *  Check if alternative message is not empty.
+     * The message: headers (without To and Subject, which mail() adds itself)
+     * and the MIME body.
      *
-     * @return bool
+     * @return array{0: array<string, string>, 1: string}
      */
-    private function altMessageExist()
+    private function build(): array
     {
-        return !empty($this->altMessage);
+        if ($this->messageType === 'html') {
+            $text = $this->altMessage !== '' ? $this->altMessage : 'Your mail client does not support HTML email.';
+            $content = $this->multipart('alternative', [$this->textPart('plain', $text), $this->textPart('html', $this->message)]);
+        } else {
+            $content = $this->textPart('plain', $this->message);
+        }
+
+        if ($this->attachment !== []) {
+            $content = $this->multipart('mixed', [$content, ...array_map($this->attachmentPart(...), $this->attachment)]);
+        }
+
+        [$contentHeaders, $body] = $content;
+        $domain = substr((string) strrchr($this->fromEmail, '@'), 1);
+        $headers = [
+            'From' => ($this->fromName === '' ? '' : $this->encodeName($this->fromName).' ').'<'.$this->fromEmail.'>',
+            'Cc' => implode(', ', $this->rcptCc),
+            'Reply-To' => (string) $this->replyTo,
+            'Date' => date(DATE_RFC2822),
+            'Message-ID' => '<'.bin2hex(random_bytes(16)).'@'.$domain.'>',
+            'X-Priority' => (string) $this->priority,
+            'X-Mailer' => 'Panada Mailer',
+            'MIME-Version' => '1.0',
+        ] + $contentHeaders;
+
+        return [array_filter($headers, fn ($value) => $value !== ''), $body];
     }
 
     /**
-     *  Format message body based on content type.
-     */
-    private function formatMessage()
-    {
-        $body = '--'.$this->boundary.$this->breakLine.
-            'Content-type: text/plain; charset='.$this->charset.$this->breakLine.
-            'Content-Transfer-Encoding: '.$this->encoding.$this->breakLine.$this->breakLine.
-            $this->altMessage.$this->breakLine.$this->breakLine;
-        $body .= '--'.$this->boundary.$this->breakLine.
-            'Content-type: text/html; charset='.$this->charset.$this->breakLine.
-            'Content-Transfer-Encoding: '.$this->encoding.$this->breakLine.$this->breakLine.
-            $this->message.$this->breakLine.$this->breakLine;
-        $this->message = $body;
-    }
-
-    /**
-     * Built in mail function from PHP. This is the default function to send the email.
+     * A text part, quoted-printable: safe for any character and line length.
      *
-     * @return booelan
+     * @return array{0: array<string, string>, 1: string}
      */
-    private function mailerNative()
+    private function textPart(string $subtype, string $text): array
     {
-        if (!mail($this->rcptToCtring, $this->subject, $this->message, $this->header())) {
+        return [
+            ['Content-Type' => 'text/'.$subtype.'; charset=utf-8', 'Content-Transfer-Encoding' => 'quoted-printable'],
+            quoted_printable_encode(preg_replace('/\r\n|\r|\n/', "\r\n", $text)),
+        ];
+    }
+
+    /**
+     * @return array{0: array<string, string>, 1: string}
+     */
+    private function attachmentPart(string $file): array
+    {
+        $name = $this->encodeHeader(str_replace('"', '', basename($file)));
+
+        return [
+            [
+                'Content-Type' => (Upload::getMimeTypes($file)['type'] ?? 'application/octet-stream').'; name="'.$name.'"',
+                'Content-Disposition' => 'attachment; filename="'.$name.'"',
+                'Content-Transfer-Encoding' => 'base64',
+            ],
+            rtrim(chunk_split(base64_encode((string) file_get_contents($file)), 76, "\r\n")),
+        ];
+    }
+
+    /**
+     * @param array<int, array{0: array<string, string>, 1: string}> $parts
+     *
+     * @return array{0: array<string, string>, 1: string}
+     */
+    private function multipart(string $subtype, array $parts): array
+    {
+        $boundary = 'Panada-'.bin2hex(random_bytes(12));
+        $body = '';
+
+        foreach ($parts as [$headers, $content]) {
+            $body .= '--'.$boundary."\r\n".$this->headerLines($headers)."\r\n\r\n".$content."\r\n";
+        }
+
+        return [['Content-Type' => 'multipart/'.$subtype.'; boundary="'.$boundary.'"'], $body.'--'.$boundary.'--'];
+    }
+
+    private function headerLines(array $headers): string
+    {
+        $lines = [];
+
+        foreach ($headers as $name => $value) {
+            $lines[] = $name.': '.$value;
+        }
+
+        return implode("\r\n", $lines);
+    }
+
+    /**
+     * A header value on one line; non-ASCII text as an encoded word.
+     */
+    private function encodeHeader(string $value): string
+    {
+        $value = trim(str_replace(["\r", "\n"], ' ', $value));
+
+        return mb_check_encoding($value, 'ASCII') ? $value : mb_encode_mimeheader($value, 'UTF-8', 'B', "\r\n");
+    }
+
+    private function encodeName(string $name): string
+    {
+        $name = $this->encodeHeader($name);
+
+        return str_starts_with($name, '=?') ? $name : '"'.addcslashes($name, '"\\').'"';
+    }
+
+    private function mailerNative(array $headers, string $body): bool
+    {
+        if ($this->rcptBcc !== []) {
+            $headers['Bcc'] = implode(', ', $this->rcptBcc);
+        }
+
+        if (!mail(implode(', ', $this->rcptTo), $this->encodeHeader($this->subject), $body, $headers)) {
             $this->debugMessages[] = 'Error: Sending email failed';
 
             return false;
-        } else {
-            $this->debugMessages[] = 'Success: Sending email succeeded';
-
-            return true;
-        }
-    }
-
-    /**
-     * Socket write command function.
-     *
-     * @param string
-     */
-    private function writeCommand($command)
-    {
-        fwrite($this->smtpConnection, $command);
-    }
-
-    /**
-     * Get string from smtp respnse.
-     *
-     * @return string
-     */
-    private function getSmtpResponse()
-    {
-        $return = '';
-
-        while ($str = fgets($this->smtpConnection, 515)) {
-            $this->debugMessages[] = 'Success: '.$str;
-
-            $return .= $str;
-
-            //Stop the loop if we found space in 4th character.
-            if (substr($str, 3, 1) == ' ') {
-                break;
-            }
         }
 
-        return $return;
+        $this->debugMessages[] = 'Success: Sending email succeeded';
+
+        return true;
     }
 
-    /**
-     * Open connection to smtp server.
-     *
-     * @return bool
-     */
-    private function smtpConnect()
+    private function smtpSend(array $headers, string $body): bool
     {
-        //Connect to smtp server
-        $this->smtpConnection = fsockopen(
-                                    ($this->smtpSecure && $this->smtpSecure == 'ssl' ? 'ssl://' : '').$this->smtpHost,
-                                    $this->smtpPort,
-                                    $errno,
-                                    $errstr,
-                                    $this->timeoutConnection
-                                );
+        $headers = ['To' => implode(', ', $this->rcptTo), 'Subject' => $this->encodeHeader($this->subject)] + $headers;
+        $data = $this->headerLines($headers)."\r\n\r\n".$body;
 
-        if (empty($this->smtpConnection)) {
+        // A line starting with "." gets a second one, or the server would end
+        // the message there (RFC 5321, 4.5.2).
+        $data = preg_replace('/^\./m', '..', $data);
+
+        $sent = $this->smtpConnect()
+            && $this->smtpEhlo()
+            && $this->smtpStartTls()
+            && $this->smtpLogin()
+            && $this->command('MAIL FROM:<'.$this->fromEmail.'>', [250])
+            && $this->smtpRecipients()
+            && $this->command('DATA', [354])
+            && $this->command($data."\r\n.", [250], '<message>');
+
+        $this->smtpClose();
+
+        return $sent;
+    }
+
+    private function smtpConnect(): bool
+    {
+        $host = ($this->smtpSecure === 'ssl' ? 'ssl://' : '').$this->smtpHost;
+        $connection = @fsockopen($host, $this->smtpPort, $errno, $errstr, $this->timeoutConnection);
+
+        if ($connection === false) {
             $this->debugMessages[] = 'Error: Failed to connect to server! Error number: '.$errno.' ('.$errstr.')';
 
             return false;
         }
 
-        //Add extra time to get respnose from server.
-        socket_set_timeout($this->smtpConnection, $this->timeoutConnection, 0);
+        $this->smtpConnection = $connection;
+        stream_set_timeout($connection, $this->timeoutConnection);
 
-        $response = $this->getSmtpResponse();
-        $this->debugMessages[] = 'Success: '.$response;
+        return $this->expect([220]);
+    }
 
-        return true;
+    private function smtpEhlo(): bool
+    {
+        return $this->command('EHLO '.$this->smtpEhloHost, [250]) || $this->command('HELO '.$this->smtpEhloHost, [250]);
     }
 
     /**
-     * Do login to smtp server.
-     *
-     * @return bool
+     * With smtpSecure 'tls' the connection must be encrypted before the
+     * password is sent. When the server refuses, nothing is sent.
      */
-    private function smtpLogin()
+    private function smtpStartTls(): bool
     {
-        //SMTP authentication command
-        $this->writeCommand('AUTH LOGIN'.$this->breakLine);
+        if ($this->smtpSecure !== 'tls') {
+            return true;
+        }
 
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
+        if (!$this->command('STARTTLS', [220])) {
+            return false;
+        }
 
-        if ($code != 334) {
-            $this->debugMessages[] = 'Error: AUTH not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
+        if (!@stream_socket_enable_crypto($this->smtpConnection, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+            $this->debugMessages[] = 'Error: TLS handshake failed';
 
             return false;
         }
 
-        // Send encoded username
-        $this->writeCommand(base64_encode($this->smtpUsername).$this->breakLine);
-
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
-
-        if ($code != 334) {
-            $this->debugMessages[] = 'Error: Username not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
-        }
-
-        // Send encoded password
-        $this->writeCommand(base64_encode($this->smtpPassword).$this->breakLine);
-
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
-
-        if ($code != 235) {
-            $this->debugMessages[] = 'Error: Password not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
-        }
-
-        return true;
+        return $this->smtpEhlo();
     }
 
-    /**
-     * Close smtp connection.
-     */
-    private function smtpClose()
+    private function smtpLogin(): bool
     {
-        if (!empty($this->smtpConnection)) {
-            fclose($this->smtpConnection);
-            $this->smtpConnection = 0;
+        if ($this->smtpUsername === '') {
+            return true;
         }
+
+        return $this->command('AUTH LOGIN', [334])
+            && $this->command(base64_encode($this->smtpUsername), [334], '<username>')
+            && $this->command(base64_encode($this->smtpPassword), [235], '<password>');
     }
 
-    /**
-     * Initate the smtp ehlo function.
-     *
-     * @return bool
-     */
-    private function makeEhlo()
+    private function smtpRecipients(): bool
     {
-        /*
-         * IF smtp not accpeted EHLO then try HELO.
-         */
-        if (!$this->smtpEhlo('EHLO')) {
-            if (!$this->smtpEhlo('HELO')) {
+        foreach ([...$this->rcptTo, ...$this->rcptCc, ...$this->rcptBcc] as $recipient) {
+            if (!$this->command('RCPT TO:<'.$recipient.'>', [250, 251])) {
                 return false;
             }
         }
@@ -600,295 +476,46 @@ class Email
         return true;
     }
 
-    /**
-     * Say ehlo to smtp server.
-     *
-     * @param string
-     *
-     * @return bool
-     */
-    private function smtpEhlo($hello)
+    private function smtpClose(): void
     {
-        $this->writeCommand($hello.' '.$this->smtpEhloHost.$this->breakLine);
-
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
-
-        $this->debugMessages[] = 'Success: helo reply from server is: '.$response;
-
-        if ($code != 250) {
-            $this->debugMessages[] = 'Error: '.$hello.' not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
+        if ($this->smtpConnection === null) {
+            return;
         }
 
-        return true;
+        @fwrite($this->smtpConnection, "QUIT\r\n");
+        fclose($this->smtpConnection);
+        $this->smtpConnection = null;
     }
 
     /**
-     * This is email from method.
+     * Send one command and check the reply code.
      *
-     * @return bool
+     * @param string|null $log what the debug log shows instead of $command
      */
-    private function smtpFrom()
+    private function command(string $command, array $codes, ?string $log = null): bool
     {
-        $this->writeCommand('MAIL FROM:<'.$this->fromEmail.'>'.$this->breakLine);
+        fwrite($this->smtpConnection, $command."\r\n");
+        $this->debugMessages[] = 'Client: '.($log ?? $command);
 
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
-
-        $this->debugMessages[] = 'Success: '.$response;
-
-        if ($code != 250) {
-            $this->debugMessages[] = 'Error: MAIL not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
-        }
-
-        return true;
+        return $this->expect($codes);
     }
 
-    /**
-     * Email to method.
-     *
-     * @param string
-     *
-     * @return bool
-     */
-    private function smtpRecipient($to)
+    private function expect(array $codes): bool
     {
-        $this->writeCommand('RCPT TO:<'.$to.'>'.$this->breakLine);
+        $response = '';
 
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
+        // Multi-line replies use "250-"; the last line has a space: "250 ".
+        while (($line = fgets($this->smtpConnection, 515)) !== false) {
+            $response .= $line;
 
-        $this->debugMessages[] = 'Success: '.$response;
-
-        if ($code != 250 && $code != 251) {
-            $this->debugMessages[] = 'Error: RCPT not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Create the email header.
-     *
-     * @return string
-     */
-    private function header()
-    {
-        $fromName  = ($this->fromName != '') ? $this->fromName : $this->fromEmail;
-        $headers['from']        = 'From: '.$fromName.' <'.$this->fromEmail.'>'.$this->breakLine;
-
-        if (count($this->rcptCc) > 0) {
-            $headers['cc']    = 'Cc: '.$this->rcptCcString.$this->breakLine;
-        }
-
-        if (count($this->rcptBcc) > 0 && $this->mailerType == 'native') {
-            $headers['bcc']    = 'Bcc: '.$this->rcptBccString.$this->breakLine;
-        }
-
-        if ($this->replyTo) {
-            $headers['replyTo']    = 'Reply-To: '.$this->replyTo.$this->breakLine;
-        }
-
-        $headers['priority']    = 'X-Priority: '.$this->priority.$this->breakLine;
-        $headers['mailer']      = 'X-Mailer: '.$this->panadaXMailer.$this->breakLine;
-        $headers['mime']        = 'MIME-Version: 1.0'.$this->breakLine;
-
-        switch ($this->messageType) {
-            case 'plain':
-                $headers['cont_type']   = 'Content-type: text/plain; charset='.$this->charset.$this->breakLine;
+            if (substr($line, 3, 1) === ' ') {
                 break;
-            case 'html':
-                $headers['cont_type']   = 'Content-type: multipart/alternative; boundary='.$this->boundary.$this->breakLine;
-                break;
-            case 'attach':
-                $headers['cont_type']   = 'Content-type: multipart/mixed; boundary='.$this->boundary.$this->breakLine;
-                break;
-        }
-
-        if ($this->mailerType == 'native') {
-            $return = '';
-            foreach ($headers as $headers) {
-                $return .= $headers;
-            }
-
-            return $return;
-        } else {
-
-            // Additional headers needed by smtp.
-            $this->writeCommand('To: '.$this->rcptToCtring.$this->breakLine);
-            $this->writeCommand('Subject:'.$this->subject.$this->breakLine);
-
-            foreach ($headers as $key => $val) {
-                if ($key == 'cont_type') {
-                    $val = str_replace($this->breakLine, "\n\n", $val);
-                }
-
-                $this->writeCommand($val);
-            }
-        }
-    }
-
-    /**
-     * Send the mail data.
-     *
-     * @return bool
-     */
-    private function smtpData()
-    {
-        $this->writeCommand('DATA'.$this->breakLine);
-
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
-
-        $this->debugMessages[] = 'Success: '.$response;
-
-        if ($code != 354) {
-            $this->debugMessages[] = 'Error: DATA command not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
-        }
-
-        $this->header();
-
-        // Attachment?
-        if (count($this->attachment) > 0) {
-            $body = '--'.$this->boundary.$this->breakLine
-                .'Content-type: text/plain; charset='.$this->charset.$this->breakLine
-                .'Content-Transfer-Encoding: '.$this->encoding.$this->breakLine.$this->breakLine
-                .$this->message.$this->breakLine.$this->breakLine;
-            $this->writeCommand($body.$this->breakLine);
-            if (!$this->smtpAttach()) {
-                return false;
-            }
-        } else {
-            $this->writeCommand($this->message.$this->breakLine);
-        }
-
-        //All messages have sent
-        $this->writeCommand($this->breakLine.'.'.$this->breakLine);
-
-        $response = $this->getSmtpResponse();
-        $code = substr($response, 0, 3);
-
-        $this->debugMessages[] = 'Success: '.$response;
-
-        if ($code != 250) {
-            $this->debugMessages[] = 'Error: DATA command not accepted from server! Error number: '.$code.' ('.substr($response, 4).')';
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * execute the smtp connection.
-     *
-     * @return bool
-     */
-    private function doConnect()
-    {
-        $connection = false;
-
-        if ($this->smtpConnect()) {
-            $this->makeEhlo();
-
-            if (!empty($this->smtpUsername)) {
-                if (!$this->smtpLogin()) {
-                    $connection = false;
-                }
-            }
-
-            $connection = true;
-        }
-
-        if (!$connection) {
-            return false;
-        }
-
-        return $connection;
-    }
-
-    /**
-     * Sending the data to smtp.
-     *
-     * @return bool
-     */
-    private function smtpSend()
-    {
-        if (!$this->doConnect()) {
-            return false;
-        }
-
-        if (!$this->smtpFrom()) {
-            return false;
-        }
-
-        foreach ($this->rcptTo as $recipient) {
-            $this->smtpRecipient($recipient);
-        }
-
-        if (count($this->rcptCc) > 0) {
-            foreach ($this->rcptCc as $recipient) {
-                $this->smtpRecipient($recipient);
             }
         }
 
-        if (count($this->rcptBcc) > 0) {
-            foreach ($this->rcptBcc as $recipient) {
-                $this->smtpRecipient($recipient);
-            }
-        }
+        $ok = in_array((int) substr($response, 0, 3), $codes, true);
+        $this->debugMessages[] = ($ok ? 'Success: ' : 'Error: ').trim($response);
 
-        if (!$this->smtpData()) {
-            return false;
-        }
-
-        $this->smtpClose();
-
-        return true;
-    }
-
-    /**
-     * Sending attachment to smtp.
-     *
-     * @return bool
-     */
-    private function smtpAttach()
-    {
-        $attachment = array();
-        $attachmentCount = count($this->attachment);
-        for ($i = 0; $i < $attachmentCount; $i++) {
-            $filename = $this->attachment[$i];
-
-            // Not exist?
-            if (!file_exists($filename)) {
-                $this->debugMessages[] = 'Error: Attachment '.$filename.' not found';
-
-                return false;
-            }
-
-            $fileContent = '';
-            $fp = fopen($filename, 'r');
-            $fileContent = fread($fp, filesize($filename));
-            fclose($fp);
-
-            $attachment[$i] = '--'.$this->boundary.$this->breakLine
-                    .'Content-type: '.mime_content_type($filename).'; name='.basename($filename).$this->breakLine
-                    .'Content-Disposition: attachment; filename='.basename($filename).$this->breakLine
-                    .'Content-Transfer-Encoding: base64'.$this->breakLine.$this->breakLine;
-            $attachment[$i] .= chunk_split(base64_encode($fileContent));
-        }
-
-        $attachmentBody = implode($this->breakLine, $attachment).$this->breakLine.'--'.$this->boundary.'--';
-        $this->writeCommand($attachmentBody.$this->breakLine);
-
-        return true;
+        return $ok;
     }
 }

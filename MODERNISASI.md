@@ -356,6 +356,51 @@ Bisa juga lewat Upload: `'editImage' => [['resizeWidth' => 800], [...]]`.
 - `stripSpaces` hanya mengubah nama file baru, bukan path folder.
 - File sumber tidak lagi di-`chmod 0666` (bisa ditulis semua user).
 
+### Email
+
+```php
+$email = new \Resources\Email();
+$email->setOption([
+    'smtpHost' => 'smtp.example.com',
+    'smtpPort' => 587,
+    'smtpSecure' => 'tls',                  // STARTTLS; 'ssl' untuk port 465
+    'smtpUsername' => 'app@example.com',
+    'smtpPassword' => getenv('SMTP_PASSWORD'),
+    'messageType' => 'html',
+]);
+
+$sent = $email->from('app@example.com', 'Toko Kopi')
+    ->to($customer)
+    ->subject('Pesanan diterima')
+    ->message($this->output('emails/order', ['order' => $order]))
+    ->attach(APP.'storage/invoice-15.pdf')
+    ->mail();
+
+if (!$sent) {
+    error_log(implode("\n", $email->printDebug(false)));
+}
+```
+
+API-nya sama, isinya ditulis ulang (894 → 521 baris). Perbaikan keamanan:
+
+- *Header injection*: subject atau nama pengirim berisi baris baru dari form
+  bisa menambah header, misalnya `Bcc:` ke ribuan alamat. Baris baru kini dibuang
+  dan semua alamat divalidasi.
+- `smtpSecure => 'tls'` dulu diabaikan: password terkirim tanpa enkripsi.
+  Sekarang STARTTLS wajib berhasil, kalau tidak email tidak dikirim.
+- Login SMTP gagal dulu diabaikan dan pengiriman diteruskan. Penerima yang
+  ditolak server juga diabaikan. Keduanya kini membuat `mail()` mengembalikan
+  `false`.
+- Baris yang diawali titik kini digandakan (*dot-stuffing*). Dulu baris berisi
+  `.` saja memotong email di tengah.
+- `printDebug()` di-escape; username dan password tidak muncul di log debug.
+
+Perbaikan lain: email HTML dan lampiran kini MIME yang benar (boundary
+ditutup, lampiran juga terkirim lewat `mail()` bawaan), UTF-8 +
+quoted-printable (huruf non-ASCII dan baris panjang aman), subject dan nama
+non-ASCII di-*encode*, ada header `Date` dan `Message-ID`, hanya CRLF (server
+modern menolak LF tunggal).
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -412,6 +457,13 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
 26. `Upload::getFileExtension('README')` mengembalikan `''` (dulu `'README'`).
     `getFileInfo()['folder']` berisi folder sebenarnya (termasuk `tahun/bulan`
     bila `autoCreateFolder`).
+27. Email selalu UTF-8. Opsi privat lama (`charset`, `breakLine`, `boundary`)
+    tidak bisa diset lagi lewat `setOption()`; `timeoutConnection` kini publik.
+28. Email dengan alamat tidak valid, lampiran yang tidak ada, login SMTP gagal,
+    atau penerima yang ditolak tidak dikirim (`mail()` → `false`). Dulu sebagian
+    dari itu tetap "terkirim".
+29. `smtpSecure => 'tls'` mewajibkan STARTTLS. Server yang tidak mendukungnya
+    ditolak (pakai `'ssl'` atau `false` dengan sadar).
 
 ---
 
@@ -436,7 +488,7 @@ Isi test suite:
 ## Belum disentuh
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
-PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`,
+PHPStan level 2), belum di-*strict type* dan belum punya test:
 `Tools`, dan driver cache (`Redis`, `Memcache`,
 `Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
 `phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.
