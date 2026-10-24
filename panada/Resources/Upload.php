@@ -1,7 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada Upload API.
+ *
+ *   $upload = new \Resources\Upload();
+ *   $upload->setOption([
+ *       'folderLocation' => APP.'storage/uploads',
+ *       'permittedFileType' => 'jpg|jpeg|png|pdf',
+ *       'maximumSize' => 2_000_000,
+ *       'autoRename' => true,
+ *   ]);
+ *
+ *   if (!$upload->now($_FILES['photo'])) {
+ *       return e($upload->getError('message'));
+ *   }
+ *
+ *   $info = $upload->getFileInfo();   // extension, name, folder, mime, size
+ *
+ * Files a web server could run (.php, .phtml, .phar, .htaccess, ...) are
+ * always refused, whatever permittedFileType says. Still, keep uploads
+ * outside public/ when you can.
  *
  * @link	http://panadaframework.com/
  *
@@ -10,8 +30,10 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
+// Edit types for the 'editImage' option, see Resources\Image.
 if (!defined('PIMG_RESIZE')) {
     define('PIMG_RESIZE', 'resize');
 }
@@ -26,139 +48,88 @@ if (!defined('PIMG_RESIZE_CROP')) {
 
 class Upload
 {
-    /**
-     * @var array Define the varible.
-     */
-    public $file;
+    use Configurable;
 
     /**
-     *@var object   Error message container.
+     * Names a web server may execute as code (also "x.php.jpg", which some
+     * Apache setups run) or that change its configuration.
      */
-    public $error;
+    private const EXECUTABLE = '/\.(php\d*|phtml|pht|phar|phps)(\.|$)|^\.(htaccess|user\.ini)$/i';
+
+    /** The $_FILES entry being uploaded. */
+    public array $file = [];
+
+    /** Last error: object with code and message, or null. */
+    public ?\stdClass $error = null;
+
+    public array $errorMessages = [
+        1 => 'File upload failed due to unknown error.',
+        2 => 'No folder located. Please define the folder location.',
+        3 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
+        4 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.',
+        5 => 'The uploaded file was only partially uploaded.',
+        6 => 'No file was uploaded.',
+        7 => 'Missing a temporary folder.',
+        8 => 'Failed to write file to disk.',
+        9 => 'File upload stopped by extension.',
+        10 => 'Folder you\'ve defined does not exist.',
+        11 => 'Can\'t create new folder in your defined folder.',
+        12 => 'Uploaded file not permitted.',
+        13 => 'The uploaded file exceeds the maximum size.',
+        14 => 'File uploaded, but editing image has failed with the following error(s): ',
+        15 => 'Folder you specified not writeable.',
+    ];
+
+    public string $folderLocation = '';
+
+    /** File name without extension; the original extension is kept. */
+    public string $setFileName = '';
+
+    /** Give the file a random name. */
+    public bool $autoRename = false;
+
+    /** Replace spaces in the file name with "_". */
+    public bool $stripSpaces = true;
+
+    /** Maximum size in bytes, 0 for no limit. */
+    public int $maximumSize = 0;
+
+    /** Store in folderLocation/year/month. */
+    public bool $autoCreateFolder = false;
+
+    /** Information about the stored file, see getFileInfo(). */
+    public array $getFileInfo = [];
+
+    /** Allowed extensions as a regex alternation, e.g. 'jpg|jpeg|png'. */
+    public string $permittedFileType = '';
+
+    public ?Image $image = null;
+
+    /** Image edits after upload, each an array of Image options. */
+    public array $editImage = [];
 
     /**
-     * @var array Initiate the error mesages.
+     * Process the upload of one $_FILES entry.
      */
-    public $errorMessages = array();
-
-    /**
-     * @var string Folder location.
-     */
-    public $folderLocation = '';
-
-    /**
-     * @var string Define file name manually.
-     */
-    public $setFileName = '';
-
-    /**
-     * @var bool Need auto rename the file?
-     */
-    public $autoRename = false;
-
-    /**
-     * @var bool Remove any space in file name.
-     */
-    public $stripSpaces = true;
-
-    /**
-     * @var int Define maximum file size.
-     */
-    public $maximumSize = 0;
-
-    /**
-     * @var bool Create subdirectory automaticly. The format is "destination_folder/year/month".
-     */
-    public $autoCreateFolder = false;
-
-    /**
-     * @var array Collect the file information: name, extension, path etc...
-     */
-    public $getFileInfo = array();
-
-    /**
-     * @var string Any files that are allowed.
-     */
-    public $permittedFileType = '';
-
-    /**
-     * @var object Instance for Image modifier class (Library_image).
-     */
-    public $image;
-
-    /**
-     * @var string Option to edit image base on Library_image class. The option is resize | crop | resize_crop
-     */
-    public $editImage = array();
-
-    /**
-     * Class constructor.
-     */
-    public function __construct()
+    public function now(array $file): bool
     {
-        $this->initErrorMessages();
-    }
+        $this->file = $file + ['name' => '', 'tmp_name' => '', 'error' => UPLOAD_ERR_NO_FILE, 'size' => 0];
+        $this->error = null;
+        $this->getFileInfo = [];
 
-    /**
-     * Setter for option.
-     *
-     * @param string | array $var
-     * @param mix            $value
-     */
-    public function setOption($var, $value = false)
-    {
-        if (is_string($var)) {
-            $this->$var = $value;
-        }
+        $folder = $this->folder();
 
-        if (is_array($var)) {
-            foreach ($var as $key => $value) {
-                $this->$key = $value;
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Do the Processing upload.
-     *
-     * @param array $_FILES variable
-     *
-     * @return bool
-     */
-    public function now($file)
-    {
-        $this->file = $file;
-
-        $this->errorHandler();
-
-        if (!empty($this->error)) {
+        if ($folder === null || !$this->check() || !$this->upload($folder)) {
             return false;
         }
 
-        if (!$this->upload()) {
-            return false;
-        }
+        foreach ($this->editImage as $options) {
+            $this->image = new Image();
+            $this->image->folder = $folder;
+            $this->image->setOption($options);
 
-        if (!empty($this->editImage)) {
-            foreach ($this->editImage as $editImage) {
-
-                // Initiate Image class
-                $this->image            = new Image();
-                // See Image class line 65
-                $this->image->folder    = $this->folderLocation;
-
-                // Assign each config for Image class
-                foreach ($editImage as $key => $val) {
-                    $this->image->$key = $val;
-                }
-
-                if (!$this->image->edit($this->getFileInfo['name'])) {
-                    $this->_setErrorMessage(14);
-
-                    return false;
-                }
+            if (!$this->image->edit($this->getFileInfo['name'])) {
+                return $this->setError(14);
             }
         }
 
@@ -166,221 +137,120 @@ class Upload
     }
 
     /**
-     * List of error messages.
+     * The destination folder, created when missing; null on error.
      */
-    private function initErrorMessages()
+    private function folder(): ?string
     {
-        $this->errorMessages = array(
-            1 => 'File upload failed due to unknown error.',
-            2 => 'No folder located. Please define the folder location.',
-            3 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
-            4 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.',
-            5 => 'The uploaded file was only partially uploaded.',
-            6 => 'No file was uploaded.',
-            7 => 'Missing a temporary folder.',
-            8 => 'Failed to write file to disk.',
-            9 => 'File upload stopped by extension.',
-            10 => 'Folder you\'ve defined does not exist.',
-            11 => 'Can\'t create new folder in your defined folder.',
-            12 => 'Uploaded file not permitted.',
-            13 => 'The uploaded file exceeds the maximum size.',
-            14 => 'File uploaded, but editing image has failed with the following error(s): ',
-            15 => 'Folder you specified not writeable.',
-        );
+        if ($this->folderLocation === '') {
+            $this->setError(2);
+
+            return null;
+        }
+
+        $folder = rtrim($this->folderLocation, '/\\').($this->autoCreateFolder ? '/'.date('Y/m') : '');
+
+        if (!is_dir($folder) && !@mkdir($folder, 0755, true) && !is_dir($folder)) {
+            $this->setError(11);
+
+            return null;
+        }
+
+        if (!is_writable($folder)) {
+            $this->setError(15);
+
+            return null;
+        }
+
+        return $folder;
     }
 
-    /**
-     * Set the error mesage.
-     *
-     * @param int
-     */
-    private function _setErrorMessage($code)
+    private function check(): bool
     {
-        $image_error        = ($code == 14 && isset($this->image->errorMessages)) ? implode(', ', $this->image->errorMessages) : null;
-        $handler            = new \stdClass();
-        $handler->code      = $code;
-        $handler->message   = $this->errorMessages[$code].$image_error;
-        $this->error        = $handler;
-    }
-
-    /**
-     * Error checker before uploading proceed.
-     */
-    private function errorHandler()
-    {
-        /*
-         * Check is folder destionation has set.
-         */
-        if (empty($this->folderLocation)) {
-            $this->_setErrorMessage(2);
-
-            return false;
-        }
-
-        /*
-         * Does it folder exist?
-         */
-        if (!is_dir($this->folderLocation)) {
-
-            // Create a folder if not exits
-            $arr = explode('/', $this->folderLocation);
-
-            $path = '';
-            if (substr($this->folderLocation, 0, 1) == '/') {
-                $path = '/';
-            }
-
-            foreach ($arr as $name) {
-                if (empty($name)) {
-                    continue;
-                }
-
-                $path .= $name.'/';
-
-                if (!is_dir($path)) {
-                    if (!mkdir($path, 0777)) {
-                        $this->_setErrorMessage(11);
-                        //$this->_setErrorMessage(10);
-                        return false;
-                    }
-                }
-            }
-        }
-
-        /*
-         * Does it folder writable?
-         */
-        if (!is_writable($this->folderLocation)) {
-            $this->_setErrorMessage(15);
-
-            return false;
-        }
-
-        /*
-         * Make sure the file size not more then user defined.
-         */
         if ($this->maximumSize > 0 && $this->file['size'] > $this->maximumSize) {
-            $this->_setErrorMessage(13);
-
-            return false;
+            return $this->setError(13);
         }
 
-        /*
-        * Checking error in uploading proccess.
-        */
-        if ($this->file['error']) {
-            switch ($this->file['error']) {
-
-                case UPLOAD_ERR_INI_SIZE:
-                    $this->_setErrorMessage(3);
-
-                    return false;
-                case UPLOAD_ERR_FORM_SIZE:
-                    $this->_setErrorMessage(4);
-
-                    return false;
-                case UPLOAD_ERR_PARTIAL:
-                    $this->_setErrorMessage(5);
-
-                    return false;
-                case UPLOAD_ERR_NO_FILE:
-                    $this->_setErrorMessage(6);
-
-                    return false;
-                case UPLOAD_ERR_NO_TMP_DIR:
-                    $this->_setErrorMessage(7);
-
-                    return false;
-                case UPLOAD_ERR_CANT_WRITE:
-                    $this->_setErrorMessage(8);
-
-                    return false;
-                case UPLOAD_ERR_EXTENSION:
-                    $this->_setErrorMessage(9);
-
-                    return false;
-                default:
-                    $this->_setErrorMessage(1);
-            }
+        if ((int) $this->file['error'] !== UPLOAD_ERR_OK) {
+            return $this->setError(match ((int) $this->file['error']) {
+                UPLOAD_ERR_INI_SIZE => 3,
+                UPLOAD_ERR_FORM_SIZE => 4,
+                UPLOAD_ERR_PARTIAL => 5,
+                UPLOAD_ERR_NO_FILE => 6,
+                UPLOAD_ERR_NO_TMP_DIR => 7,
+                UPLOAD_ERR_CANT_WRITE => 8,
+                UPLOAD_ERR_EXTENSION => 9,
+                default => 1,
+            });
         }
 
-        /*
-         * Make sure this file are permitted.
-         */
-        if (!empty($this->permittedFileType)) {
-            if (!preg_match('!\.('.$this->permittedFileType.')$!i', $this->file['name'])) {
-                $this->_setErrorMessage(12);
-
-                return false;
-            }
+        if ($this->permittedFileType !== '' && !preg_match('!\.('.$this->permittedFileType.')$!i', $this->file['name'])) {
+            return $this->setError(12);
         }
+
+        return true;
     }
 
-    public static function getFileExtension($file)
+    public static function getFileExtension(string $file): string
     {
-        $ext = explode('.', $file);
-
-        return end($ext);
+        return pathinfo($file, PATHINFO_EXTENSION);
     }
 
-    /**
-     * Do uploading.
-     * ID: Lakukan ungguh.
-     */
-    private function upload()
+    private function upload(string $folder): bool
     {
-        $fileExtension = self::getFileExtension($this->file['name']);
+        // basename(): a name must never point outside the folder.
+        $original = basename(str_replace('\\', '/', $this->file['name']));
+        $extension = self::getFileExtension($original);
+        $suffix = $extension === '' ? '' : '.'.$extension;
 
-        if ($this->autoRename) {
-            $name = time().rand().'.'.$fileExtension;
-        } elseif (!empty($this->setFileName)) {
-            $name = $this->setFileName.'.'.$fileExtension;
-        } else {
-            $name = $this->file['name'];
-        }
+        $name = match (true) {
+            $this->autoRename => bin2hex(random_bytes(8)).$suffix,
+            $this->setFileName !== '' => basename(str_replace('\\', '/', $this->setFileName)).$suffix,
+            default => $original,
+        };
 
-        // Remove space in file name.
         if ($this->stripSpaces) {
             $name = str_replace(' ', '_', $name);
         }
 
-        // Save file extension.
-        $this->getFileInfo['extension']   = $fileExtension;
-        // Save file name.
-        $this->getFileInfo['name']        = $name;
-        // Save folder location.
-        $this->getFileInfo['folder']      = $this->folderLocation;
-        // Save mime type.
-        $mime = self::getMimeTypes($name);
-        $this->getFileInfo['mime']        = $mime['type'];
-        // Save file size.
-        $this->getFileInfo['size']        = $this->file['size'];
+        // Windows drops trailing dots and spaces: "shell.php." is "shell.php".
+        $name = rtrim($name, ' .');
 
-        $file_path  = $this->folderLocation.'/'.$name;
-
-        if (move_uploaded_file($this->file['tmp_name'], $file_path)) {
-            return true;
-        } else {
-            $this->_setErrorMessage(1);
-
-            return false;
+        if ($name === '' || preg_match(self::EXECUTABLE, $name)) {
+            return $this->setError(12);
         }
+
+        $this->getFileInfo = [
+            'extension' => $extension,
+            'name' => $name,
+            'folder' => $folder,
+            'mime' => self::getMimeTypes($name)['type'] ?? 'application/octet-stream',
+            'size' => $this->file['size'],
+        ];
+
+        if (!move_uploaded_file($this->file['tmp_name'], $folder.'/'.$name)) {
+            return $this->setError(1);
+        }
+
+        return true;
+    }
+
+    private function setError(int $code): bool
+    {
+        $imageErrors = $code === 14 && $this->image ? implode(', ', $this->image->errorMessages) : '';
+        $this->error = (object) ['code' => $code, 'message' => $this->errorMessages[$code].$imageErrors];
+
+        return false;
     }
 
     /**
-     * Define file mime type. Original from Wordpress 3.0 get_allowed_mime_types() function in wp-includes/functions.php.
+     * Mime type from the file extension. Original from Wordpress 3.0
+     * get_allowed_mime_types() function in wp-includes/functions.php.
      *
-     * @param string
-     *
-     * @return bool|array
+     * @return array{type: string, ext: string}|false
      */
-    public static function getMimeTypes($file_name = '')
+    public static function getMimeTypes(string $file_name = ''): array|false
     {
-        if (empty($file_name)) {
-            return false;
-        }
-
-        $mimes = array(
+        $mimes = [
             'jpg|jpeg|jpe' => 'image/jpeg',
             'gif' => 'image/gif',
             'png' => 'image/png',
@@ -439,60 +309,41 @@ class Upload
             'odf' => 'application/vnd.oasis.opendocument.formula',
             // wordperfect formats
             'wp|wpd' => 'application/wordperfect',
-            // php formats
-            'php|php4|php3|phtml' => 'application/x-httpd-php',
-        'phps' => 'application/x-httpd-php-source',
-        );
+        ];
 
-        $file = false;
-
-        foreach ($mimes as $ext_preg => $mime_match) {
-            $ext_preg = '!\.('.$ext_preg.')$!i';
-            if (preg_match($ext_preg, $file_name, $ext_matches)) {
-                $file['type'] = $mime_match;
-                $file['ext'] = $ext_matches[1];
-                break;
+        foreach ($mimes as $extensions => $type) {
+            if (preg_match('!\.('.$extensions.')$!i', $file_name, $match)) {
+                return ['type' => $type, 'ext' => $match[1]];
             }
         }
 
-        return $file;
+        return false;
     }
 
-    /**
-     * Getter for getFileInfo property.
-     *
-     * @return array
-     */
-    public function getFileInfo()
+    public function getFileInfo(): array
     {
         return $this->getFileInfo;
     }
 
     /**
-     * Getter for error property.
-     *
-     * @return mix
+     * The error object, or one of its properties: getError('message').
      */
-    public function getError($property = false)
+    public function getError(string|false $property = false): mixed
     {
-        if (!$property) {
+        if ($property === false) {
             return $this->error;
         }
 
-        return $this->error->$property;
+        return $this->error->$property ?? null;
     }
 
     /**
-     * Setter for error message.
-     *
-     * @param array $messages
-     *
-     * @return object
+     * Replace error messages, e.g. to translate them: [12 => 'Jenis file ditolak.'].
      */
-    public function setErrorMessage($messages = array())
+    public function setErrorMessage(array $messages = []): static
     {
         $this->errorMessages = array_replace($this->errorMessages, $messages);
 
         return $this;
     }
-} //End Upload Class
+}

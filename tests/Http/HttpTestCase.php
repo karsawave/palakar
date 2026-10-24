@@ -99,7 +99,9 @@ abstract class HttpTestCase extends TestCase
         ]);
 
         if ($data !== []) {
-            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+            // A CURLFile makes it a multipart upload, which needs the raw array.
+            $upload = array_filter($data, fn ($value) => $value instanceof \CURLFile) !== [];
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $upload ? $data : http_build_query($data));
         }
 
         $body = (string) curl_exec($curl);

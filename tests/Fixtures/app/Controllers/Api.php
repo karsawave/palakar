@@ -39,4 +39,13 @@ class Api extends \Resources\Controller
     {
         return '';
     }
+
+    public function upload(): array
+    {
+        $upload = new \Resources\Upload();
+        $upload->setOption(['folderLocation' => getenv('PANADA_UPLOAD_DIR')] + ($_POST['options'] ?? []));
+        $ok = $upload->now($_FILES['file'] ?? []);
+
+        return ['ok' => $ok, 'info' => $upload->getFileInfo(), 'error' => $upload->getError()];
+    }
 }

@@ -521,39 +521,3 @@ parameters:
 			identifier: phpDoc.parseError
 			count: 1
 			path: panada/Resources/Tools.php
-
-		-
-			message: '#^Default value of the parameter \#2 \$value \(false\) of method Resources\\Upload\:\:setOption\(\) is incompatible with type Resources\\mix\.$#'
-			identifier: parameter.defaultValue
-			count: 1
-			path: panada/Resources/Upload.php
-
-		-
-			message: '#^Method Resources\\Upload\:\:getError\(\) has invalid return type Resources\\mix\.$#'
-			identifier: class.notFound
-			count: 1
-			path: panada/Resources/Upload.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(int\)\: Unexpected token "\\n     ", expected variable at offset 57 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: panada/Resources/Upload.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(string\)\: Unexpected token "\\n     \*", expected variable at offset 153 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: panada/Resources/Upload.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$_FILES$#'
-			identifier: parameter.notFound
-			count: 1
-			path: panada/Resources/Upload.php
-
-		-
-			message: '#^Parameter \$value of method Resources\\Upload\:\:setOption\(\) has invalid type Resources\\mix\.$#'
-			identifier: class.notFound
-			count: 1
-			path: panada/Resources/Upload.php

@@ -296,6 +296,38 @@ $status = $rest->getResponseStatus();
 - `setResponseHeader(404)` kini benar-benar dipakai (dulu ditimpa 200 oleh
   `Response` saat dikirim).
 
+### Upload
+
+```php
+$upload = new \Resources\Upload();
+$upload->setOption([
+    'folderLocation' => APP.'storage/uploads',     // sebaiknya di luar public/
+    'permittedFileType' => 'jpg|jpeg|png|pdf',
+    'maximumSize' => 2_000_000,
+    'autoRename' => true,
+]);
+
+if (!$upload->now($_FILES['photo'])) {
+    return e($upload->getError('message'));
+}
+```
+
+Perbaikan keamanan:
+
+- File yang bisa dijalankan server selalu ditolak, apa pun isi
+  `permittedFileType`: `.php`, `.php5`, `.phtml`, `.phar`, nama ganda seperti
+  `foto.php.jpg`, serta `.htaccess` dan `.user.ini`. Dulu tanpa
+  `permittedFileType` semua file diterima, termasuk `shell.php` ke folder publik.
+- `setFileName` berisi `../` dulu menulis file di luar folder tujuan. Sekarang
+  nama selalu di-`basename()`.
+- `autoRename` memakai nama acak (`random_bytes`), dulu `time().rand()` yang
+  bisa ditebak. Folder baru dibuat `0755` (dulu `0777`).
+
+Perbaikan lain: ekstensi yang tidak ada di daftar MIME dulu membuat error 500
+(sekarang `application/octet-stream`); `autoCreateFolder` (folder `tahun/bulan`)
+dulu tidak pernah dijalankan; `getError('message')` sebelum ada error dulu
+memicu warning.
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -347,6 +379,11 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
     header yang menumpuk) dihapus; pakai `setRequestHeaders([...])`.
 24. JSON dari `outputJSON()` tidak lagi meng-escape `/` dan karakter Unicode
     (sama dengan controller yang me-return array).
+25. Upload menolak file yang bisa dijalankan server (`.php*`, `.phtml`,
+    `.phar`, `x.php.jpg`, `.htaccess`, `.user.ini`) tanpa pengecualian.
+26. `Upload::getFileExtension('README')` mengembalikan `''` (dulu `'README'`).
+    `getFileInfo()['folder']` berisi folder sebenarnya (termasuk `tahun/bulan`
+    bila `autoCreateFolder`).
 
 ---
 
@@ -372,6 +409,6 @@ Isi test suite:
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
 PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`, `Image`,
-`Upload`, `Tools`, dan driver cache (`Redis`, `Memcache`,
+`Tools`, dan driver cache (`Redis`, `Memcache`,
 `Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
 `phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.
