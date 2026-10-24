@@ -168,6 +168,9 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
   `done`, tanggal, hash commit, dan hasil verifikasi (jumlah test, PHPStan).
   Satu spec = satu commit (atau beberapa commit yang disebut di spec).
 - Pesan commit menyebut nomor spec, mis. `spec-001: ...`.
+- Spec yang mengubah perilaku menambah entri di `CHANGELOG.md` bagian
+  `[Unreleased]` (Keep a Changelog, SemVer). `CHANGELOG-PANADA` adalah
+  riwayat upstream dan tidak diubah.
 - Spec yang dibatalkan tetap disimpan dengan status `cancelled` dan alasannya,
   supaya riwayat keputusan tetap transparan.
 
@@ -214,8 +217,8 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
 
 ## Backlog (urut prioritas)
 
-1. **Sebelum repo publik:** spec 004–005 (CODE OF
-   CONDUCT, CHANGELOG)
+1. **Sebelum repo publik:** spec 004 (CODE OF
+   CONDUCT)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
 2. **Asal-usul lisensi:** `Pagination::getUrl()` (diadaptasi dari

@@ -50,4 +50,5 @@ Links
 - Source and issues: https://github.com/karsawave/palakar
 - Security problems: report privately, see [SECURITY.md](SECURITY.md)
 - Contributing: see [CONTRIBUTING.md](CONTRIBUTING.md) (Bahasa Indonesia)
+- Changes: see [CHANGELOG.md](CHANGELOG.md)
 - License: BSD-3-Clause, see [LICENSE](LICENSE)

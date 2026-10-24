@@ -1,0 +1,67 @@
+# Changelog
+
+All notable changes to Palakar Framework are documented here.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and the project uses [Semantic Versioning](https://semver.org/).
+
+Breaking changes and upgrade notes from Panada 1.x are listed in detail in
+[MODERNISASI.md](MODERNISASI.md) (Bahasa Indonesia). The history of Panada
+Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
+
+## [Unreleased]
+
+## [0.1.0] - not released yet
+
+First version of Palakar, a fork of Panada Framework 1.1.1 by Iskandar
+Soesman, modernized for PHP 8.2+ (specs 000 and 001).
+
+### Added
+
+- Composer PSR-4 autoloading; Panada's own autoloader kept as fallback.
+- PDO-only database layer: every value bound, `transaction()`, `whereRaw()`.
+- Built-in CSRF protection (`csrf_field()`, `X-CSRF-Token` header).
+- Validation with auto-sanitize and named filters.
+- ErrorHandler with optional Whoops page and a safe production page.
+- Session cookies with SameSite, Secure 'auto', HttpOnly, strict mode;
+  libsodium encryption and a signed cookie session driver.
+- `Resources\Configurable` (`setOption()` for Pagination, Upload, Image, Email).
+- PHPUnit test suite (135 tests, unit + real HTTP), PHPStan level 2,
+  GitHub Actions CI with PostgreSQL, Redis and Memcached.
+- SECURITY.md, CONTRIBUTING.md, spec workflow in `_tasks/`.
+
+### Changed
+
+- Requires PHP 8.2+, `strict_types` in the core.
+- Renamed to Palakar Framework (`karsawave/palakar`).
+- Email: UTF-8 + quoted-printable, correct MIME, `Date`/`Message-ID` headers.
+- Rest: response helpers keep the status code; `getRequest()` reads
+  PUT/PATCH/DELETE bodies.
+- Cache drivers share one contract; namespaces use random versions.
+
+### Fixed
+
+- ActiveRecord: model `$table` ignored, duplicate insert on second `save()`,
+  query state leaking into the next query.
+- Pagination `getUrl()` always failed; Tools `xmlDecode()` always failed.
+- Image: fractional sizes, lost PNG transparency.
+- Dummy cache `flushValues()` fatal error; the cache session driver could not
+  write.
+- Required fields missing from the request passed validation.
+- `Uri` on Windows paths.
+
+### Security
+
+- SQL injection in the PDO driver (`escape()` returned its input).
+- XSS in the 404/500 error pages; inherited controller methods reachable
+  from URLs.
+- Upload accepted executable files (`.php`, `.phtml`, `x.php.jpg`,
+  `.htaccess`) and names with `../`.
+- Email header injection; `smtpSecure 'tls'` sent the password unencrypted;
+  failed SMTP login was ignored; no dot-stuffing.
+- `Apc` cache driver forwarded any method name to a global PHP function.
+- `getRandomString()` used `mt_rand()`; files were chmod 0666 by Image.
+
+### Removed
+
+- Database drivers mysql, mysqli, pgsql, sqlite, cubrid, mongodb (PDO only).
+- Panada logo and GitHub banner from the welcome page.
