@@ -1,7 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada Image Modifier.
+ * Panada Image Modifier (GD): resize, crop, or resize then crop.
+ *
+ *   $image = (new \Resources\Image())->setOption([
+ *       'folder' => APP.'storage/uploads',
+ *       'editType' => PIMG_RESIZE_CROP,
+ *       'resizeWidth' => 300,
+ *       'cropWidth' => 200,
+ *       'cropHeight' => 200,
+ *       'newFileName' => 'avatar-small',   // keep the original, write a copy
+ *   ]);
+ *
+ *   if (!$image->edit('avatar.jpg')) {
+ *       $errors = $image->getErrorMessage();
+ *   }
+ *
+ * Works with JPEG, PNG (transparency kept) and GIF.
  *
  * @link	http://panadaframework.com/
  *
@@ -10,6 +27,7 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 if (!defined('PIMG_RESIZE')) {
@@ -26,89 +44,47 @@ if (!defined('PIMG_RESIZE_CROP')) {
 
 class Image
 {
-    /**
-     * @var string Option for editng image the option is: resize | crop | resize_crop.
-     */
-    public $editType = PIMG_RESIZE;
+    use Configurable;
 
-    /**
-     *@var bool  Adjust width/heigh autmaticly for resizing proccess.
-     */
-    public $autoRatio = true;
+    /** resize | crop | resize_crop */
+    public string $editType = PIMG_RESIZE;
 
-    /**
-     * @var int New image width.
-     */
-    public $resizeWidth = 0;
+    /** Compute the missing width or height from the image ratio. */
+    public bool $autoRatio = true;
 
-    /**
-     * @var int New image height.
-     */
-    public $resizeHeight = 0;
+    public int $resizeWidth = 0;
+    public int $resizeHeight = 0;
+    public int $cropWidth = 0;
+    public int $cropHeight = 0;
 
-    /**
-     * @var int Crope width size.
-     */
-    public $cropWidth = 0;
+    /** Source file name and full path, set by edit(). */
+    public string $fileName = '';
+    public string $filePath = '';
 
-    /**
-     * @var int Crope height size.
-     */
-    public $cropHeight = 0;
+    /** getimagesize() of the source. */
+    public array|false $fileInfo = [];
 
-    /**
-     * @var string Source file name.
-     */
-    public $fileName = '';
+    /** Write the result to this name (without extension) instead of the source. */
+    public string $newFileName = '';
 
-    /**
-     * @var string Source full path location.
-     */
-    public $filePath;
+    /** Replace spaces in the new file name with "_". */
+    public bool $stripSpaces = true;
 
-    /**
-     * @var string Source file info.
-     */
-    public $fileInfo = array();
+    /** Folder of the source image. */
+    public string $folder = '';
 
-    /**
-     * @var string Define new file name.
-     */
-    public $newFileName = '';
+    /** IMAGETYPE_JPEG, IMAGETYPE_PNG or IMAGETYPE_GIF. */
+    public ?int $imageType = null;
 
-    /**
-     * @var bool Remove any space in file name.
-     */
-    public $stripSpaces = true;
+    /** JPEG quality, 0 - 100. */
+    public int $jpegCompression = 90;
 
-    /**
-     * @var string Source folder location.
-     */
-    public $folder = '';
+    /** Folder for the result, default: the source folder. */
+    public string $saveTo = '';
 
-    /**
-     * @var string Source image type: gif, jpg or png.
-     */
-    public $imageType;
+    /** Errors of the last edit(). */
+    public array $errorMessages = [];
 
-    /**
-     * @var int The value jpg compression. the range is 0 - 100.
-     */
-    public $jpegCompression = 90;
-
-    /**
-     * @var string Folder to placed new edited image.
-     */
-    public $saveTo = '';
-
-    /**
-     * @var array Initiate the error mesages.
-     */
-    public $errorMessages = array();
-
-    /**
-     * Class constructor.
-     */
     public function __construct()
     {
         if (!function_exists('imagecopyresampled')) {
@@ -116,69 +92,88 @@ class Image
         }
     }
 
-    /**
-     * Setter for option.
-     *
-     * @param string | array $var
-     * @param mix            $value
-     */
-    public function setOption($var, $value = false)
+    public function edit(string $fileName): bool
     {
-        if (is_string($var)) {
-            $this->$var = $value;
+        $this->fileName = $fileName;
+        $this->filePath = $this->folder.'/'.$fileName;
+        $this->errorMessages = [];
+
+        if (!$this->preErrorChecker()) {
+            return false;
         }
 
-        if (is_array($var)) {
-            foreach ($var as $key => $value) {
-                $this->$key = $value;
+        $this->initFileInfo();
+
+        if (!$this->errorHandler() || !$image = $this->createImageFrom()) {
+            return false;
+        }
+
+        [$width, $height] = $this->fileInfo;
+        $newWidth = $width;
+        $newHeight = $height;
+
+        if ($this->resizeWidth > 0 && $this->resizeHeight === 0) {
+            $newWidth = $this->resizeWidth;
+            $newHeight = $this->autoRatio ? $height * $newWidth / $width : $height;
+        } elseif ($this->resizeHeight > 0 && $this->resizeWidth === 0) {
+            $newHeight = $this->resizeHeight;
+            $newWidth = $this->autoRatio ? $width * $newHeight / $height : $width;
+        } elseif ($this->resizeWidth > 0 && $this->resizeHeight > 0 && $this->editType === PIMG_RESIZE) {
+            $newWidth = $this->resizeWidth;
+            $newHeight = $this->resizeHeight;
+        }
+
+        // GD wants whole pixels, a ratio gives fractions.
+        $newWidth = max(1, (int) round($newWidth));
+        $newHeight = max(1, (int) round($newHeight));
+
+        if ($this->editType === PIMG_RESIZE || $this->editType === PIMG_RESIZE_CROP) {
+            $resized = $this->canvas($newWidth, $newHeight);
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            $image = $resized;
+        }
+
+        if ($this->editType === PIMG_CROP || $this->editType === PIMG_RESIZE_CROP) {
+            if ($this->cropWidth < 1 || $this->cropHeight < 1) {
+                $this->errorMessages[] = 'Set cropWidth and cropHeight to crop the image.';
+
+                return false;
             }
+
+            // Cut the middle of the image.
+            $cropped = $this->canvas($this->cropWidth, $this->cropHeight);
+            imagecopy(
+                $cropped,
+                $image,
+                0,
+                0,
+                max(0, intdiv(imagesx($image) - $this->cropWidth, 2)),
+                max(0, intdiv(imagesy($image) - $this->cropHeight, 2)),
+                $this->cropWidth,
+                $this->cropHeight
+            );
+            $image = $cropped;
         }
 
-        return $this;
+        return $this->createImage($image);
     }
 
-    private function preErrorChecker()
+    private function preErrorChecker(): bool
     {
-        /*
-         * Check is folder destionation has set.
-         */
-        if (empty($this->folder)) {
+        if ($this->folder === '') {
             $this->errorMessages[] = 'No folder located. Please define the folder location.';
-
-            return false;
-        }
-
-        /*
-         * Does it folder exist?
-         */
-        if (!is_dir($this->folder)) {
+        } elseif (!is_dir($this->folder)) {
             $this->errorMessages[] = 'The folder '.$this->folder.' doesn\'t exists please create it first.';
-
-            return false;
-        }
-
-        /*
-         * Does it folder writable?
-         */
-        if (!is_writable($this->folder)) {
+        } elseif (!is_writable($this->folder)) {
             $this->errorMessages[] = 'The folder '.$this->folder.' is not writable.';
-
-            return false;
-        }
-
-        /*
-         * Does the file exist?
-         */
-        if (!file_exists($this->filePath)) {
+        } elseif (!is_file($this->filePath)) {
             $this->errorMessages[] = 'File '.$this->filePath.' doesn\'t exists.';
-
-            return false;
         }
 
-        return true;
+        return $this->errorMessages === [];
     }
 
-    private function errorHandler()
+    private function errorHandler(): bool
     {
         if (!$this->fileInfo || !$this->fileInfo[0] || !$this->fileInfo[1]) {
             $this->errorMessages[] = 'Unable to get image dimensions.';
@@ -186,149 +181,85 @@ class Image
             return false;
         }
 
-        if (!function_exists('imagegif') && $this->imageType == IMAGETYPE_GIF || !function_exists('imagejpeg') && $this->imageType == IMAGETYPE_JPEG || !function_exists('imagepng') && $this->imageType == IMAGETYPE_PNG) {
-            $this->errorMessages[] = 'Filetype not supported.';
-
-            return false;
-        }
-
         return true;
     }
 
-    public function initFileInfo()
+    public function initFileInfo(): void
     {
+        // A file that is no image gives false (and maybe a notice), handled by errorHandler().
         $this->fileInfo = @getimagesize($this->filePath);
-        $this->imageType   = $this->fileInfo[2];
+        $this->imageType = $this->fileInfo[2] ?? null;
     }
 
-    public function edit($fileName)
+    public function createImageFrom(): \GdImage|false
     {
-        $this->fileName    = $fileName;
-        $this->filePath    = $this->folder.'/'.$fileName;
+        $image = match ($this->imageType) {
+            IMAGETYPE_GIF => imagecreatefromgif($this->filePath),
+            IMAGETYPE_JPEG => imagecreatefromjpeg($this->filePath),
+            IMAGETYPE_PNG => imagecreatefrompng($this->filePath),
+            default => false,
+        };
 
-        // Pre condition cheking.
-        if (!$this->preErrorChecker()) {
-            return false;
+        if ($image === false) {
+            $this->errorMessages[] = 'Unrecognized image format.';
         }
 
-        @chmod($this->filePath, 0666);
-
-        $this->initFileInfo();
-
-        if (!$this->errorHandler()) {
-            return false;
-        }
-
-        $image = $this->createImageFrom();
-
-        if (!empty($this->errorMessages)) {
-            return false;
-        }
-
-        if (function_exists('imageantialias')) {
-            imageantialias($image, true);
-        }
-
-        // Initial heigh and widht variable.
-        $image_width        = $this->fileInfo[0];
-        $image_height       = $this->fileInfo[1];
-
-        $image_new_width    = $this->fileInfo[0];
-        $image_new_height   = $this->fileInfo[1];
-
-        if ($this->resizeWidth > 0 && $this->resizeHeight == 0) {
-            $image_new_width    = $this->resizeWidth;
-            $image_ratio        = $image_width / $image_new_width;
-
-            if ($this->autoRatio) {
-                $image_new_height = $image_height / $image_ratio;
-            }
-        }
-
-        if ($this->resizeHeight > 0 && $this->resizeWidth == 0) {
-            $image_new_height   = $this->resizeHeight;
-            $image_ratio        = $image_height / $image_new_height;
-
-            if ($this->autoRatio) {
-                $image_new_width = $image_width / $image_ratio;
-            }
-        }
-
-        if ($this->resizeHeight > 0 && $this->resizeWidth > 0 && $this->editType == 'resize') {
-            $image_new_height   = $this->resizeHeight;
-            $image_new_width    = $this->resizeWidth;
-        }
-
-        $imageEdited = $image;
-
-        //Resizing
-        if ($this->editType == 'resize' || $this->editType == 'resize_crop') {
-            $imageEdited = imagecreatetruecolor($image_new_width, $image_new_height);
-            @imagecopyresampled($imageEdited, $image, 0, 0, 0, 0, $image_new_width, $image_new_height, $this->fileInfo[0], $this->fileInfo[1]);
-        }
-
-        //Cropping process
-        if ($this->editType == 'crop' || $this->editType == 'resize_crop') {
-            $cropped = imagecreatetruecolor($this->cropWidth, $this->cropHeight);
-            imagecopyresampled($cropped, $imageEdited, 0, 0, (($image_new_width / 2) - ($this->cropWidth / 2)), (($image_new_height / 2) - ($this->cropHeight / 2)), $this->cropWidth, $this->cropHeight, $this->cropWidth, $this->cropHeight);
-            $imageEdited = $cropped;
-        }
-
-        $this->createImage($imageEdited);
-
-        if (!empty($this->errorMessages)) {
-            return false;
-        }
-
-        return true;
+        return $image;
     }
 
-    public function createImageFrom()
+    /**
+     * Write the edited image to newFileName (or over the source).
+     */
+    public function createImage(\GdImage $image): bool
     {
-        // create the initial copy from the original file
-        switch ($this->imageType) {
+        $folder = $this->saveTo !== '' ? $this->saveTo : $this->folder;
+        $extension = Upload::getFileExtension($this->fileName);
+        $name = $this->newFileName !== '' ? $this->newFileName.($extension === '' ? '' : '.'.$extension) : $this->fileName;
 
-            case IMAGETYPE_GIF:
-                return imagecreatefromgif($this->filePath);
-                exit;
-            case IMAGETYPE_JPEG:
-                return imagecreatefromjpeg($this->filePath);
-                exit;
-            case IMAGETYPE_PNG:
-                return imagecreatefrompng($this->filePath);
-                exit;
-            default:
-                $this->errorMessages[] = 'Unrecognized image format.';
-
-                return false;
+        if ($this->stripSpaces) {
+            $name = str_replace(' ', '_', $name);
         }
+
+        $path = $folder.'/'.basename($name);
+
+        if (!is_dir($folder) || !is_writable($folder)) {
+            $this->errorMessages[] = 'File path invalid.';
+
+            return false;
+        }
+
+        $saved = match ($this->imageType) {
+            IMAGETYPE_GIF => imagegif($image, $path),
+            IMAGETYPE_JPEG => imagejpeg($image, $path, $this->jpegCompression),
+            IMAGETYPE_PNG => imagepng($image, $path),
+            default => false,
+        };
+
+        if (!$saved) {
+            $this->errorMessages[] = 'File path invalid.';
+        }
+
+        return $saved;
     }
 
-    public function createImage($imageEdited)
-    {
-        $file_extension = Upload::getFileExtension($this->fileName);
-        $saveTo        = (!empty($this->saveTo)) ? $this->saveTo : $this->folder;
-        $new_filename   = (!empty($this->newFileName)) ? $saveTo.'/'.$this->newFileName.'.'.$file_extension : $saveTo.'/'.$this->fileName;
-        $new_filename   = ($this->stripSpaces) ? str_replace(' ', '_', $new_filename) : $new_filename;
-
-        // move the new file
-        if ($this->imageType == IMAGETYPE_GIF) {
-            if (!imagegif($imageEdited, $new_filename)) {
-                $this->errorMessages[] = 'File path invalid.';
-            }
-        } elseif ($this->imageType == IMAGETYPE_JPEG) {
-            if (!imagejpeg($imageEdited, $new_filename, $this->jpegCompression)) {
-                $this->errorMessages[] = 'File path invalid.';
-            }
-        } elseif ($this->imageType == IMAGETYPE_PNG) {
-            if (!imagepng($imageEdited, $new_filename)) {
-                $this->errorMessages[] = 'File path invalid.';
-            }
-        }
-    }
-
-    public function getErrorMessage()
+    public function getErrorMessage(): array
     {
         return $this->errorMessages;
     }
-} // End Image Modifier Class
+
+    /**
+     * A blank image; PNG and GIF keep their transparency.
+     */
+    private function canvas(int $width, int $height): \GdImage
+    {
+        $canvas = imagecreatetruecolor($width, $height);
+
+        if ($this->imageType !== IMAGETYPE_JPEG) {
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            imagefill($canvas, 0, 0, imagecolorallocatealpha($canvas, 0, 0, 0, 127));
+        }
+
+        return $canvas;
+    }
+}

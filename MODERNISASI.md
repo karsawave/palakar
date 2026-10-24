@@ -328,6 +328,34 @@ Perbaikan lain: ekstensi yang tidak ada di daftar MIME dulu membuat error 500
 dulu tidak pernah dijalankan; `getError('message')` sebelum ada error dulu
 memicu warning.
 
+### Image
+
+```php
+$image = (new \Resources\Image())->setOption([
+    'folder' => APP.'storage/uploads',
+    'editType' => PIMG_RESIZE_CROP,
+    'resizeWidth' => 300,
+    'cropWidth' => 200,
+    'cropHeight' => 200,
+    'newFileName' => 'avatar-small',
+]);
+
+if (!$image->edit('avatar.jpg')) {
+    $errors = $image->getErrorMessage();
+}
+```
+
+Bisa juga lewat Upload: `'editImage' => [['resizeWidth' => 800], [...]]`.
+
+- Resize dengan rasio pecahan (100×75 → lebar 33) dulu memicu deprecation
+  float→int; ukuran kini dibulatkan ke piksel utuh.
+- Transparansi PNG dipertahankan (dulu latar jadi hitam).
+- File yang bukan gambar memberi pesan error, bukan warning/500. `crop` tanpa
+  `cropWidth`/`cropHeight` memberi pesan error, bukan `ValueError`.
+- `getErrorMessage()` hanya berisi error dari `edit()` terakhir.
+- `stripSpaces` hanya mengubah nama file baru, bukan path folder.
+- File sumber tidak lagi di-`chmod 0666` (bisa ditulis semua user).
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -408,7 +436,7 @@ Isi test suite:
 ## Belum disentuh
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
-PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`, `Image`,
+PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`,
 `Tools`, dan driver cache (`Redis`, `Memcache`,
 `Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
 `phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.

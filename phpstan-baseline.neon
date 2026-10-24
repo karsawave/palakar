@@ -445,24 +445,6 @@ parameters:
 			path: panada/Resources/Email.php
 
 		-
-			message: '#^Binary operation "/" between non\-empty\-string and int\<1, max\> results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 2
-			path: panada/Resources/Image.php
-
-		-
-			message: '#^Default value of the parameter \#2 \$value \(false\) of method Resources\\Image\:\:setOption\(\) is incompatible with type Resources\\mix\.$#'
-			identifier: parameter.defaultValue
-			count: 1
-			path: panada/Resources/Image.php
-
-		-
-			message: '#^Parameter \$value of method Resources\\Image\:\:setOption\(\) has invalid type Resources\\mix\.$#'
-			identifier: class.notFound
-			count: 1
-			path: panada/Resources/Image.php
-
-		-
 			message: '#^Instantiated class Resources\\SimpleXMLElement not found\.$#'
 			identifier: class.notFound
 			count: 1

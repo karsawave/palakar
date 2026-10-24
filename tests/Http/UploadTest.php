@@ -57,8 +57,12 @@ final class UploadTest extends HttpTestCase
         file_put_contents($source, $content);
         $data = ['file' => new \CURLFile($source, 'application/octet-stream', $name)];
 
-        foreach ($options as $option => $value) {
-            $data['options['.$option.']'] = (string) $value;
+        // Nested options as multipart fields: options[editImage][0][resizeWidth] ...
+        foreach (explode('&', http_build_query(['options' => $options])) as $pair) {
+            if ($pair !== '') {
+                [$field, $value] = explode('=', $pair);
+                $data[urldecode($field)] = urldecode($value);
+            }
         }
 
         $url = self::server(dirname(__DIR__).'/Fixtures/public', ['PANADA_UPLOAD_DIR' => self::$dir.'/files']);
@@ -130,6 +134,22 @@ final class UploadTest extends HttpTestCase
         $this->assertNotSame($first['info']['name'], $second['info']['name']);
         $this->assertSame(self::$dir.'/files/'.date('Y/m'), $first['info']['folder']);
         $this->assertFileExists($first['info']['folder'].'/'.$first['info']['name']);
+    }
+
+    public function testImageIsEditedAfterUpload(): void
+    {
+        ob_start();
+        imagepng(imagecreatetruecolor(100, 50));
+        $png = (string) ob_get_clean();
+
+        $result = $this->upload('photo.png', $png, ['editImage' => [
+            ['resizeWidth' => 50],
+            ['editType' => 'crop', 'cropWidth' => 10, 'cropHeight' => 10, 'newFileName' => 'thumb'],
+        ]]);
+
+        $this->assertTrue($result['ok'], (string) ($result['error']['message'] ?? ''));
+        $this->assertSame([50, 25], array_slice(getimagesize(self::$dir.'/files/photo.png'), 0, 2));
+        $this->assertSame([10, 10], array_slice(getimagesize(self::$dir.'/files/thumb.png'), 0, 2));
     }
 
     public function testErrors(): void
