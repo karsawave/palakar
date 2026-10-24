@@ -66,4 +66,5 @@ Isi file kode, tanggal commit, pesan commit, urutan commit.
 - Rujukan hash diperbarui di spec-000 (satu-satunya dokumen yang memuat
   hash). Spec lain merujuk lewat `git log --grep "spec-NNN"`.
 - `composer test`: 135 test, 18 di-skip; `composer analyse`: tanpa temuan.
-- Langkah manual GitHub (Keep email private, Block pushes) belum dikonfirmasi.
+- Langkah manual GitHub dikonfirmasi pemilik (2026-10-25): Keep my email
+  addresses private = On, Block command line pushes that expose my email = On.
