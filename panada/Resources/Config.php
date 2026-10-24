@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Handler for configuration.
+ *
+ * Config::main() reads app/config/main.php, Config::myowncfg() reads
+ * app/config/myowncfg.php, and so on. Each file is read only once.
  *
  * @author  Iskandar Soesman <k4ndar@yahoo.com>
  *
@@ -11,63 +16,56 @@
  *
  * @since   version 1.0.0
  */
+
 namespace Resources;
 
 class Config
 {
-    private static $config = array();
+    private static array $config = [];
 
-    private static function _cache($name)
+    private static function load(string $name): array
     {
-        if (!isset(self::$config[$name])) {
-            $array = require APP.'config/'.$name.'.php';
-            self::$config[$name] = $array;
-
-            return $array;
-        } else {
-            return self::$config[$name];
-        }
-    }
-
-    public static function main()
-    {
-        return self::_cache('main');
-    }
-
-    public static function session()
-    {
-        return self::_cache('session');
-    }
-
-    public static function cache()
-    {
-        return self::_cache('cache');
-    }
-
-    public static function database()
-    {
-        return self::_cache('database');
-    }
-
-    /**
-     * Handler for user defined config.
-     */
-    public static function __callStatic($name, $arguments = array())
-    {
-        // Does cache for this config exists?
         if (isset(self::$config[$name])) {
             return self::$config[$name];
         }
 
-        // Does the config file exists?
-        try {
-            if (!file_exists($file = APP.'config/'.$name.'.php')) {
-                throw new RunException('Config file in '.$file.' does not exits');
-            }
-        } catch (RunException $e) {
-            RunException::outputError($e->getMessage());
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $name) || !is_file($file = APP.'config/'.$name.'.php')) {
+            throw new RunException('Config file app/config/'.$name.'.php does not exist');
         }
 
-        return self::_cache($name);
+        return self::$config[$name] = require $file;
+    }
+
+    public static function main(): array
+    {
+        return self::load('main');
+    }
+
+    public static function session(): array
+    {
+        return self::load('session');
+    }
+
+    public static function cache(): array
+    {
+        return self::load('cache');
+    }
+
+    public static function database(): array
+    {
+        return self::load('database');
+    }
+
+    public static function security(): array
+    {
+        return self::load('security');
+    }
+
+    /**
+     * Handler for user defined config, e.g. Config::payment().
+     */
+    public static function __callStatic(string $name, array $arguments = []): array
+    {
+        return self::load($name);
     }
 }

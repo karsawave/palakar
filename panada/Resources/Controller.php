@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Handler for controller process.
  *
@@ -11,131 +13,109 @@
  *
  * @since   version 1.0.0
  */
+
 namespace Resources;
 
 class Controller
 {
-    private $childNamespace,
-        $viewCache,
-        $viewFile,
-        $configMain;
+    use Loadable;
 
-    public $config = [];
+    public ?Uri $uri;
+    public array $config = [];
+    protected array $configMain;
+
+    /** @var array{namespaceArray: string[], namespaceString: string} */
+    private array $childClass;
+
+    /** Data shared with nested views, e.g. $this->output('header') inside a view. */
+    private array $viewCache = [];
 
     public function __construct()
     {
-        $child = get_class($this);
-
         $this->childClass = [
-                            'namespaceArray' => explode('\\', $child),
-                            'namespaceString' => $child,
-                        ];
-
-        $this->configMain   = Config::main();
-        $this->uri          = \Gear::$uri;
-    }
-
-    public function __get($class)
-    {
-        $classNamespace = [
-            'model' => 'Models',
-            'Model' => 'Models',
-            'models' => 'Models',
-            'Models' => 'Models',
-            'library' => 'Libraries',
-            'Library' => 'Libraries',
-            'libraries' => 'Libraries',
-            'Libraries' => 'Libraries',
-            'Resources' => 'Resources',
-            'resources' => 'Resources',
-            'Resource' => 'Resources',
-            'resource' => 'Resources',
+            'namespaceArray' => explode('\\', static::class),
+            'namespaceString' => static::class,
         ];
 
-        try {
-            if (!isset($classNamespace[$class])) {
-                throw new \Exception('Undefined property '.$class);
-            }
-        } catch (\Exception $e) {
-            $arr = $e->getTrace();
-            RunException::outputError($e->getMessage(), $arr[0]['file'], $arr[0]['line']);
-        }
-
-        return new PropertiesLoader($this->childClass['namespaceArray'], $classNamespace[$class]);
+        $this->configMain = Config::main();
+        $this->uri = \Gear::$uri ?? null;
     }
 
-    public static function outputError($file, $data = [])
+    /**
+     * Render an error view from app/views (used by the error handlers).
+     */
+    public static function outputError(string $file, array $data = []): string
     {
-        return (new self)->output($file, $data);
+        return (new self())->output($file, $data);
     }
 
-    public function output($panadaViewfile, $data = [])
+    /**
+     * Render a view file and return it as a string.
+     *
+     *   return $this->output('home', ['title' => 'Hello']);
+     *
+     * In the view, print user data with e(): <?= e($title) ?>
+     */
+    public function output(string $panadaViewFile, array $data = []): string
     {
-        $panadaFilePath = APP.'views/'.$panadaViewfile;
+        $panadaFilePath = APP.'views/'.$panadaViewFile.'.php';
 
-        if ($this->childClass['namespaceArray'][0] == 'Modules') {
-            $panadaFilePath = $this->configMain['module']['path'].$this->childClass['namespaceArray'][0].'/'.$this->childClass['namespaceArray'][1].'/views/'.$panadaViewfile;
+        if ($this->childClass['namespaceArray'][0] === 'Modules') {
+            $panadaFilePath = $this->configMain['module']['path'].'Modules/'.$this->childClass['namespaceArray'][1].'/views/'.$panadaViewFile.'.php';
         }
 
-        try {
-            if (!file_exists($this->viewFile = $panadaFilePath.'.php')) {
-                throw new RunException('View file in '.$this->viewFile.' does not exits');
+        if (!is_file($panadaFilePath)) {
+            throw new RunException('View file '.$panadaFilePath.' does not exist');
+        }
+
+        if ($data !== []) {
+            $this->viewCache = $data;
+        }
+
+        return (function (string $__file, array $__data): string {
+            extract($__data, EXTR_SKIP);
+            ob_start();
+
+            try {
+                include $__file;
+            } catch (\Throwable $e) {
+                ob_end_clean();
+
+                throw $e;
             }
-        } catch (RunException $e) {
-            $arr = $e->getTrace();
-            RunException::outputError($e->getMessage(), $arr[0]['file'], $arr[0]['line']);
-        }
 
-        if (!empty($data)) {
-            $this->viewCache = array(
-                'data' => $data,
-                'prefix' => $this->childClass['namespaceString'],
-            );
-        }
-
-        // We don't need this variables anymore.
-        unset($panadaViewFile, $data, $panadaFilePath);
-
-        if (!empty($this->viewCache) && $this->viewCache['prefix'] == $this->childClass['namespaceString']) {
-            extract($this->viewCache['data'], EXTR_SKIP);
-        }
-
-        ob_start();
-        include $this->viewFile;
-        $return = ob_get_contents();
-        ob_end_clean();
-
-        return $return;
+            return (string) ob_get_clean();
+        })($panadaFilePath, $this->viewCache);
     }
 
-    public function outputJSON($data)
+    public function outputJSON(mixed $data): string
     {
         return $this->outputTransporter($data, 'json');
     }
 
-    public function outputXML($data)
+    public function outputXML(mixed $data): string
     {
         return $this->outputTransporter($data, 'xml');
     }
 
-    private function outputTransporter($data, $type)
+    private function outputTransporter(mixed $data, string $type): string
     {
-        return (new Rest)->wrapResponseOutput($data, $type);
+        return (string) (new Rest())->wrapResponseOutput($data, $type);
     }
 
-    public function location($location = '')
+    public function location(string $location = ''): string
     {
-        return $this->uri->getBaseUri().$this->configMain['indexFile'].$location;
+        return $this->uri?->getBaseUri().($this->configMain['indexFile'] ?? '').$location;
     }
 
-    public function redirect($location = '', $status = 302)
+    public function redirect(string $location = '', int $status = 302): string
     {
-        if (substr($location, 0, 4) != 'http') {
+        if (!str_starts_with($location, 'http')) {
             $location = $this->location().$location;
         }
 
         Response::setHeader('Location', $location, $status);
 
-        return '<html><head><meta http-equiv="refresh" content="0; url='.$location.'" /></head></html>';
+        return '<html><head><meta http-equiv="refresh" content="0; url='.e($location).'" /></head></html>';
     }
 }

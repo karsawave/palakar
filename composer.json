@@ -1,10 +1,10 @@
 {
     "name": "panada/panada",
     "description": "A PHP Framework for those who love simplicity and performance at the same time",
-    "keywords": ["php", "panada", "framework", "High Performance", "simple"],
+    "keywords": ["php", "panada", "framework", "simple", "kiss"],
     "homepage": "http://panadaframework.com/",
     "type": "project",
-    "license": "BSD license",
+    "license": "BSD-3-Clause",
     "authors": [
         {
             "name": "Iskandar Soesman",
@@ -12,22 +12,45 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/panada/Panada/issues?state=open",
-        "forum": "https://github.com/panada/Panada/issues/",
-        "wiki": "http://panadaframework.com/documentation/id/",
+        "issues": "https://github.com/panada/Panada/issues",
         "source": "https://github.com/panada/Panada/"
     },
     "require": {
-        "php": ">=5.3.0"
+        "php": ">=8.2",
+        "ext-pdo": "*",
+        "ext-mbstring": "*"
     },
     "require-dev": {
-        "phpunit/phpunit": "4.*"
+        "filp/whoops": "^2.16",
+        "phpunit/phpunit": "^11.5"
+    },
+    "suggest": {
+        "filp/whoops": "Interactive error page while 'debug' is true",
+        "ext-sodium": "Needed by Resources\\Encryption and the encrypted cookie session driver"
     },
     "autoload": {
-        "classmap": [
-            "panada/",
-            "tests/"
-        ]
+        "psr-4": {
+            "Resources\\": "panada/Resources/",
+            "Drivers\\": "panada/Drivers/",
+            "Controllers\\": "app/Controllers/",
+            "Models\\": "app/Models/",
+            "Libraries\\": "app/Libraries/",
+            "Modules\\": "app/Modules/"
+        },
+        "classmap": ["panada/Gear.php"],
+        "files": ["panada/helpers.php"]
     },
-    "minimum-stability": "dev"
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "serve": "php -S localhost:8000 -t public public/index.php"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
 }

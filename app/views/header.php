@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title><?php echo $title;?></title>
-    <link rel="stylesheet" href="<?php echo $this->uri->baseUri;?>assets/css/main.css" type="text/css" media="screen" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= e($title ?? 'Panada') ?></title>
+    <link rel="stylesheet" href="<?= e($this->uri->baseUri) ?>assets/css/main.css" type="text/css" media="screen" />
 </head>

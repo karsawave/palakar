@@ -1,7 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This is the heart of the whole Panada system.
+ *
+ * A request travels through this file from top to bottom:
+ *   1. send()              registers the autoloader and the error handler.
+ *   2. __construct()       reads the URI.
+ *   3. controllerHandler() looks for app/Controllers/{Name}.php,
+ *      subControllerHandler() for app/Controllers/{Folder}/{Name}.php,
+ *      moduleHandler()     for app/Modules/{Module}/Controllers/{Name}.php.
+ *   4. run()               calls the controller method and stores the output.
  *
  * @author Iskandar Soesman <k4ndar@yahoo.com>
  *
@@ -13,115 +23,121 @@
  */
 final class Gear
 {
-    private $uriObj;
-    private $config;
-    private $firstUriPath;
-    public static $uri;
+    public static ?Resources\Uri $uri = null;
 
-    /**
-     * Preparation step before anything else.
-     */
-    public function __construct($errorReporting)
+    private Resources\Uri $uriObj;
+    private string $firstUriPath;
+
+    private function __construct(private array $config)
     {
-        error_reporting($errorReporting);
-        spl_autoload_register([$this, 'loader']);
-        set_exception_handler('Resources\RunException::main');
-        set_error_handler('Resources\RunException::errorHandlerCallback', error_reporting());
-
-        $this->config['main'] = Resources\Config::main();
         $this->uriObj = new Resources\Uri();
-        $this->uriObj->setDefaultController($this->config['main']['defaultController']);
+        $this->uriObj->setDefaultController($config['defaultController']);
         self::$uri = $this->uriObj;
         $this->firstUriPath = ucwords($this->uriObj->getClass());
-
-        $this->controllerHandler();
     }
 
     /**
-     * Magic loader to load instantiated class.
-     *
-     * @param string $file Class namespace.
+     * Entry point, called from public/index.php.
      */
-    private function loader($file)
+    public static function send(int $errorReporting = E_ALL): void
     {
-        $prefix = explode('\\', $file);
+        error_reporting($errorReporting);
+        self::registerAutoloader();
 
-        switch ($prefix[0]) {
-            case 'Models':
-                $folder = APP;
-                break;
-            case 'Libraries':
-                $folder = APP;
-                break;
-            case 'Controllers':
-                $folder = APP;
-                break;
-            case 'Resources':
-                $folder = GEAR;
-                break;
-            case 'Drivers':
-                $folder = GEAR;
-                break;
-            case 'Modules':
-                $folder = $this->config['main']['module']['path'];
-                break;
-            default:
-                if (!isset($this->config['main']['namespace'])) {
-                    throw new Resources\RunException('Resource '.$file.' not available!');
-                }
+        $config = Resources\Config::main();
+        Resources\ErrorHandler::register((bool) ($config['debug'] ?? false));
 
-                if (!isset($this->config['main']['namespace'][$prefix[0]])) {
-                    throw new Resources\RunException('Resource '.$file.' not available!');
-                }
-
-                $folder = $this->config['main']['namespace'][$prefix[0]];
-
-                break;
+        try {
+            $gear = new self($config);
+            $gear->controllerHandler();
+            $response = new Resources\Response();
+        } catch (Resources\HttpException $e) {
+            $response = Resources\HttpException::outputError($e);
+        } catch (Throwable $e) {
+            $response = Resources\ErrorHandler::render($e);
         }
 
-        if (!file_exists($file = $folder.str_ireplace('\\', '/', $file).'.php')) {
-            throw new Resources\RunException('Resource '.$file.' not available!');
-        }
-
-        include $file;
+        echo $response->send();
     }
 
     /**
-     * Hendle the controller calling process.
-     *
-     * The steps is:
-     *  - Does alias controller are defined in main config?
-     *  - If not, is sub-controller exists?
-     *  - If not, module with this name exists?
-     *  - If all fault, then throw 404.
+     * Two autoloaders, in this order:
+     *  1. Composer (PSR-4), only when `composer install` has been run.
+     *  2. Panada's own loader below. It is always registered, so the framework
+     *     keeps working without Composer and catches whatever Composer misses.
      */
-    private function controllerHandler()
+    public static function registerAutoloader(): void
     {
-        $controllerNamespace = 'Controllers\\'.$this->firstUriPath;
+        static $registered = false;
 
-        if (!file_exists($classFile = APP.'Controllers/'.$this->firstUriPath.'.php')) {
+        if ($registered) {
+            return;
+        }
+
+        $composer = (defined('VENDOR') ? VENDOR : dirname(GEAR).'/vendor/').'autoload.php';
+
+        if (is_file($composer)) {
+            require_once $composer;
+        }
+
+        spl_autoload_register([self::class, 'loader']);
+        require_once GEAR.'helpers.php';
+
+        $registered = true;
+    }
+
+    /**
+     * Panada's built-in autoloader: maps the first part of a namespace to a folder.
+     *
+     *  Controllers\Home        -> app/Controllers/Home.php
+     *  Resources\Session       -> panada/Resources/Session.php
+     *  Modules\Blog\Models\Post -> app/Modules/Blog/Models/Post.php
+     *
+     * Following PSR-4, it never throws: when the file is missing it simply
+     * returns, so class_exists() can answer false and other loaders can try.
+     */
+    public static function loader(string $class): void
+    {
+        $prefix = strstr($class, '\\', true) ?: $class;
+
+        $folder = match ($prefix) {
+            'Models', 'Libraries', 'Controllers' => APP,
+            'Resources', 'Drivers' => GEAR,
+            'Modules' => Resources\Config::main()['module']['path'] ?? APP,
+            default => Resources\Config::main()['namespace'][$prefix] ?? null,
+        };
+
+        if ($folder === null) {
+            return;
+        }
+
+        $file = $folder.str_replace('\\', '/', $class).'.php';
+
+        if (is_file($file)) {
+            require $file;
+        }
+    }
+
+    /**
+     * Step 1: is there a controller file named after the first URI segment?
+     */
+    private function controllerHandler(): void
+    {
+        if (!is_file(APP.'Controllers/'.$this->firstUriPath.'.php')) {
             $this->subControllerHandler();
 
             return;
         }
 
+        $instance = $this->instantiate('Controllers\\'.$this->firstUriPath);
         $method = $this->uriObj->getMethod();
+        $request = $this->uriObj->getRequests() ?: [];
 
-        if (!$request = $this->uriObj->getRequests()) {
-            $request = array();
-        }
-
-        if (!class_exists($controllerNamespace)) {
-            throw new Resources\RunException('Class '.$controllerNamespace.'  not found in '.$classFile);
-        }
-
-        $instance = new $controllerNamespace();
-
-        if (!method_exists($instance, $method)) {
+        if (!$this->isRoutable($instance, $method)) {
             $request = array_slice($this->uriObj->path(), 1);
-            $method = $this->config['main']['alias']['method'];
+            $method = $this->config['alias']['method'];
 
-            if (!method_exists($instance, $method)) {
+            if (!$this->isRoutable($instance, $method)) {
                 throw new Resources\HttpException('Method '.$this->uriObj->getMethod().' does not exists in controller '.$this->firstUriPath);
             }
         }
@@ -130,47 +146,33 @@ final class Gear
     }
 
     /**
-     * Hendle the sub-controller calling process.
+     * Step 2: is the first URI segment a folder inside app/Controllers?
      */
-    private function subControllerHandler()
+    private function subControllerHandler(): void
     {
-        if (!is_dir($subControllerFolder = APP.'Controllers/'.$this->firstUriPath.'/')) {
+        $folder = APP.'Controllers/'.$this->firstUriPath.'/';
+
+        if (!is_dir($folder)) {
             $this->moduleHandler();
 
             return;
         }
 
-        $controllerClass = $this->uriObj->getMethod(null);
+        $controllerClass = $this->classSegment(1) ?? ucwords($this->config['defaultController']);
 
-        // No argument? set to default controller.
-        if (is_null($controllerClass)) {
-            $controllerClass = $this->config['main']['defaultController'];
-        }
-
-        $controllerClass = ucwords($controllerClass);
-
-        if (!file_exists($classFile = $subControllerFolder.$controllerClass.'.php')) {
+        if (!is_file($folder.$controllerClass.'.php')) {
             throw new Resources\HttpException('Controller '.$controllerClass.' does not exists in sub-controller '.$this->firstUriPath.'.');
         }
 
-        $controllerNamespace    = 'Controllers\\'.$this->firstUriPath.'\\'.$controllerClass;
+        $instance = $this->instantiate('Controllers\\'.$this->firstUriPath.'\\'.$controllerClass);
+        $method = $this->uriObj->path(2) ?: 'index';
+        $request = array_slice($this->uriObj->path(), 3);
 
-        if (!class_exists($controllerNamespace)) {
-            throw new Resources\RunException('Class '.$controllerNamespace.'  not found in '.$classFile);
-        }
-
-        $instance               = new $controllerNamespace();
-        $request                = array_slice($this->uriObj->path(), 3);
-
-        if (!$method = $this->uriObj->path(2)) {
-            $method = 'index';
-        }
-
-        if (!method_exists($instance, $method)) {
+        if (!$this->isRoutable($instance, $method)) {
             $request = array_slice($this->uriObj->path(), 2);
-            $method = $this->config['main']['alias']['method'];
+            $method = $this->config['alias']['method'];
 
-            if (!method_exists($instance, $method)) {
+            if (!$this->isRoutable($instance, $method)) {
                 throw new Resources\HttpException('Method '.$this->uriObj->path(2).' does not exists in controller /'.$this->firstUriPath.'/'.$controllerClass.'.');
             }
         }
@@ -179,73 +181,45 @@ final class Gear
     }
 
     /**
-     * Hendle the module calling process.
+     * Step 3: is the first URI segment a module? If not, try the alias controller.
      */
-    private function moduleHandler()
+    private function moduleHandler(): void
     {
-        if (!is_dir($moduleFolder = $this->config['main']['module']['path'].'Modules/'.$this->firstUriPath.'/')) {
-            if (isset($this->config['main']['alias']['controller']['class'])) {
-                $controllerClass    = $this->config['main']['alias']['controller']['class'];
+        $moduleFolder = $this->config['module']['path'].'Modules/'.$this->firstUriPath.'/';
+        $alias = $this->config['alias']['controller'] ?? null;
 
-                if (!file_exists(APP.'Controllers/'.$controllerClass.'.php')) {
-                    throw new Resources\HttpException('Controller, sub-controller or module '.$this->firstUriPath.' does not exists');
-                }
-
-                $controllerNamespace = 'Controllers\\'.$controllerClass;
-                $method             = $this->config['main']['alias']['controller']['method'];
-                $instance           = new $controllerNamespace();
-                $request            = $this->uriObj->path();
-
-                $this->run($instance, $method, $request);
-
-                return;
+        if (!is_dir($moduleFolder)) {
+            if ($alias === null || !is_file(APP.'Controllers/'.$alias['class'].'.php')) {
+                throw new Resources\HttpException('Controller, sub-controller or module '.$this->firstUriPath.' does not exists');
             }
+
+            $instance = $this->instantiate('Controllers\\'.$alias['class']);
+            $this->run($instance, $alias['method'], $this->uriObj->path());
+
+            return;
         }
 
-        if (!$controllerClass = $this->uriObj->path(1)) {
-            $controllerClass = $this->config['main']['defaultController'];
-        }
+        $controllerClass = $this->classSegment(1) ?? ucwords($this->config['defaultController']);
+        $method = $this->uriObj->path(2) ?: 'index';
+        $request = array_slice($this->uriObj->path(), 3);
 
-        $controllerClass = ucwords($controllerClass);
-
-        // Does this class's file exists?
-        if (!file_exists($classFile = $moduleFolder.'Controllers/'.$controllerClass.'.php')) {
-            if (!isset($this->config['main']['alias']['controller']['class'])) {
+        if (!is_file($moduleFolder.'Controllers/'.$controllerClass.'.php')) {
+            if ($alias === null || !is_file($moduleFolder.'Controllers/'.$alias['class'].'.php')) {
                 throw new Resources\HttpException('Controller '.$controllerClass.' does not exists in module '.$this->firstUriPath);
             }
 
-            $controllerClass    = $this->config['main']['alias']['controller']['class'];
-            $method             = $this->config['main']['alias']['controller']['method'];
-            $request            = array_slice($this->uriObj->path(), 1);
-
-            // Does class for alias file exists?
-            if (!file_exists($classFile = $moduleFolder.'Controllers/'.$controllerClass.'.php')) {
-                throw new Resources\HttpException('Controller '.$controllerClass.' does not exists in module '.$this->firstUriPath);
-            }
-
-            goto createNamespace;
+            $controllerClass = $alias['class'];
+            $method = $alias['method'];
+            $request = array_slice($this->uriObj->path(), 1);
         }
 
-        $request    = array_slice($this->uriObj->path(), 3);
+        $instance = $this->instantiate('Modules\\'.$this->firstUriPath.'\\Controllers\\'.$controllerClass);
 
-        if (!$method = $this->uriObj->path(2)) {
-            $method = 'index';
-        }
-
-        createNamespace:
-        $controllerNamespace = 'Modules\\'.$this->firstUriPath.'\Controllers\\'.$controllerClass;
-
-        if (!class_exists($controllerNamespace)) {
-            throw new Resources\RunException('Class '.$controllerNamespace.'  not found in '.$classFile);
-        }
-
-        $instance = new $controllerNamespace();
-
-        if (!method_exists($instance, $method)) {
+        if (!$this->isRoutable($instance, $method)) {
             $request = array_slice($this->uriObj->path(), 2);
-            $method = $this->config['main']['alias']['method'];
+            $method = $this->config['alias']['method'];
 
-            if (!method_exists($instance, $method)) {
+            if (!$this->isRoutable($instance, $method)) {
                 throw new Resources\HttpException('Method '.$method.' does not exists in controller '.$moduleFolder.$controllerClass);
             }
         }
@@ -253,36 +227,74 @@ final class Gear
         $this->run($instance, $method, $request);
     }
 
-    public function __toString()
+    /**
+     * A URI segment used as a class name must look like a class name.
+     */
+    private function classSegment(int $index): ?string
     {
-        return (new Resources\Response)->send();
+        $segment = $this->uriObj->path($index);
+
+        if ($segment === false || $segment === '') {
+            return null;
+        }
+
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $segment)) {
+            throw new Resources\HttpException('Invalid URL segment');
+        }
+
+        return ucwords($segment);
+    }
+
+    private function instantiate(string $class): object
+    {
+        if (!class_exists($class)) {
+            throw new Resources\RunException('Class '.$class.' not found. Check the namespace and file name.');
+        }
+
+        return new $class();
     }
 
     /**
-     * Call the controller's method.
-     *
-     * @param object $instance
-     * @param string $method
-     * @param array  $request
+     * Only public methods written in YOUR controller can be reached from a URL.
+     * Helpers inherited from Resources\Controller (output, redirect, ...) and
+     * magic methods (__construct, __get, ...) are never routable.
      */
-    private function run($instance, $method, $request)
+    private function isRoutable(object $instance, string $method): bool
     {
-        Resources\Response::$body = call_user_func_array([$instance, $method], $request);
+        if ($method === '' || str_starts_with($method, '__') || !method_exists($instance, $method)) {
+            return false;
+        }
+
+        $reflection = new ReflectionMethod($instance, $method);
+
+        return $reflection->isPublic()
+            && !$reflection->isStatic()
+            && $reflection->getDeclaringClass()->getName() !== Resources\Controller::class;
     }
 
-    public static function send($errorReporting = E_ALL)
+    /**
+     * Call the controller's method and keep its output in Response::$body.
+     *
+     * call_user_func_array() passes URL segments in coercive mode, so a method
+     * declared as show(int $id) receives "15" from /post/show/15 as 15.
+     */
+    private function run(object $instance, string $method, array $request): void
     {
-        try{
-            echo new self($errorReporting);
+        $request = array_values($request);
+
+        if (count($request) < (new ReflectionMethod($instance, $method))->getNumberOfRequiredParameters()) {
+            throw new Resources\HttpException('Missing URL segment for '.$method.'()');
         }
-        catch(Resources\HttpException $e){
-            echo Resources\HttpException::outputError($e)->send();
+
+        // Controllers may `echo` instead of `return`; capture both.
+        ob_start();
+
+        try {
+            $result = call_user_func_array([$instance, $method], $request);
+        } finally {
+            $echoed = (string) ob_get_clean();
         }
-        catch(Resources\RunException $e){
-            echo Resources\RunException::main($e)->send();
-        }
-        catch(Exception $e){
-            echo Resources\RunException::main($e)->send();
-        }
+
+        Resources\Response::setContent($echoed, $result);
     }
 }

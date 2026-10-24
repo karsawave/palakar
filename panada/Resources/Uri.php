@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Handler for request and mapped into, controller, metohd and requests.
  *
@@ -11,16 +13,19 @@
  *
  * @since	version 0.1
  */
+
 namespace Resources;
 
 final class Uri
 {
-    private $pathUri = array();
-    public $baseUri;
-    public $defaultController;
-    public $requestScheme;
-    public $frontController;
-    public static $staticDefaultController = 'Home';
+    private array $pathUri = [];
+    public string $baseUri = '';
+    public string $basePath = '';
+    public string $pathInfo = '';
+    public string $defaultController = 'Home';
+    public string $requestScheme = 'http://';
+    public string $frontController = '';
+    public static string $staticDefaultController = 'Home';
 
     /**
      * Class constructor.
@@ -29,78 +34,58 @@ final class Uri
      */
     public function __construct()
     {
-        if (PHP_SAPI == 'cli') {
-            $this->pathUri = array_slice($_SERVER['argv'], 1);
+        $this->defaultController = self::$staticDefaultController;
+
+        if (PHP_SAPI === 'cli') {
+            $this->pathUri = array_slice($_SERVER['argv'] ?? [], 1);
 
             return;
         }
 
-        $this->requestScheme = ($this->isHttps()) ? 'https://':'http://';
+        $this->requestScheme = $this->isHttps() ? 'https://' : 'http://';
 
         $scriptPath = explode('/', $_SERVER['SCRIPT_FILENAME']);
         $this->frontController = end($scriptPath);
 
         $docRoot = str_replace('/'.$this->frontController, '', $_SERVER['DOCUMENT_ROOT']);
-        $scriptFile =  str_replace('/'.$this->frontController, '', $_SERVER['SCRIPT_FILENAME']);
-        $requestURI = str_replace('/'.$this->frontController, '', $_SERVER['REQUEST_URI']);
+        $scriptFile = str_replace('/'.$this->frontController, '', $_SERVER['SCRIPT_FILENAME']);
+        $requestURI = str_replace('/'.$this->frontController, '', $_SERVER['REQUEST_URI'] ?? '/');
         $this->basePath = str_replace($docRoot, '', $scriptFile);
 
-        $this->baseUri = $this->requestScheme.$_SERVER['HTTP_HOST'].$this->basePath.'/';
-        $requestURI = str_replace($this->basePath, '', $requestURI);
-        $this->pathInfo = trim(strtok($requestURI, '?'), '/');
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $this->baseUri = $this->requestScheme.$host.$this->basePath.'/';
+
+        if ($this->basePath !== '' && str_starts_with($requestURI, $this->basePath)) {
+            $requestURI = substr($requestURI, strlen($this->basePath));
+        }
+
+        $this->pathInfo = trim((string) strtok($requestURI, '?'), '/');
         $this->pathUri = explode('/', $this->pathInfo);
-        $this->defaultController = self::$staticDefaultController;
     }
 
     /**
      * Does this site use https?
-     *
-     * @return bool
      */
-    public function isHttps()
+    public function isHttps(): bool
     {
-        if (isset($_SERVER['HTTPS'])) {
-            if ('on' == strtolower($_SERVER['HTTPS'])) {
-                return true;
-            }
-            if ('1' == $_SERVER['HTTPS']) {
-                return true;
-            }
-        } elseif (isset($_SERVER['SERVER_PORT']) && ('443' == $_SERVER['SERVER_PORT'])) {
-            return true;
-        }
-
-        return false;
+        return Request::isSecure();
     }
 
     /**
      * Clean the 'standard' model query.
-     *
-     * @param string
-     *
-     * @return string
      */
-    public function removeQuery($path)
+    public function removeQuery(string $path): string
     {
-        $pathAr = explode('?', $path);
-        if (count($pathAr) > 0) {
-            $path = $pathAr[0];
-        }
-
-        return $path;
+        return explode('?', $path)[0];
     }
 
     /**
-     * Break the string given from extractUriString() into class, method and request.
-     *
-     * @param    int
-     *
-     * @return string
+     * Get one URI segment (zero based), or all of them when $segment is false.
      */
-    public function path($segment = false)
+    public function path(int|false $segment = false): array|string|false
     {
         if ($segment !== false) {
-            return (isset($this->pathUri[$segment]) && $this->pathUri[$segment] != $this->frontController) ? $this->pathUri[$segment] : false;
+            return (isset($this->pathUri[$segment]) && $this->pathUri[$segment] !== $this->frontController) ? $this->pathUri[$segment] : false;
         }
 
         return $this->pathUri;
@@ -108,17 +93,15 @@ final class Uri
 
     /**
      * Get class name from the url.
-     *
-     * @return string
      */
-    public function getClass()
+    public function getClass(): string
     {
         if ($uriString = $this->path(0)) {
-            if ($this->stripUriString($uriString)) {
+            if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $uriString)) {
                 return $uriString;
             }
 
-            throw new RunException('Invalid controller name: '.htmlentities($uriString));
+            throw new HttpException('Invalid controller name: '.$uriString);
         }
 
         return $this->defaultController;
@@ -126,19 +109,13 @@ final class Uri
 
     /**
      * Get method name from the url.
-     *
-     * @return string
      */
-    public function getMethod($default = 'index')
+    public function getMethod(?string $default = 'index'): ?string
     {
         $uriString = $this->path(1);
 
-        if (isset($uriString) && !empty($uriString)) {
-            if ($this->stripUriString($uriString)) {
-                return $uriString;
-            }
-
-            return '';
+        if (is_string($uriString) && $uriString !== '') {
+            return $this->stripUriString($uriString) ? $uriString : '';
         }
 
         return $default;
@@ -146,16 +123,10 @@ final class Uri
 
     /**
      * Get "GET" request from the url.
-     *
-     * @param    int
-     *
-     * @return array
      */
-    public function getRequests($segment = 2)
+    public function getRequests(int $segment = 2): array|false
     {
-        $uriString = $this->path($segment);
-
-        if (isset($uriString)) {
+        if ($this->path($segment) !== false) {
             return array_slice($this->path(), $segment);
         }
 
@@ -164,22 +135,16 @@ final class Uri
 
     /**
      * Cleaner for class and method name.
-     *
-     * @param string
-     *
-     * @return bool
      */
-    public function stripUriString($uri)
+    public function stripUriString(string $uri): bool
     {
-        return (!preg_match('/[^a-zA-Z0-9_.-]/', $uri)) ? true : false;
+        return !preg_match('/[^a-zA-Z0-9_.-]/', $uri);
     }
 
     /**
      * Setter for default controller.
-     *
-     * @param string $defaultController
      */
-    public function setDefaultController($defaultController)
+    public function setDefaultController(string $defaultController): void
     {
         $this->defaultController = self::$staticDefaultController = $defaultController;
     }
@@ -187,17 +152,15 @@ final class Uri
     /**
      * Getter for default controller.
      */
-    public function getDefaultController()
+    public function getDefaultController(): string
     {
         return $this->defaultController;
     }
 
     /**
      * Getter for baseUri.
-     *
-     * @return string
      */
-    public function getBaseUri()
+    public function getBaseUri(): string
     {
         return $this->baseUri;
     }

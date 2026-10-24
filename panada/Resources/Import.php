@@ -50,13 +50,16 @@ class Import
 
     /**
      * Method to embrace composer native autoloader.
+     *
+     * Since Panada 2 the Composer autoloader is loaded automatically by Gear
+     * when vendor/autoload.php exists, so you rarely need to call this.
      */
     public static function composer()
     {
         $config = Config::main();
 
-        if (!$file = $config['vendor']['path'].'autoload.php') {
-            throw new RunException('Composer autoloader not exists in your vendor folder '.$config['vendor']['path']);
+        if (!is_file($file = $config['vendor']['path'].'autoload.php')) {
+            throw new RunException('Composer autoloader not exists in your vendor folder '.$config['vendor']['path'].'. Run `composer install`.');
         }
 
         require_once $file;

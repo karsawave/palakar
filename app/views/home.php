@@ -4,7 +4,7 @@
 <div id="konten">
     <h1>Panada has been installed successfully!</h1>
     <p>This is sample page view. You find this file at:</p>
-    <code><?php echo APP;?>views/index.php</code>
+    <code><?php echo APP;?>views/home.php</code>
     <p>The controller of this page is located it:</p>
     <code><?php echo APP;?>Controllers/Home.php</code>
     <p>Base URL for this application is:</p>

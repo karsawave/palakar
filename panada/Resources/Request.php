@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada Request/input Handler.
  *
@@ -10,6 +12,7 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 class Request
@@ -17,105 +20,97 @@ class Request
     /**
      * Handler for HTTP GET request.
      *
-     * @param mix $key
-     * @param int $filterType
-     * @param int $flags
-     *
-     * @return mix
+     * @param int $filterType One of PHP's FILTER_* constants, e.g. FILTER_VALIDATE_INT
      */
-    public function get($key = false, $filterType = false, $flags = false)
+    public function get(?string $key = null, int $filterType = FILTER_DEFAULT, int|array $flags = 0): mixed
     {
-        if (!$key) {
-            return filter_var_array($_GET, $filterType);
-        }
-
-        if (!isset($_GET[$key])) {
-            return false;
-        }
-
-        if ($filterType) {
-            return filter_input(INPUT_GET, $key, $filterType, $flags);
-        } else {
-            return $_GET[$key];
-        }
+        return $this->read($_GET, INPUT_GET, $key, $filterType, $flags);
     }
 
     /**
      * Handler for HTTP POST request.
-     *
-     * @param mix $key
-     * @param int $filterType
-     * @param int $flags
-     *
-     * @return mix
      */
-    public function post($key = false, $filterType = false, $flags = false)
+    public function post(?string $key = null, int $filterType = FILTER_DEFAULT, int|array $flags = 0): mixed
     {
-        if (!$key) {
-            return filter_var_array($_POST, $filterType);
-        }
-
-        if (!isset($_POST[$key])) {
-            return false;
-        }
-
-        if ($filterType) {
-            return filter_input(INPUT_POST, $key, $filterType, $flags);
-        } else {
-            return $_POST[$key];
-        }
+        return $this->read($_POST, INPUT_POST, $key, $filterType, $flags);
     }
 
     /**
-     * Handler for HTTP POST request.
-     *
-     * @param mix $key
-     * @param int $filterType
-     * @param int $flags
-     *
-     * @return mix
+     * Handler for cookie values.
      */
-    public function cookie($key, $filterType = false, $flags = false)
+    public function cookie(?string $key = null, int $filterType = FILTER_DEFAULT, int|array $flags = 0): mixed
     {
-        if (!$key) {
-            return filter_var_array($_COOKIE, $filterType);
+        return $this->read($_COOKIE, INPUT_COOKIE, $key, $filterType, $flags);
+    }
+
+    private function read(array $source, int $type, ?string $key, int $filterType, int|array $flags): mixed
+    {
+        $filterType = $filterType ?: FILTER_DEFAULT;
+
+        if ($key === null || $key === '') {
+            return filter_var_array($source, $filterType);
         }
 
-        if (!isset($_COOKIE[$key])) {
+        if (!isset($source[$key])) {
             return false;
         }
 
-        if ($filterType) {
-            return filter_input(INPUT_COOKIE, $key, $filterType, $flags);
-        } else {
-            return $_COOKIE[$key];
+        if ($filterType === FILTER_DEFAULT && $flags === 0) {
+            return $source[$key];
         }
+
+        return filter_var($source[$key], $filterType, $flags);
+    }
+
+    /**
+     * HTTP method in upper case: GET, POST, PUT, ...
+     */
+    public static function method(): string
+    {
+        return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    }
+
+    /**
+     * Is the visitor on HTTPS?
+     *
+     * X-Forwarded-Proto is only trusted when 'trustProxyHeaders' is true in
+     * app/config/main.php, because any visitor can send that header.
+     */
+    public static function isSecure(): bool
+    {
+        $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+
+        if ($https === 'on' || $https === '1') {
+            return true;
+        }
+
+        if ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443') {
+            return true;
+        }
+
+        if (Config::main()['trustProxyHeaders'] ?? false) {
+            return strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        }
+
+        return false;
     }
 
     /**
      * Strip any html tags and attributes defined by user.
      *
-     * @param string         $str
-     * @param string | array $allowtags
-     * @param string | array $allowattributes
+     * Note: for showing user input in a view, escaping with e() is simpler and
+     * safer than stripping tags. Use this only when some HTML must survive.
      *
-     * @return string
+     * @param string|array|null $allowtags       e.g. '<b><i>' or ['b', 'i']
+     * @param string|array|null $allowattributes e.g. 'href,title'
      */
-    public function stripTagsAttributes($str, $allowtags = null, $allowattributes = null)
+    public function stripTagsAttributes(string $str, string|array|null $allowtags = null, string|array|null $allowattributes = null): string
     {
-        /**
- * ID:  Ada kemungkinan dimana string yang diinput diconvert dulu menjadi htmlentities.
- *      Untuk menghindari hal ini, maka semua format htmlentities dikembalikan (docode) dulu ke format aslinya.
- *
- *      $str = html_entity_decode($str, ENT_QUOTES);
- */
-
         /*
          * ID:  Jika string < diikuti dengan tanda non-alpha selain tanda ?, maka ubah menjadi &lt; (htmlentities)
          *      Ini berguna jika string yang diinput berupa emotion code seperpti <*_*> atau tanda panah <=
          */
-        // Original $str = preg_replace(array('/<\*/', '/<=/', '/_/'), '&lt;\\1', $str);
-        $str = preg_replace(array('/<\*/', '/<=/'), '&lt;\\1', $str);
+        $str = preg_replace(['/<\*/', '/<=/'], '&lt;\\1', $str);
 
         /*
          * ID:  Hapus semua tag html dan php yang tidak didefinisikan dari input string.
@@ -127,28 +122,20 @@ class Request
          */
         $str = str_replace('&lt;', '<', $str);
 
-        /*
-         * See original function at http://php.net/manual/en/function.strip-tags.php#91498
-         */
-        if (!is_null($allowattributes)) {
-            if (!is_array($allowattributes)) {
-                $allowattributes = explode(',', $allowattributes);
-            }
-
-            if (is_array($allowattributes)) {
-                $allowattributes = implode(')(?<!', $allowattributes);
-            }
-
-            if (strlen($allowattributes) > 0) {
-                $allowattributes = '(?<!'.$allowattributes.')';
-            }
-
-            $str = preg_replace_callback('/<[^>]*>/i', create_function(
-                '$matches',
-                'return preg_replace("/ [^ =]*'.$allowattributes.'=(\"[^\"]*\"|\'[^\']*\')/i", "", $matches[0]);'
-            ), $str);
+        if ($allowattributes === null) {
+            return $str;
         }
 
-        return $str;
+        $allowattributes = is_array($allowattributes) ? $allowattributes : explode(',', $allowattributes);
+        $allowattributes = array_map(fn ($attr) => preg_quote(trim($attr), '/'), $allowattributes);
+        $notAllowed = $allowattributes ? '(?<!'.implode(')(?<!', $allowattributes).')' : '';
+
+        // Remove every attribute that is not in the allow list.
+        // See original idea at http://php.net/manual/en/function.strip-tags.php#91498
+        return preg_replace_callback(
+            '/<[^>]*>/i',
+            fn (array $matches) => preg_replace('/ [^ =]*'.$notAllowed.'=("[^"]*"|\'[^\']*\')/i', '', $matches[0]),
+            $str
+        );
     }
 }

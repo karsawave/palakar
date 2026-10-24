@@ -1,26 +1,26 @@
 <?php
-// Sets the default timezone used by all date/time. Adjust to your location
+
+// Sets the default timezone used by all date/time. Adjust to your location.
 date_default_timezone_set('Asia/Jakarta');
 
-// You can adjust this following constants if necessary.
+// You can adjust these following constants if necessary.
 
 // The APP constant is where your application folder located.
-define('APP', dirname(__FILE__) . '/../app/');
+define('APP', dirname(__DIR__).'/app/');
 
 // The INDEX_FILE constant is this default file name.
 define('INDEX_FILE', basename(__FILE__));
 
-// And the GEAR constant is where panada folder located.
+// The GEAR constant is where panada folder located.
 define('GEAR', dirname(__DIR__).'/panada/');
+
+// The VENDOR constant is where Composer installs packages (`composer install`).
+// Panada still runs when this folder does not exist.
+define('VENDOR', dirname(__DIR__).'/vendor/');
 
 require_once GEAR.'Gear.php';
 
-// To sets which PHP errors are reported just like documented in this page
-// http://php.net/manual/en/function.error-reporting.php
-// You can pass a parameter into the Gear class.
-
-// Turn off all errors reporting - production use.
-// Gear::send(0);
-
-// By default all errors will displayed - development use.
-Gear::send();
+// Debug pages are switched on/off with 'debug' in app/config/main.php.
+// The parameter below only sets which PHP errors are reported, see
+// https://www.php.net/manual/en/function.error-reporting.php
+Gear::send(E_ALL);
