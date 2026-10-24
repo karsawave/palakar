@@ -1,0 +1,7 @@
+/vendor/
+/composer.phar
+/.phpunit.cache/
+.DS_Store
+*.sw*
+.idea/
+.vscode/
