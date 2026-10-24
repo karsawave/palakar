@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Interface for Session Drivers.
  *
@@ -11,14 +13,15 @@
  *
  * @since version 1.0.0
  */
+
 namespace Resources\Interfaces;
 
 interface Session
 {
-    public function setValue($name, $value = '');
-    public function getValue($name);
-    public function getAllValue();
-    public function deleteValue($name);
-    public function regenerateId();
-    public function destroy();
+    public function setValue(string|array $name, mixed $value = ''): void;
+    public function getValue(string $name): mixed;
+    public function getAllValue(): array;
+    public function deleteValue(string $name): void;
+    public function regenerateId(): void;
+    public function destroy(bool $setExpireHeader = false): void;
 }

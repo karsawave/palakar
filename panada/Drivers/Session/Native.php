@@ -1,205 +1,159 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada PHP native session handler.
+ *
+ * Session data stays on the server (PHP's own session files); the browser
+ * only keeps the session id, in a cookie that is:
+ *   - HttpOnly : JavaScript cannot read it (an XSS bug cannot steal it).
+ *   - Secure   : only sent over HTTPS ('auto' = when the request is HTTPS).
+ *   - SameSite : not sent with cross-site POSTs (Lax), extra CSRF defence.
+ * Strict mode makes PHP refuse session ids it did not create (fixation).
  *
  * @author	Iskandar Soesman
  *
  * @since	Version 0.1
  */
+
 namespace Drivers\Session;
 
-use Resources\Interfaces as Interfaces;
+use Resources\Interfaces;
+use Resources\Request;
+use Resources\RunException;
 
 class Native implements Interfaces\Session
 {
-    /**
-     * @var int This variable set the maximum life in seconds of a session file on the server since last activity.
-     */
-    public $sesionExpire = 7200; //second or 2 hour
+    public const DEFAULTS = [
+        'expiration' => 7200,
+        'name' => 'PAN_SID',
+        'cookieExpire' => 0,
+        'cookiePath' => '/',
+        'cookieDomain' => '',
+        'cookieSecure' => 'auto',
+        'cookieHttpOnly' => true,
+        'cookieSameSite' => 'Lax',
+    ];
 
-    /**
-     * @var string Change the default PHP session name (PHPSESSIONID) to Panada session name (PAN_SID).
-     */
-    public $sessionName = 'PAN_SID';
+    public string $sessionName = 'PAN_SID';
+    public string $sessionId = '';
 
-    /**
-     * @var int Sets the session cookies to N seconds.
-     */
-    public $sessionCookieExpire = 0;
+    protected array $config;
 
-    /**
-     * @var string This session id.
-     */
-    public $sessionId;
-
-    /**
-     * @var string Session cookie path.
-     */
-    public $sessionCookiePath = '/';
-
-    /**
-     * @var bool Define the cookie only working on https or not.
-     */
-    public $sessionCookieSecure = false;
-
-    /**
-     * @var string Define the cookie domain.
-     */
-    public $sessionCookieDomain = '';
-
-    /**
-     * @var string When true the cookie will be made accessible only through the HTTP protocol.
-     */
-    public $sessionCookieHTTTPOnly = true;
-
-    /**
-     * @var string Where we store the session? file (PHP native) or db.
-     */
-    public $sessionStore = 'native';
-
-    /**
-     * Class constructor.
-     *
-     * Set costumized PHP Session parameter.
-     */
-    public function __construct($config)
+    public function __construct(array $config)
     {
-        $this->sesionExpire        = $config['expiration'];
-        $this->sessionName        = $config['name'];
-        $this->sessionCookieExpire  = $config['cookieExpire'];
-        $this->sessionCookiePath    = $config['cookiePath'];
-        $this->sessionCookieSecure  = $config['cookieSecure'];
-        $this->sessionCookieDomain  = $config['cookieDomain'];
-        $this->sessionStore        = $config['driver'];
+        $this->config = $config + self::DEFAULTS;
+        $this->sessionName = $this->config['name'];
 
-        \ini_set('session.gc_maxlifetime', $this->sesionExpire);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $this->sessionId = (string) session_id();
 
-        \session_set_cookie_params(
-        $this->sessionCookieExpire,
-        $this->sessionCookiePath,
-        $this->sessionCookieDomain,
-        $this->sessionCookieSecure,
-        $this->sessionCookieHTTTPOnly
-    );
+            return;
+        }
 
-        \session_name($this->sessionName);
+        ini_set('session.use_strict_mode', '1');
+        ini_set('session.use_only_cookies', '1');
+        ini_set('session.use_trans_sid', '0');
+        ini_set('session.gc_maxlifetime', (string) $this->config['expiration']);
 
-        if (\session_id() == '') {
+        session_name($this->sessionName);
+        session_set_cookie_params(self::cookieOptions($this->config));
+        session_start();
 
-        /*
-         * ID: Pada OS Debian/Ubuntu saat melakukan proses GC (garbage collection)
-         * Akan muncul error "failed: Permission denied". Hal ini karena secara default
-         * Debian hanya mengijinkan root untuk memodifikasi file session yang ada di
-         * dalam folder /var/lib/php5.
-         */
+        $this->sessionId = (string) session_id();
+    }
 
-        @\session_start();
-            $this->sessionId = \session_id();
+    /**
+     * Cookie attributes built from the session config.
+     *
+     * @return array{lifetime: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}
+     */
+    public static function cookieOptions(array $config): array
+    {
+        $config += self::DEFAULTS;
+        $sameSite = ucfirst(strtolower((string) $config['cookieSameSite']));
+
+        if (!in_array($sameSite, ['Lax', 'Strict', 'None'], true)) {
+            throw new RunException('cookieSameSite must be Lax, Strict or None');
+        }
+
+        $secure = $config['cookieSecure'] === 'auto' ? Request::isSecure() : (bool) $config['cookieSecure'];
+
+        return [
+            'lifetime' => (int) $config['cookieExpire'],
+            'path' => (string) $config['cookiePath'],
+            'domain' => (string) $config['cookieDomain'],
+            // Browsers drop SameSite=None cookies that are not Secure.
+            'secure' => $secure || $sameSite === 'None',
+            'httponly' => (bool) $config['cookieHttpOnly'],
+            'samesite' => $sameSite,
+        ];
+    }
+
+    /**
+     * New session id, same data. Call it right after a successful login.
+     */
+    public function regenerateId(): void
+    {
+        session_regenerate_id(true);
+        $this->sessionId = (string) session_id();
+    }
+
+    /**
+     * Save new session value(s).
+     */
+    public function setValue(string|array $name, mixed $value = ''): void
+    {
+        foreach (is_array($name) ? $name : [$name => $value] as $key => $val) {
+            $_SESSION[$key] = $val;
         }
     }
 
     /**
-     * Get next time in second. Default is 300 sec or five minute.
-     *
-     * @return int
+     * Get the session value, or false when it does not exist.
      */
-    protected function upcomingTime($s = 300)
+    public function getValue(string $name): mixed
     {
-        return \strtotime('+'.$s.' sec');
+        return $_SESSION[$name] ?? false;
     }
 
     /**
-     * Remove existing session file/record and cookie then replace it with new one but still with old values.
-     *     However, automatic session regeneration isn't recommended because it can cause a race condition when
-     *     you have multiple session requests while regenerating the session id (most commonly noticed with ajax
-     *     requests). For security reasons it's recommended that you manually call regenerate() whenever a visitor's
-     *     session privileges are escalated (e.g. they logged in, accessed a restricted area, etc).
+     * Get all session value.
      */
-    public function regenerateId()
+    public function getAllValue(): array
     {
-        \session_regenerate_id(true);
-        $this->sessionId = \session_id();
+        return $_SESSION ?? [];
     }
-
-    /**
-     * Save new session.
-     *
-     * @param string|array
-     * @param string|array|object
-     */
-    public function setValue($name, $value = '')
-    {
-        if (\is_array($name)) {
-            foreach ($name as $key => $val) {
-                $_SESSION[$key] = $val;
-            }
-        } else {
-            $_SESSION[$name] = $value;
-        }
-    }
-
-    /**
-     * Get the session vale.
-     *
-     * @param string
-     *
-     * @return string|array|object
-     */
-    public function getValue($name)
-    {
-        if (isset($_SESSION[$name])) {
-            return $_SESSION[$name];
-        } else {
-            return false;
-        }
-    }
-
-     /**
-      * Get all session value.
-      *
-      * @return array|object
-      */
-     public function getAllValue()
-     {
-         if (isset($_SESSION)) {
-             return $_SESSION;
-         } else {
-             return false;
-         }
-     }
 
     /**
      * Remove/unset the session value.
-     *
-     * @param string
      */
-    public function deleteValue($name)
+    public function deleteValue(string $name): void
     {
         unset($_SESSION[$name]);
     }
 
     /**
-     * Complitly remove the file session at the server and the cookie file in user's browser.
+     * Remove the session on the server and the cookie in the browser (logout).
      */
-    public function destroy($setExpireHeader = false)
+    public function destroy(bool $setExpireHeader = false): void
     {
-        if ($setExpireHeader) {
-            header('Expires: Mon, 1 Jul 1998 01:00:00 GMT');
+        if ($setExpireHeader && !headers_sent()) {
             header('Cache-Control: no-store, no-cache, must-revalidate');
-            header('Cache-Control: post-check=0, pre-check=0', false);
             header('Pragma: no-cache');
-            header('Last-Modified: '.\gmdate('D, j M Y H:i:s').' GMT');
         }
 
-        $params = \session_get_cookie_params();
+        $_SESSION = [];
 
-        \setcookie($this->sessionName, '', time() - 42000,
-        $params['path'], $params['domain'],
-        $params['secure'], $params['httponly']
-    );
+        if (!headers_sent()) {
+            $options = self::cookieOptions($this->config);
+            unset($options['lifetime']);
+            setcookie($this->sessionName, '', ['expires' => time() - 42000] + $options);
+        }
 
-        \session_unset();
-        \session_destroy();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
     }
 }

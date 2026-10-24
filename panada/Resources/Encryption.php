@@ -1,9 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Resources;
 
 /**
- * Panada Encyption class.
+ * Panada encryption class: authenticated encryption with libsodium
+ * (XSalsa20-Poly1305). A changed or forged value fails to decrypt.
+ *
+ *   $crypt = new \Resources\Encryption();     // key from security.php
+ *   $token = $crypt->encrypt('secret data');
+ *   $plain = $crypt->decrypt($token);         // false when tampered with
+ *
+ * Note: values encrypted by Panada 1 cannot be decrypted (that was only
+ * an obfuscation, not real encryption).
  *
  * @link	http://panadaframework.com/
  *
@@ -12,52 +22,56 @@ namespace Resources;
  *
  * @since	Version 0.1
  */
-class Encryption
+final class Encryption
 {
-    private $key = '__&&^^%%%#$@';
+    private string $key;
 
-    public function __construct($key = false)
+    public function __construct(?string $key = null)
     {
-        if($key){
-            $this->key = $key;
+        if (!extension_loaded('sodium')) {
+            throw new RunException('The sodium PHP extension is required for encryption.');
         }
+
+        $this->key = sodium_crypto_generichash(self::secret($key), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
     }
 
     /**
-     * Produce encryption
-     *
-     * @var string
-     * @return string
+     * Validate a secret key, or read it from app/config/security.php.
      */
-    public function encrypt($string)
+    public static function secret(?string $key = null): string
     {
-        $return = '';
+        $key = (string) ($key ?: (Config::security()['secretKey'] ?? ''));
 
-        for ($i = 0; $i < strlen($string); $i++) {
-            $str     = substr($string, $i, 1);
-            $return .= chr(ord($str) + ord(substr($this->key, ($i % strlen($this->key)) - 1, 1)));
+        if (strlen($key) < 32 || $key === '_put_your_random_string_here_') {
+            throw new RunException('Set a random secretKey of at least 32 characters in app/config/security.php');
         }
 
-        return base64_encode($return);
+        return $key;
     }
 
-    /**
-     * Decryption method
-     *
-     * @var string
-     * @return string
-     */
-    public function decrypt($string)
+    public function encrypt(string $string): string
     {
-        $string = base64_decode($string);
+        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
 
-        $return = '';
+        return sodium_bin2base64($nonce.sodium_crypto_secretbox($string, $nonce, $this->key), SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING);
+    }
 
-        for ($i = 0; $i < strlen($string); $i++) {
-            $str     = substr($string, $i, 1);
-            $return .= chr(ord($str) - ord(substr($this->key, ($i % strlen($this->key)) - 1, 1)));
+    public function decrypt(string $string): string|false
+    {
+        try {
+            $raw = sodium_base642bin($string, SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING);
+        } catch (\SodiumException) {
+            return false;
         }
 
-        return $return;
+        if (strlen($raw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+            return false;
+        }
+
+        return sodium_crypto_secretbox_open(
+            substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
+            substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
+            $this->key
+        );
     }
 }

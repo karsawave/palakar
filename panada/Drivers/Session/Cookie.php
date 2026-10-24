@@ -1,248 +1,156 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Cookies base session.
+ * Cookie based session: all values live in one cookie in the browser.
+ *
+ * The cookie is signed with HMAC-SHA256, so a visitor can read it (unless
+ * 'isEncrypt' is true) but cannot change it. Values are stored as JSON, so
+ * only strings, numbers, booleans and arrays are allowed, and the whole
+ * cookie must stay under 4 KB. For anything bigger use the native driver.
  *
  * @author	Iskandar Soesman
  *
  * @since	Version 0.3
  */
+
 namespace Drivers\Session;
 
-use Resources;
+use Resources\Encryption;
+use Resources\Interfaces;
+use Resources\RunException;
 
-class Cookie
+class Cookie implements Interfaces\Session
 {
-    public $sessionName = 'PAN_SID',
-    $sessionCookieExpire = 0,
-    $sessionCookiePath = '/',
-    $sessionCookieSecure = false,
-    $sessionCookieDomain = '',
-    $cookieChekSumName = 'chs',
-    $sessionCookieHTTTPOnly = true;
+    public string $sessionName = 'PAN_SID';
 
-    protected $hashKey = 'my_key',
-    $curentValues = array(),
-    $isEncrypt = false;
+    protected array $config;
 
-    /**
-     * Define all properties needed.
-     *
-     * @param object $config_instance
-     */
-    public function __construct($config)
+    private array $values = [];
+    private string $signingKey;
+    private ?Encryption $encryption = null;
+
+    public function __construct(array $config)
     {
-        $this->sessionName          = $config['name'];
-        $this->sessionCookieExpire  = $config['expiration'];
-        $this->sessionCookiePath    = $config['cookiePath'];
-        $this->sessionCookieSecure  = $config['cookieSecure'];
-        $this->sessionCookieDomain  = $config['cookieDomain'];
-        $this->hashKey            = $config['secretKey'];
-        $this->isEncrypt        = $config['isEncrypt'];
-        $this->cookieChekSumName    = $config['storageName'];
+        $this->config = $config + Native::DEFAULTS;
+        $this->sessionName = $this->config['name'];
 
-    // Decrypt the value before use it.
-    if ($this->isEncrypt) {
-        $this->encryption = new Resources\Encryption($config['secretKey']);
+        $secret = Encryption::secret($this->config['secretKey'] ?? null);
+        $this->signingKey = hash('sha256', 'panada-cookie-session|'.$secret, true);
 
-        if (isset($_COOKIE[$this->sessionName])) {
-            $_COOKIE[$this->sessionName] = $this->encryption->decrypt($_COOKIE[$this->sessionName]);
+        if (!empty($this->config['isEncrypt'])) {
+            $this->encryption = new Encryption($secret);
+        }
+
+        $this->values = $this->decode($_COOKIE[$this->sessionName] ?? null);
+
+        // Sliding expiration: every visit pushes the expiry forward.
+        if ($this->values !== []) {
+            $this->save();
         }
     }
 
-    /*
-     * If set, we have to make sure this value is valid.
-     * If true, then update the expiration date. Otherwise, destroy it!
-     */
-        if (isset($_COOKIE[$this->sessionName])) {
-            parse_str($_COOKIE[$this->sessionName], $currentValues);
-            $this->curentValues = $currentValues;
-
-            if (!$this->validatesCookieValues()) {
-                $this->destroy();
-            } else {
-                $this->setSessionValues();
-            }
-        } else {
-            $this->curentValues['_d'] = '.';
-            $this->setSessionValues();
+    public function setValue(string|array $name, mixed $value = ''): void
+    {
+        foreach (is_array($name) ? $name : [$name => $value] as $key => $val) {
+            $this->values[$key] = $val;
         }
+
+        $this->save();
+    }
+
+    public function getValue(string $name): mixed
+    {
+        return $this->values[$name] ?? false;
+    }
+
+    public function getAllValue(): array
+    {
+        return $this->values;
+    }
+
+    public function deleteValue(string $name): void
+    {
+        unset($this->values[$name]);
+        $this->save();
     }
 
     /**
-     * Create a second cookie that content the md5sum of the values.
-     * Every new value will update this checksum too.
+     * There is no server side id; the cookie is simply written again.
      */
-    protected function setCheckSum()
+    public function regenerateId(): void
     {
-        $curentValues = $this->curentValues;
+        $this->save();
+    }
 
-        $curentValues['agent'] = $_SERVER['HTTP_USER_AGENT'];
-
-        $values = md5(http_build_query($curentValues).$this->hashKey);
-
-        $this->setCookie($this->cookieChekSumName, $values);
+    public function destroy(bool $setExpireHeader = false): void
+    {
+        $this->values = [];
+        unset($_COOKIE[$this->sessionName]);
+        $this->sendCookie('', time() - 42000);
     }
 
     /**
-     * Validating cookie value against the md5sum.
-     *
-     * @return bool
+     * Turn the cookie back into values. Anything forged, expired or broken
+     * gives an empty session.
      */
-    private function validatesCookieValues()
+    private function decode(mixed $cookie): array
     {
-        $curentValues = $this->curentValues;
-
-        $curentValues['agent'] = $_SERVER['HTTP_USER_AGENT'];
-
-        $values = md5(http_build_query($curentValues).$this->hashKey);
-
-        if (!isset($_COOKIE[$this->cookieChekSumName])) {
-            return false;
+        if (!is_string($cookie) || $cookie === '') {
+            return [];
         }
 
-        if ($values != $_COOKIE[$this->cookieChekSumName]) {
-            return false;
+        if ($this->encryption !== null && ($cookie = $this->encryption->decrypt($cookie)) === false) {
+            return [];
         }
 
-        return true;
+        [$payload, $signature] = explode('.', $cookie, 2) + [1 => ''];
+
+        if (!hash_equals(hash_hmac('sha256', $payload, $this->signingKey), $signature)) {
+            return [];
+        }
+
+        $data = json_decode((string) base64_decode(strtr($payload, '-_', '+/'), true), true);
+
+        if (!is_array($data) || ($data['exp'] ?? 0) < time() || !is_array($data['values'] ?? null)) {
+            return [];
+        }
+
+        return $data['values'];
     }
 
-    /**
-     * Build and construct the cookie values.
-     */
-    private function setSessionValues()
+    private function save(): void
     {
-        $value = http_build_query($this->curentValues);
+        $payload = rtrim(strtr(base64_encode(json_encode(
+            ['values' => $this->values, 'exp' => time() + (int) $this->config['expiration']],
+            JSON_THROW_ON_ERROR
+        )), '+/', '-_'), '=');
 
-        if ($this->isEncrypt) {
-            $value = $this->encryption->encrypt($value);
+        $cookie = $payload.'.'.hash_hmac('sha256', $payload, $this->signingKey);
+
+        if ($this->encryption !== null) {
+            $cookie = $this->encryption->encrypt($cookie);
         }
 
-        $this->setCookie($this->sessionName, $value);
-
-        $this->setCheckSum();
-    }
-
-    /**
-     * Create a cookie.
-     *
-     * @param string $name
-     * @param string $value
-     */
-    private function setCookie($name, $value = '')
-    {
-        setcookie(
-            $name,
-            $value,
-            time() + $this->sessionCookieExpire,
-            $this->sessionCookiePath,
-            $this->sessionCookieDomain,
-            $this->sessionCookieSecure,
-        $this->sessionCookieHTTTPOnly
-        );
-    }
-
-    /**
-     * Set a new session value.
-     *
-     * @param string $name
-     * @param string $value
-     */
-    public function setValue($name, $value = '')
-    {
-        if (is_array($name)) {
-            foreach ($name as $key => $val) {
-                $this->curentValues[$key] = $val;
-            }
-        } else {
-            $this->curentValues[$name] = $value;
+        if (strlen($cookie) > 4000) {
+            throw new RunException('Cookie session is larger than 4 KB. Store less data or use the native session driver.');
         }
 
-        $this->setSessionValues();
+        $_COOKIE[$this->sessionName] = $cookie;
+        $lifetime = (int) $this->config['cookieExpire'];
+        $this->sendCookie($cookie, $lifetime > 0 ? time() + $lifetime : 0);
     }
 
-    /**
-     * Get a session value base on the name.
-     *
-     * @param string $name
-     *
-     * @return mix
-     */
-    public function getValue($name = null)
+    private function sendCookie(string $value, int $expires): void
     {
-        $curentValues = $this->curentValues;
-        unset($curentValues['_d']);
-
-        if (empty($curentValues)) {
-            return false;
+        if (headers_sent()) {
+            return;
         }
 
-        if (is_null($name)) {
-            return $curentValues;
-        }
+        $options = Native::cookieOptions($this->config);
+        unset($options['lifetime']);
 
-        if (isset($curentValues[$name])) {
-            return $curentValues[$name];
-        }
-
-        return false;
-    }
-
-     /**
-      * Get all session value.
-      *
-      * @return mix
-      */
-     public function getAllValue()
-     {
-         $curentValues = $this->curentValues;
-         unset($curentValues['_d']);
-
-         if (empty($curentValues)) {
-             return false;
-         } else {
-             return $curentValues;
-         }
-     }
-
-    /**
-     * Remove certain session value.
-     *
-     * @param string $name
-     */
-    public function deleteValue($name)
-    {
-        unset($this->curentValues[$name]);
-        $this->setSessionValues();
-    }
-
-    /**
-     * Clear all session value.
-     */
-    public function destroy($setExpireHeader = false)
-    {
-        if ($setExpireHeader) {
-            header('Expires: Mon, 1 Jul 1998 01:00:00 GMT');
-            header('Cache-Control: no-store, no-cache, must-revalidate');
-            header('Cache-Control: post-check=0, pre-check=0', false);
-            header('Pragma: no-cache');
-            header('Last-Modified: '.\gmdate('D, j M Y H:i:s').' GMT');
-        }
-
-        $this->curentValues = array();
-        $this->curentValues['_d'] = '.';
-        $this->sessionCookieExpire = strtotime('-10 years');
-        $this->setCookie($this->sessionName);
-        $this->setCookie($this->cookieChekSumName);
-        $this->setSessionValues();
-    }
-
-    /**
-     * Regenerate the cookie id.
-     */
-    public function regenerateId()
-    {
-        return;
+        setcookie($this->sessionName, $value, ['expires' => $expires] + $options);
     }
 }

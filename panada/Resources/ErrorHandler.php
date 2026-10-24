@@ -7,16 +7,24 @@ namespace Resources;
 /**
  * Catches every PHP error and uncaught exception, then shows one error page.
  *
- *  - 'debug' => true  : detailed page (file, source code, stack trace).
+ *  - 'debug' => true  : detailed page. When filp/whoops is installed
+ *                       (`composer require --dev filp/whoops`) its interactive
+ *                       page is used, otherwise Panada's own page with source
+ *                       code and stack trace.
  *  - 'debug' => false : generic page; details only go to the PHP error log.
+ *                       Whoops is never used here, even when installed.
  */
 final class ErrorHandler
 {
     private static bool $debug = false;
 
+    /** @var \Whoops\Run|null Used as a page renderer only, never registered globally. */
+    private static ?object $whoops = null;
+
     public static function register(bool $debug): void
     {
         self::$debug = $debug;
+        self::$whoops = $debug && class_exists(\Whoops\Run::class) ? self::makeWhoops() : null;
 
         if (PHP_SAPI !== 'cli') {
             // We render errors ourselves, PHP must not print them a second time.
@@ -94,6 +102,16 @@ final class ErrorHandler
         Response::$headers['Content-Type'] = 'text/html; charset=utf-8';
 
         try {
+            if (self::$whoops !== null) {
+                if (self::wantsJson()) {
+                    Response::$headers['Content-Type'] = 'application/json; charset=utf-8';
+                }
+
+                $response->setBody((string) self::$whoops->handleException($e));
+
+                return $response;
+            }
+
             $response->setBody(Controller::outputError('errors/500', self::viewData($e)));
         } catch (\Throwable) {
             // The error view itself is broken: fall back to plain text.
@@ -101,6 +119,39 @@ final class ErrorHandler
         }
 
         return $response;
+    }
+
+    /**
+     * Whoops configured to return the page as a string, so Panada's Response
+     * still sends it (no exit(), no direct echo).
+     */
+    private static function makeWhoops(): \Whoops\Run
+    {
+        $whoops = new \Whoops\Run();
+        $whoops->allowQuit(false);
+        $whoops->writeToOutput(false);
+
+        if (self::wantsJson()) {
+            $whoops->pushHandler(new \Whoops\Handler\JsonResponseHandler());
+
+            return $whoops;
+        }
+
+        $page = new \Whoops\Handler\PrettyPageHandler();
+        $page->setPageTitle('Panada error');
+        $page->addDataTable('Panada', [
+            'PHP version' => PHP_VERSION,
+            'Application path' => defined('APP') ? APP : '',
+        ]);
+        $whoops->pushHandler($page);
+
+        return $whoops;
+    }
+
+    private static function wantsJson(): bool
+    {
+        return str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
     }
 
     private static function viewData(\Throwable $e): array

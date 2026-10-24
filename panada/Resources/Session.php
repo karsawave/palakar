@@ -1,7 +1,18 @@
 <?php
 
+// No strict_types here on purpose: this class only forwards your calls to the
+// session driver, so it must not change the typing mode you are used to.
+
 /**
  * Panada session Handler.
+ *
+ *   $session = new \Resources\Session();     // or $this->resource->session()
+ *   $session->setValue('user_id', 15);
+ *   $session->getValue('user_id');           // 15, or false
+ *   $session->regenerateId();                // after login
+ *   $session->destroy();                     // logout
+ *
+ * Drivers and cookie settings are in app/config/session.php.
  *
  * @link	http://panadaframework.com/
  *
@@ -10,77 +21,67 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
+/**
+ * @mixin \Drivers\Session\Native
+ */
 class Session
 {
-    private $driver, $config;
+    private Interfaces\Session $driver;
+    private array $config;
 
-    public function __construct($connection = 'default')
+    public function __construct(string $connection = 'default')
     {
-        $this->config = Config::session();
-        $this->config = $this->config[$connection];
+        $config = Config::session();
+
+        if (!isset($config[$connection])) {
+            throw new RunException('Session connection "'.$connection.'" is not defined in app/config/session.php');
+        }
+
+        $this->config = $config[$connection];
         $this->init();
     }
 
     /**
-     * Overrider for session config option located at file app/config/session.php.
-     *
-     * @param array $option The new option.
-     *
-     * @since version 1.0
+     * Override session config options for this instance.
      */
-    public function setOption($option = array())
+    public function setOption(array $option = []): void
     {
         $this->config = array_merge($this->config, $option);
         $this->init();
     }
 
     /**
-     * Use magic method 'call' to pass user method
-     * into driver method.
-     *
-     * @param string @name
-     * @param array @arguments
+     * Use magic method 'call' to pass user method into driver method.
      */
-    public function __call($name, $arguments)
+    public function __call(string $name, array $arguments): mixed
     {
-        return call_user_func_array(array($this->driver, $name), $arguments);
+        return $this->driver->$name(...$arguments);
     }
 
-    /**
-     * Magic getter for properties.
-     *
-     * @param string
-     *
-     * @return mix
-     */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return $this->driver->$name;
     }
 
-    /**
-     * Magic setter for properties.
-     *
-     * @param string
-     * @param mix
-     *
-     * @return mix
-     */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         $this->driver->$name = $value;
     }
 
     /**
-     * Instantiate the driver class.
-     *
-     * @since version 1.0
+     * Instantiate the driver class: native, cookie, cache or database.
      */
-    private function init()
+    private function init(): void
     {
-        $driverNamespace = 'Drivers\Session\\'.ucwords($this->config['driver']);
-        $this->driver = new $driverNamespace($this->config);
+        $driver = 'Drivers\\Session\\'.ucwords(strtolower((string) ($this->config['driver'] ?? 'native')));
+
+        if (!class_exists($driver)) {
+            throw new RunException('Unknown session driver "'.$this->config['driver'].'"');
+        }
+
+        $this->driver = new $driver($this->config);
     }
 }
