@@ -248,6 +248,31 @@ $user->save();                          // UPDATE ... WHERE id = ?
 - Method selain `getBy...()`, `first()`, `last()` melempar exception (dulu diam-diam
   `null`, salah ketik tidak ketahuan).
 
+### `setOption()` (Pagination, Upload, Image, Email)
+
+Satu trait kecil, `Resources\Configurable`. Nama opsi yang salah ketik kini
+melempar exception (dulu diam-diam membuat properti baru dan opsinya tidak
+berefek). Nilai string dari URL, config, atau `getenv()` di-cast ke tipe
+properti, jadi `setOption('current', $this->uri->path(2))` tetap jalan.
+
+### Pagination
+
+```php
+$links = (new \Resources\Pagination())->setOption([
+    'urlReference' => $this->location('posts%_%'),
+    'format' => '/page/%#%',
+    'total' => $total,
+    'limit' => 10,
+    'current' => $page,
+])->getUrl();
+```
+
+- `getUrl()` dulu selalu error (`$this->base` tidak ada). Link "Previous" juga
+  memuat `%_%` mentah.
+- `href` di-escape. `prevText`, `nextText`, `groupSeparator` tetap HTML milik
+  developer, jangan isi dengan input pengunjung.
+- Kurang dari 2 halaman: `[]` (dulu `null`). `limit` 0 tidak lagi membagi nol.
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -289,6 +314,9 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
     dimuat kini menghapus/meng-update record itu (dulu exception "without a
     WHERE").
 19. ActiveRecord: memanggil method yang tidak ada melempar `RunException`.
+20. `setOption()` dengan nama opsi yang tidak ada (atau bukan public) melempar
+    `RunException`.
+21. `Pagination::getUrl()` mengembalikan `[]` bila kurang dari 2 halaman.
 
 ---
 
@@ -314,6 +342,6 @@ Isi test suite:
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
 PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`, `Image`,
-`Upload`, `Pagination`, `Rest`, `Tools`, dan driver cache (`Redis`, `Memcache`,
+`Upload`, `Rest`, `Tools`, dan driver cache (`Redis`, `Memcache`,
 `Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
 `phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.

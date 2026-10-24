@@ -1,7 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada Pagination class.
+ *
+ *   $links = (new \Resources\Pagination())->setOption([
+ *       'urlReference' => $this->location('posts%_%'),
+ *       'format' => '/page/%#%',
+ *       'total' => $total,
+ *       'limit' => 10,
+ *       'current' => $page,
+ *   ])->getUrl();
+ *
+ *   <?= implode(' ', $links) ?>
+ *
+ * The links are escaped. prevText, nextText and groupSeparator are printed as
+ * they are (they are HTML written by you, not by the visitor).
  *
  * @link	http://panadaframework.com/
  *
@@ -10,170 +25,109 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 class Pagination
 {
-    /**
-     * @var bool Show the number. If you set it to false, so it would return next and previous only.
-     */
-    public $showNumber = true;
+    use Configurable;
+
+    /** Show the numbers. false gives "previous" and "next" only. */
+    public bool $showNumber = true;
+
+    /** http://example.com/allposts%_% : %_% is replaced by format (nothing on page 1). */
+    public string $urlReference = '';
+
+    /** /%#%/ : %#% is replaced by the page number. */
+    public string $format = '/%#%/';
+
+    /** Number of records. */
+    public int $total = 1;
+
+    /** Records per page. */
+    public int $limit = 5;
+
+    /** Current page number, 0 when none. */
+    public int $current = 0;
+
+    /** Show every page number. */
+    public bool $showAll = false;
+
+    /** Return [link, value, active] arrays instead of HTML. */
+    public bool $noHref = false;
+
+    /** Show previous and next links. */
+    public bool $prevNext = true;
+
+    public string $prevText = '&laquo; Previous';
+    public string $nextText = 'Next &raquo;';
+
+    /** Shown between blocks of numbers. */
+    public string $groupSeparator = '...';
+
+    /** How many numbers on either end, including the end. */
+    public int $endSize = 1;
+
+    /** How many numbers on either side of the current page. */
+    public int $midSize = 2;
 
     /**
-     * @var string http://example.com/allposts/%_% : %_% is replaced by format properties.
+     * @return array<int, string|array{link: string, value: int|string, active: bool}>
      */
-    public $urlReference = '';
-
-    /**
-     * @var string http://example.com/allposts/%#% : %#% is replaced by the page number.
-     */
-    public $format = '/%#%/';
-
-    /**
-     * @var int Total number all record.
-     */
-    public $total = 1;
-
-    /**
-     * @var int Limit record per page.
-     */
-    public $limit = 5;
-
-    /**
-     * @var int Current page location: welcome/comments/1, welcome/comments/2, welcome/comments/3 etc...
-     */
-    public $current = 0;
-
-    /**
-     * @var bool Show all page number and it link. I dont think you gonna like this.
-     */
-    public $showAll = false;
-
-    /**
-     * @var bool If you wanna get the output without any href html tag, then set = true;. You will get something like this Array([link] => paging link [value] => paging value) for each item.
-     */
-    public $noHref = false;
-
-    /**
-     * @var bool Show previous and next link.
-     */
-    public $prevNext = true;
-
-    /**
-     * @var string The "previous" html character/string.
-     */
-    public $prevText = '&laquo; Previous';
-
-    /**
-     * @var string The "next" html character/string.
-     */
-    public $nextText = 'Next &raquo;';
-
-    /**
-     * @var string The separator between one block number to enother.
-     */
-    public $groupSeparator = '...';
-
-    /**
-     * @var int How many numbers on either end including the end.
-     */
-    public $endSize = 1;
-
-    /**
-     * @var int How many numbers to either side of current not including current.
-     */
-    public $midSize = 2;
-
-    /**
-     * Class contructor.
-     */
-    public function __construct()
+    public function getUrl(): array
     {
-        /*
-         * Make sure the argument type only integer.
-         */
-        $this->total    = (int) $this->total;
-        $this->limit    = (int) $this->limit;
-        $this->current  = (int) $this->current;
-        $this->endSize = (int) $this->endSize;
-        $this->midSize = (int) $this->midSize;
-    }
+        $pages = (int) ceil($this->total / max(1, $this->limit));
 
-    /**
-     * Setter for option.
-     *
-     * @param string | array $var
-     * @param mix            $value
-     */
-    public function setOption($var, $value = false)
-    {
-        if (is_string($var)) {
-            $this->$var = $value;
+        if ($pages < 2) {
+            return [];
         }
 
-        if (is_array($var)) {
-            foreach ($var as $key => $value) {
-                $this->$key = $value;
-            }
+        $endSize = max(1, $this->endSize);
+        $midSize = max(0, $this->midSize);
+        $current = $this->current;
+        $links = [];
+        $dots = false;
+
+        if ($this->prevNext && $current > 1) {
+            $links[] = $this->item($this->link($current - 1), $this->prevText);
         }
 
-        return $this;
-    }
-
-    /**
-     * Create pagination.
-     *
-     * @return array
-     */
-    public function getUrl()
-    {
-        $total    = ceil($this->total / $this->limit);
-        if ($total < 2) {
-            return;
-        }
-
-        $endSize   = (0 < $this->endSize) ? $this->endSize : 1; // Out of bounds?  Make it the default.
-        $midSize   = (0 <= $this->midSize) ? $this->midSize : 2;
-
-        $r          = '';
-        $paging_url = array();
-        $n          = 0;
-        $dots       = false;
-
-        if ($this->prevNext && $this->current && 1 < $this->current) {
-            $link         = str_replace('%#%', $this->current - 1, $this->base);
-            $paging_url[] = ($this->noHref) ? array('link' => $link, 'value' => $this->prevText, 'active' => false) : '<a href="'.$link.'">'.$this->prevText.'</a>';
-        }
-
-        for ($n = 1; $n <= $total; $n++) {
-            if ($n == $this->current) {
+        for ($n = 1; $n <= $pages; $n++) {
+            if ($n === $current) {
                 if ($this->showNumber) {
-                    $paging_url[] = ($this->noHref) ? array('link' => '', 'value' => $n, 'active' => true) : '<span>'.$n.'</span>';
+                    $links[] = $this->noHref ? ['link' => '', 'value' => $n, 'active' => true] : '<span>'.$n.'</span>';
                     $dots = true;
                 }
-            } else {
-                if ($this->showAll || ($n <= $endSize || ($this->current && $n >= $this->current - $midSize && $n <= $this->current + $midSize) || $n > $total - $endSize)) {
-                    $link = str_replace('%_%', ($n == 1) ? '' : $this->format, $this->base);
-                    $link = str_replace('%#%', $n, $link);
-
-                    if ($this->showNumber) {
-                        $paging_url[] = ($this->noHref) ? array('link' => $link, 'value' => $n, 'active' => false) : '<a href="'.$link.'">'.$n.'</a>';
-                        $dots = true;
-                    }
-                } elseif ($dots && !$this->showAll) {
-                    $paging_url[] = ($this->noHref) ? array('link' => '', 'value' => $this->groupSeparator, 'active' => false) : '<span>'.$this->groupSeparator.'</span>';
-                    $dots = false;
+            } elseif ($this->showAll || $n <= $endSize || ($current && abs($n - $current) <= $midSize) || $n > $pages - $endSize) {
+                if ($this->showNumber) {
+                    $links[] = $this->item($this->link($n), $n);
+                    $dots = true;
                 }
+            } elseif ($dots) {
+                $links[] = $this->noHref ? ['link' => '', 'value' => $this->groupSeparator, 'active' => false] : '<span>'.$this->groupSeparator.'</span>';
+                $dots = false;
             }
         }
 
-        if ($this->prevNext && $this->current && ($this->current < $total || -1 == $total)) {
-            $link           = str_replace('%_%', $this->format, $this->base);
-            $link           = str_replace('%#%', $this->current + 1, $link);
-
-            $paging_url[]   = ($this->noHref) ? array('link' => $link, 'value' => $this->nextText, 'active' => false) : '<a href="'.$link.'">'.$this->nextText.'</a>';
+        if ($this->prevNext && $current && $current < $pages) {
+            $links[] = $this->item($this->link($current + 1), $this->nextText);
         }
 
-        return $paging_url;
+        return $links;
+    }
+
+    /**
+     * Page 1 is the plain urlReference, other pages get the format.
+     */
+    private function link(int $page): string
+    {
+        $link = str_replace('%_%', $page === 1 ? '' : $this->format, $this->urlReference);
+
+        return str_replace('%#%', (string) $page, $link);
+    }
+
+    private function item(string $link, int|string $value): string|array
+    {
+        return $this->noHref ? ['link' => $link, 'value' => $value, 'active' => false] : '<a href="'.e($link).'">'.$value.'</a>';
     }
 }
