@@ -1,7 +1,6 @@
 {
     "name": "karsawave/palakar",
     "description": "Palakar Framework: a simple and secure PHP 8.2+ framework, fork of Panada Framework 1.1.1",
-    "version": "0.1.0",
     "keywords": [
         "php",
         "palakar",

@@ -150,6 +150,16 @@ mendistribusikan ulang boleh tanpa izin, dengan syarat berikut.
   tidak merendahkan proyek asli atau penulisnya: "diperbaiki: ..." boleh,
   "kode lama buruk" tidak.
 
+## Branch (wajib)
+
+- **`master`:** hanya rilis stabil, setiap rilis diberi tag `vX.Y.Z`
+  (Packagist membaca tag). Default branch di GitHub.
+- **`development`:** tempat kerja. Semua spec yang di-ACC dikerjakan dan
+  di-commit di sini. Saat rilis, `development` di-merge ke `master` (merge,
+  bukan rebase).
+- Tidak ada force push ke `master` atau `development`. Sebelum commit, cek
+  branch aktif (`git branch --show-current`) adalah `development`.
+
 ## Alur kerja spec (wajib)
 
 Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
@@ -167,7 +177,8 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
 - Selesai: spec dipindah ke `_tasks/done/` (pakai `git mv`), diberi status
   `done`, tanggal, hash commit, dan hasil verifikasi (jumlah test, PHPStan).
   Satu spec = satu commit (atau beberapa commit yang disebut di spec).
-- Pesan commit menyebut nomor spec, mis. `spec-001: ...`.
+- Nomor spec ditulis di footer pesan commit: `Refs: spec-NNN` (lihat bagian
+  Pesan commit).
 - Spec yang mengubah perilaku menambah entri di `CHANGELOG.md` bagian
   `[Unreleased]` (Keep a Changelog, SemVer). `CHANGELOG-PANADA` adalah
   riwayat upstream dan tidak diubah.
@@ -184,6 +195,36 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
 - Pesan commit menjelaskan *kenapa*, bukan hanya *apa*.
 - Keputusan desain dan alasannya ditulis di spec atau CLAUDE.md, tidak hanya
   di percakapan.
+
+## Pesan commit (wajib, Conventional Commits 1.0.0)
+
+```
+<type>(<scope>): <ringkasan>
+
+<isi: kenapa perubahan ini perlu, apa dampaknya>
+
+Refs: spec-NNN
+BREAKING CHANGE: <apa yang berubah, cara pindah>   (hanya bila ada)
+Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
+```
+
+- **type:** `feat`, `fix`, `docs`, `test`, `refactor` (tanpa ubah perilaku),
+  `perf`, `build` (composer, PHPStan), `ci`, `chore`, `revert`. Celah keamanan
+  memakai `fix`.
+- **scope** (opsional): komponen huruf kecil, mis. `email`, `upload`,
+  `database`, `cache`, `session`, `spec`, `release`.
+- **Ringkasan:** bahasa Inggris, kalimat perintah ("add", bukan "added"),
+  huruf kecil di awal, tanpa titik, maksimal 72 karakter.
+- **Isi:** bahasa Inggris, baris maksimal 72 karakter, menjelaskan *kenapa*.
+  Boleh dilewati untuk perubahan sepele.
+- **Breaking change:** `!` setelah type/scope (`fix(upload)!: ...`) dan footer
+  `BREAKING CHANGE:`; juga dicatat di MODERNISASI.md dan CHANGELOG.md.
+- Satu commit = satu perubahan logis.
+- **Dilarang:** rahasia, token, password, email pribadi, path pribadi
+  (`C:\Users\...`), dan detail celah yang perbaikannya belum dirilis.
+- Riwayat yang sudah di-push tidak ditulis ulang. Pengecualian satu kali:
+  spec-009 menulis ulang ringkasan commit lama sebelum repo baru di-push.
+  Commit baseline Panada (`cb111a1`) tidak pernah diubah.
 
 ## Keputusan desain (sudah diputuskan, jangan diubah tanpa alasan kuat)
 
@@ -229,5 +270,5 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
 4. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
    (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
    hapus atau rapikan.
-5. Driver cache `memcache` (ekstensi lama) belum diuji di CI; PHP 8.4 belum ada
+5. PHP 8.4 belum ada
    di matrix CI.

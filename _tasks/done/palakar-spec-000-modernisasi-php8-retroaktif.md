@@ -16,34 +16,35 @@ Upload, dll.) punya bug serta celah keamanan. Hampir tidak ada test.
 | Commit | Langkah |
 |---|---|
 | `cb111a1` | Baseline: Panada asli (upstream `dc904d0`) |
-| `b6a9463` | Core PHP 8.2+, Composer PSR-4 + autoloader Panada sebagai cadangan |
-| `b6e3478` | Database PDO-only, semua nilai di-bind |
-| `1d742f2` | Validation dengan sanitize otomatis, CSRF bawaan |
-| `db68a79` | Halaman error (Whoops opsional), cookie session modern |
-| `cd6b46c` | Perbaikan PHP 8 di resource lama (temuan PHPStan) |
-| `c5934b2` | Test PHPUnit 11 (unit + HTTP sungguhan), `check.php` |
-| `e06382d`, `880bf20` | MODERNISASI.md, README, CHANGELOG, CLAUDE.md |
-| `fa3676d` | `Uri` memahami path Windows |
-| `0d90f25` | `composer.lock` |
-| `9dca81f` | PHPStan level 2 (`composer analyse`) |
-| `8ed0476` | ActiveRecord: strict types, test, bug |
-| `402c8c1` | Pagination |
-| `dc88d15` | Rest |
-| `4292f7e` | Upload (celah: file `.php`, path traversal) |
-| `fe16317` | Image |
-| `17ebd8a` | Email (celah: header injection, STARTTLS) |
-| `b778e74` | Tools |
-| `474a8c9` | Driver cache (celah: `Apc::__call`) |
-| `a92e39b` | CI GitHub Actions |
-| `dc811ed` | Aturan open source di CLAUDE.md |
+| `6ddb691` | Core PHP 8.2+, Composer PSR-4 + autoloader Panada sebagai cadangan |
+| `f8c2a4f` | Database PDO-only, semua nilai di-bind |
+| `cf95e1c` | Validation dengan sanitize otomatis, CSRF bawaan |
+| `13ceeed` | Halaman error (Whoops opsional), cookie session modern |
+| `cee6e0e` | Perbaikan PHP 8 di resource lama (temuan PHPStan) |
+| `e547f52` | Test PHPUnit 11 (unit + HTTP sungguhan), `check.php` |
+| `9fd2a6f`, `0692cf9` | MODERNISASI.md, README, CHANGELOG, CLAUDE.md |
+| `c8909a4` | `Uri` memahami path Windows |
+| `5d0c0e9` | `composer.lock` |
+| `c263b76` | PHPStan level 2 (`composer analyse`) |
+| `62684ce` | ActiveRecord: strict types, test, bug |
+| `f886bd5` | Pagination |
+| `607084f` | Rest |
+| `65465e7` | Upload (celah: file `.php`, path traversal) |
+| `377a93d` | Image |
+| `b6e265a` | Email (celah: header injection, STARTTLS) |
+| `32b8ded` | Tools |
+| `a34a510` | Driver cache (celah: `Apc::__call`) |
+| `eb65468` | CI GitHub Actions |
+| `76dcc41` | Aturan open source di CLAUDE.md |
 
 ## Hasil verifikasi
 
 - 135 test PHPUnit, 18 di-skip lokal (14 PostgreSQL, 4 driver cache tanpa
   server). PHPStan level 2 tanpa temuan dan tanpa baseline.
-- **Belum terverifikasi:** workflow CI belum pernah dijalankan; test
-  PostgreSQL, Redis, Memcached, APCu baru akan jalan di CI. Driver `memcache`
-  (ekstensi lama) tidak diuji di mana pun.
+- Saat ditulis, CI belum pernah jalan. **Terverifikasi 2026-10-25** (CI #1,
+  commit `c2d2ca9`): PHP 8.2 dan 8.3 masing-masing OK, 135 test, 622
+  assertion, tanpa skip (PostgreSQL 16, Redis 7, Memcached, APCu, memcache
+  ikut jalan), PHPStan tanpa temuan.
 
 ## Breaking change
 
