@@ -4,10 +4,11 @@ Catatan perubahan dari Panada 1.1.1 (2015) ke versi modern ini. Filosofi tetap:
 **KISS, transparan, bisa dibaca habis dalam semalam.** Inti yang direfaktor
 (bootstrap, routing, database, validasi, CSRF, session, error) totalnya sekitar
 3.500 baris termasuk komentar, dan folder `panada/` justru lebih kecil dari
-versi lama (9.334 → 7.657 baris).
+versi lama (9.334 → 6.480 baris).
 
-Status: 84 test PHPUnit lulus di PHP 8.3 (SQLite + PostgreSQL 16), ditambah
-PHPStan level 2 tanpa temuan pada kode baru.
+Status: 135 test PHPUnit (unit + HTTP sungguhan) dan PHPStan level 2 tanpa
+temuan di seluruh `panada/`. CI (GitHub Actions, PHP 8.2 dan 8.3) juga
+menjalankan test PostgreSQL 16, Redis, Memcached, dan APCu.
 
 Riwayat git dibuat satu commit per langkah, jadi setiap perubahan bisa dibaca
 terpisah dengan `git log -p`.
@@ -531,15 +532,22 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
 ```bash
 composer install
 composer test                      # = vendor/bin/phpunit
+composer analyse                   # PHPStan level 2
 
-# termasuk PostgreSQL:
-PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
+# termasuk PostgreSQL, Redis, Memcached (dilewati kalau env kosong):
+PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" \
+PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test
 ```
 
 Isi test suite:
 
 - `tests/Unit`: autoloader, config, encryption, request, validation, CSRF,
-  session (native/database/cookie), query builder (SQLite + PostgreSQL).
+  session (native/database/cookie), query builder (SQLite + PostgreSQL),
+  ActiveRecord, Pagination, Image, Email (lewat server SMTP palsu di
+  `tests/Fixtures/smtp.php`), Tools, driver cache.
 - `tests/Http`: request HTTP sungguhan ke `php -S`. Mencakup aplikasi bawaan,
   plus aplikasi fixture untuk mode error (Whoops / bawaan / produksi), mode
-  tanpa Composer, CSRF, dan flag cookie.
+  tanpa Composer, CSRF, flag cookie, Rest (klien dan server), dan upload file.
+
+CI ada di `.github/workflows/ci.yml`: `composer install`, `composer test`
+dengan service PostgreSQL 16, Redis, dan Memcached, lalu `composer analyse`.

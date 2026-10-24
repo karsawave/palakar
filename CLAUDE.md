@@ -13,7 +13,8 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (84 test, 292 assertion, PHP 8.3, SQLite + PostgreSQL 16):
+Selesai dan teruji (135 test, PHP 8.3 lokal; CI: PHP 8.2 + 8.3, PostgreSQL 16,
+Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2/8.3 (strict types, typed props, tanpa dynamic property)
 2. Composer PSR-4 + autoloader Panada sebagai fallback
@@ -21,6 +22,9 @@ Selesai dan teruji (84 test, 292 assertion, PHP 8.3, SQLite + PostgreSQL 16):
 4. Validation dengan sanitize otomatis + CSRF bawaan
 5. Error handler (Whoops opsional) di fase bootstrap
 6. Session cookie modern (SameSite, Secure auto, HttpOnly, strict mode)
+7. Komponen lama (ActiveRecord, Pagination, Rest, Upload, Image, Email, Tools,
+   driver cache): strict types, test, bug dan celah keamanan diperbaiki
+8. CI GitHub Actions (`.github/workflows/ci.yml`)
 
 Riwayat git: satu commit per langkah (`git log -p` untuk membaca alasannya).
 
@@ -30,16 +34,18 @@ Riwayat git: satu commit per langkah (`git log -p` untuk membaca alasannya).
 composer install                    # Whoops + PHPUnit (dev)
 composer serve                      # php -S localhost:8000 -t public public/index.php
 composer test                       # semua test (unit + http)
+composer analyse                    # PHPStan level 2 (phpstan.neon.dist)
 vendor/bin/phpunit --testsuite unit
 vendor/bin/phpunit --testsuite http
 vendor/bin/phpunit --filter ValidationTest
 
-# Test PostgreSQL (opsional, dilewati kalau env kosong):
+# Test dengan server (opsional, dilewati kalau env kosong):
 PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
+PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test
 ```
 
-Analisis statis yang dipakai selama refaktor: PHPStan level 2 (tidak ada di
-`composer.json`; pasang dengan `composer require --dev phpstan/phpstan`).
+`composer test` dan `composer analyse` wajib hijau sebelum commit. PHPStan
+tidak memakai baseline; temuan baru diperbaiki, bukan diabaikan.
 
 ## Struktur
 
@@ -49,18 +55,22 @@ panada/Gear.php         bootstrap + routing (controller → sub-controller → m
 panada/helpers.php      e(), csrf_field(), csrf_token()
 panada/Resources/       komponen inti (Controller, Config, Uri, Request, Response,
                         ErrorHandler, Csrf, Validation, Session, Database, Encryption, ...)
+                        + ActiveRecord, Pagination, Rest, Upload, Image, Email, Tools, Cache
+  Configurable.php      trait setOption() untuk Pagination/Upload/Image/Email
 panada/Drivers/
   Abstraction/Sql.php   query builder (semua nilai di-bind)
   Database/PanadaPDO.php satu-satunya driver DB (mysql, pgsql, sqlite)
   Session/              Native, Database(+Handler), Cache(+Handler), Cookie
-  Cache/                driver lama, baru diperbaiki sebatas kompatibel PHP 8
+  Cache/                Dummy, Apc, Memcached, Memcache, Redis (+ trait KeyNamespace)
 app/                    aplikasi contoh (Home, Guestbook demo, ModSample module)
 app/config/             main.php (debug, trustProxyHeaders), database.php,
                         security.php (secretKey, csrf), session.php, cache.php
 app/storage/            SQLite default (diabaikan git)
 tests/Unit/             test komponen
 tests/Http/             request HTTP sungguhan ke `php -S`
-tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli)
+tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
+                        smtp.php (server SMTP palsu untuk EmailTest)
+.github/workflows/ci.yml CI: composer install, test (PostgreSQL/Redis/Memcached), analyse
 ```
 
 ## Konvensi kode
@@ -73,6 +83,12 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli)
   menjelaskan *kenapa*. Dokumentasi untuk pengguna dalam bahasa Indonesia.
 - Tidak boleh ada dynamic property. Pengecualian yang disengaja:
   `ActiveRecord` (`#[\AllowDynamicProperties]`).
+- Properti/method yang biasa di-override kelas pengguna (`ActiveRecord::$table`,
+  `$connection`, `$primaryKey`, `relations()`, ...) dan return type di
+  `Interfaces\Cache` sengaja tanpa tipe: PHP menolak override tanpa tipe bila
+  induknya bertipe.
+- Opsi lewat properti publik + `setOption()` dari trait `Resources\Configurable`
+  (opsi tak dikenal → exception, string di-cast ke tipe properti).
 - Exception: `RunException` untuk error runtime (500), `HttpException` dengan
   kode status HTTP (default 404). Jangan memanggil `outputError()` lalu lanjut
   jalan; lempar exception.
@@ -117,18 +133,22 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli)
   `PANADA_NO_COMPOSER`, `PANADA_TRUST_PROXY`, `PANADA_SESSION_DRIVER`, ...)
   supaya satu fixture bisa diuji dalam banyak mode.
 - Test session native memakai `#[RunInSeparateProcess]`.
+- Test juga dijalankan di Windows: path dari `$_SERVER` bisa memakai `\`, dan
+  file SQLite yang masih terbuka tidak bisa dihapus (test ActiveRecord memakai
+  `DROP TABLE`, bukan menghapus file).
+- Upload hanya bisa diuji lewat HTTP (`move_uploaded_file`); `HttpTestCase`
+  mengirim multipart bila data berisi `CURLFile`.
+- PHPUnit memakai `failOnWarning`/`failOnDeprecation`: warning di kode yang diuji
+  langsung membuat test gagal.
 
 ## Backlog (urut prioritas)
 
 1. **Nama fork + nama paket Composer.** "Panada 2.0" resmi sudah ada di
    `github.com/panada/app`, dan `panada/panada` di Packagist milik upstream.
    `composer.json` masih memakai nama lama; belum ada label versi.
-2. Commit `composer.lock` setelah `composer install` pertama di lokal.
-3. CI (Jenkins/GitHub Actions): `composer install`, `composer test` dengan
-   service PostgreSQL, plus PHPStan.
-4. Komponen lama yang baru kompatibel PHP 8 (lolos lint + PHPStan level 2),
-   belum strict types dan belum ada test: `Email`, `Image`, `Upload`,
-   `Pagination`, `Rest`, `Tools`, driver cache, `ActiveRecord`.
-5. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
-6. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
-   (module aktif ada di `app/Modules`); putuskan hapus atau rapikan.
+2. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
+3. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
+   (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
+   hapus atau rapikan.
+4. Driver cache `memcache` (ekstensi lama) belum diuji di CI; PHP 8.4 belum ada
+   di matrix CI.
