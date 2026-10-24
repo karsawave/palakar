@@ -259,6 +259,8 @@ class Image
             $image_new_width    = $this->resizeWidth;
         }
 
+        $imageEdited = $image;
+
         //Resizing
         if ($this->editType == 'resize' || $this->editType == 'resize_crop') {
             $imageEdited = imagecreatetruecolor($image_new_width, $image_new_height);
@@ -267,7 +269,6 @@ class Image
 
         //Cropping process
         if ($this->editType == 'crop' || $this->editType == 'resize_crop') {
-            $imageEdited = (isset($imageEdited)) ? $imageEdited : $image;
             $cropped = imagecreatetruecolor($this->cropWidth, $this->cropHeight);
             imagecopyresampled($cropped, $imageEdited, 0, 0, (($image_new_width / 2) - ($this->cropWidth / 2)), (($image_new_height / 2) - ($this->cropHeight / 2)), $this->cropWidth, $this->cropHeight, $this->cropWidth, $this->cropHeight);
             $imageEdited = $cropped;

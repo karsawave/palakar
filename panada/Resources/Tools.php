@@ -169,7 +169,7 @@ class Tools
         $xml = simplexml_load_file($xml);
     }
     // Or this is an url file ?
-    elseif (filter_var($xml, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED)) {
+    elseif (filter_var($xml, FILTER_VALIDATE_URL)) {
         $xml = simplexml_load_file($xml);
     }
     // Or it just a variable.

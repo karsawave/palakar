@@ -260,6 +260,8 @@ class ActiveRecord
      */
     public function delete($args = null)
     {
+        $condition = null;
+
         if (!empty($this->condition)) {
             $this->applyConditions();
             $condition = null;
@@ -282,6 +284,8 @@ class ActiveRecord
      */
     public function update($args = null)
     {
+        $condition = null;
+
         if (!empty($this->condition)) {
             $this->applyConditions();
             $condition = null;

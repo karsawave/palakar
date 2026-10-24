@@ -12,6 +12,14 @@
  */
 namespace Resources;
 
+/**
+ * @method mixed getValue(string $key, string|false $namespace = false)
+ * @method mixed setValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false)
+ * @method mixed addValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false)
+ * @method mixed updateValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false)
+ * @method mixed deleteValue(string $key, string|false $namespace = false)
+ * @method mixed flushValues()
+ */
 class Cache
 {
     private $driver, $config;

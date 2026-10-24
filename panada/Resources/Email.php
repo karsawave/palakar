@@ -385,6 +385,8 @@ class Email
      */
     private function cleanEmail($email)
     {
+        $return = array();
+
         foreach ($email as $email) {
             $return[] = trim(strtolower($email));
         }

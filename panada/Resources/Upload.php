@@ -444,6 +444,8 @@ class Upload
         'phps' => 'application/x-httpd-php-source',
         );
 
+        $file = false;
+
         foreach ($mimes as $ext_preg => $mime_match) {
             $ext_preg = '!\.('.$ext_preg.')$!i';
             if (preg_match($ext_preg, $file_name, $ext_matches)) {

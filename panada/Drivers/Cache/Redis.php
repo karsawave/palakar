@@ -72,7 +72,8 @@ class Redis extends \Redis implements Interfaces\Cache
         $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
 
         $key = $this->keyToNamespace($key, $namespace);
-        $return = $this->setnx($key, $value, $expire);
+        // SET with NX + EX: add only when missing, with an expiry (setnx() takes no expiry).
+        $return = $expire > 0 ? $this->set($key, $value, ['nx', 'ex' => $expire]) : $this->setnx($key, $value);
 
         $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_NONE);
 

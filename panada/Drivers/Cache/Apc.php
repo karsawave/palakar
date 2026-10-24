@@ -22,7 +22,7 @@ class Apc implements Interfaces\Cache
         /*
         * Makesure APC extension is enabled
         */
-       if (!extension_loaded('apc')) {
+       if (!extension_loaded('apcu')) {
            throw new RunException('APC extension that required by APC Driver is not available.');
        }
     }
@@ -62,7 +62,7 @@ class Apc implements Interfaces\Cache
     {
         $key = $this->keyToNamespace($key, $namespace);
 
-        return apc_store($key, $value, $expire);
+        return apcu_store($key, $value, $expire);
     }
 
     /**
@@ -77,7 +77,7 @@ class Apc implements Interfaces\Cache
     {
         $key = $this->keyToNamespace($key, $namespace);
 
-        return apc_add($key, $value, $expire);
+        return apcu_add($key, $value, $expire);
     }
 
     /**
@@ -103,7 +103,7 @@ class Apc implements Interfaces\Cache
     {
         $key = $this->keyToNamespace($key, $namespace);
 
-        return apc_fetch($key);
+        return apcu_fetch($key);
     }
 
     /**
@@ -113,7 +113,7 @@ class Apc implements Interfaces\Cache
     {
         $key = $this->keyToNamespace($key, $namespace);
 
-        return apc_delete($key);
+        return apcu_delete($key);
     }
 
     /**
@@ -123,7 +123,7 @@ class Apc implements Interfaces\Cache
      */
     public function flushValues()
     {
-        return apc_clear_cache('user');
+        return apcu_clear_cache();
     }
 
     /**
@@ -134,7 +134,7 @@ class Apc implements Interfaces\Cache
      */
     public function incrementBy($key, $offset = 1)
     {
-        return apc_inc($key, $offset);
+        return apcu_inc($key, $offset);
     }
 
     /**
@@ -145,7 +145,7 @@ class Apc implements Interfaces\Cache
      */
     public function decrementBy($key, $offset = 1)
     {
-        return apc_dec($key, $offset);
+        return apcu_dec($key, $offset);
     }
 
     /**
@@ -161,9 +161,9 @@ class Apc implements Interfaces\Cache
             return $key;
         }
 
-        if (!$namespaceValue = apc_fetch($namespaceKey)) {
+        if (!$namespaceValue = apcu_fetch($namespaceKey)) {
             $namespaceValue = time();
-            apc_store($namespaceKey, $namespaceValue, 0);
+            apcu_store($namespaceKey, $namespaceValue, 0);
         }
 
         return $namespaceValue.'_'.$key;
