@@ -20,11 +20,31 @@ Terima kasih sudah mau membantu. Panduan ini singkat supaya mudah diikuti.
    Contoh: lihat `_tasks/done/`.
 3. **Tunggu persetujuan:** maintainer menulis `ACC SPEC {NNN}`. Pekerjaan
    besar tanpa spec yang disetujui kemungkinan tidak di-merge.
-4. **Kerjakan dan kirim PR.** Satu spec = satu PR. Pesan commit diawali
-   `spec-NNN:` dan menjelaskan *kenapa*, bukan hanya *apa*.
+4. **Kerjakan dan kirim PR.** Satu spec = satu PR. Pesan commit mengikuti
+   [Conventional Commits](https://www.conventionalcommits.org/), lihat
+   bagian "Pesan commit" di bawah.
 5. Setelah selesai, spec dipindah ke `_tasks/done/` beserta hasilnya.
 
 Perbaikan kecil (salah ketik, dokumentasi) boleh langsung PR tanpa spec.
+
+## Pesan commit
+
+```
+fix(upload)!: refuse files a web server could execute
+
+Without permittedFileType every file was accepted, shell.php included.
+
+Refs: spec-010
+BREAKING CHANGE: .php*, .phtml, .phar, .htaccess are always refused.
+```
+
+- **type:** `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`,
+  `chore`, `revert`. **scope** opsional: nama komponen.
+- Ringkasan bahasa Inggris, kalimat perintah, maksimal 72 karakter, tanpa
+  titik. Isi menjelaskan *kenapa*.
+- Breaking change: `!` dan footer `BREAKING CHANGE:`.
+- Nomor spec di footer `Refs: spec-NNN`; bantuan AI di `Co-Authored-By:`.
+- Jangan menulis rahasia, email pribadi, atau detail celah keamanan.
 
 ## Wajib sebelum PR
 

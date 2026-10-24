@@ -27,6 +27,7 @@ padahal branch di GitHub bernama `master` (link 404).
 |---|---|
 | `git branch -m main master` | Nama branch lokal sama dengan remote (tetap melacak `origin/master`) |
 | `CLAUDE.md` | Bagian alur kerja: aturan branch di atas; commit selalu di `development` |
+| Pesan commit | Format Conventional Commits (spec-009), footer `Refs: spec-008` |
 | `CONTRIBUTING.md` | PR ditujukan ke `development`; `master` hanya untuk rilis |
 | `app/views/home.php` | Link LICENSE `blob/main` → `blob/master` |
 | `.github/workflows/ci.yml` | Tidak berubah (sudah jalan di semua push dan PR) |

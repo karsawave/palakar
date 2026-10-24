@@ -1,6 +1,6 @@
 # palakar-spec-009: Aturan pesan commit (Conventional Commits)
 
-- **Status:** plan (menunggu `ACC SPEC 009`)
+- **Status:** done (ACC SPEC 009, 2026-10-25)
 - **Dibuat:** 2026-10-25
 
 ## Masalah
@@ -72,7 +72,7 @@ Repo GitHub dibuat ulang oleh pemilik (lepas dari jaringan fork
   untuk modernisasi awal) dan `BREAKING CHANGE: see MODERNISASI.md` untuk
   commit bertanda `!`.
 - Commit baseline `cb111a1` (Panada asli) **tidak diubah** (aturan CLAUDE.md:
-  riwayat upstream dijaga), commit `1834424` sudah sesuai.
+  riwayat upstream dijaga), commit `3e5ca49` sudah sesuai.
 - Alat: `git filter-branch --msg-filter` dengan tabel di bawah.
 - Hash di spec-000 dan spec-007 diperbarui ke hash baru.
 
@@ -125,3 +125,17 @@ dependency baru; bisa jadi spec lain bila perlu.)
 ## Verifikasi
 
 `composer test` hijau; commit spec ini sendiri sudah memakai format baru.
+
+## Hasil
+
+- Cadangan: `../panadax-before-spec-009.bundle` (valid).
+- 34 ringkasan commit ditulis ulang sesuai tabel, footer `Refs` dan
+  `BREAKING CHANGE` ditambahkan di dalam blok trailer. Commit baseline tetap
+  `cb111a1`. Satu-satunya ringkasan di luar format: baseline (sengaja).
+  Tidak ada ringkasan lebih dari 72 karakter. Jumlah commit tetap 36.
+- Ref `origin/*` lama (repo GitHub yang sudah dihapus) dibuang; repo baru
+  masih kosong.
+- Hash diperbarui di spec-000 dan spec-009.
+- Aturan "Pesan commit" di CLAUDE.md dan CONTRIBUTING.md; spec-008 memakai
+  format ini.
+- `composer test`: 135 test, 18 di-skip.
