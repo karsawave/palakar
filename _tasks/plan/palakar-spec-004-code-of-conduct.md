@@ -1,6 +1,6 @@
 # palakar-spec-004: CODE_OF_CONDUCT.md (Contributor Covenant)
 
-- **Status:** plan (menunggu `ACC SPEC 004`)
+- **Status:** plan, ditunda (2026-10-25: kontak pelanggaran belum ditentukan)
 - **Bergantung pada:** spec-001, spec-003
 
 ## Masalah
