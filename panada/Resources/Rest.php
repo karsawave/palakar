@@ -1,7 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada Restful class.
+ *
+ * As a client (needs the curl extension):
+ *
+ *   $rest = new \Resources\Rest();
+ *   $rest->setRequestAuthorization($token, 'Bearer');
+ *   $body = $rest->sendRequest('https://api.example.com/items', 'POST', ['name' => 'Kopi']);
+ *   $status = $rest->getResponseStatus();
+ *
+ * As a server:
+ *
+ *   $data = $rest->getRequest();          // PUT/PATCH/DELETE body too, form or JSON
+ *   $rest->setResponseHeader(201);
+ *   return $rest->wrapResponseOutput(['id' => 5]);
  *
  * @link	http://panadaframework.com/
  *
@@ -10,98 +25,73 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 class Rest
 {
-    public $requestMethod,
-    $responseStatus,
-    $requestData        = array(),
-    $setRequestHeaders    = array(),
-    $responseOutputHeader    = false,
-    $timeout        = 30,
-    $curlSSLVerifypeer    = true,
-    $requestHeaders        = array('User-Agent' => 'Panada PHP Framework REST API/0.3');
+    public string $requestMethod;
+    public int $responseStatus = 0;
+    public array $requestData = [];
+    public bool $responseOutputHeader = false;
+    public int $timeout = 30;
+    public bool $curlSSLVerifypeer = true;
+    public array $requestHeaders = ['User-Agent' => 'Panada PHP Framework REST API/0.3'];
+
+    /** Request headers curl sent last time, handy for debugging. */
+    public string|false $headerSent = false;
 
     public function __construct()
     {
-        /*
-    * Makesure Curl extension is enabled
-    */
-    if (!extension_loaded('curl')) {
-        throw new RunException('Curl extension that required by Rest Resource is not available.');
+        $this->requestMethod = Request::method();
     }
 
-    // Get the client request method
-    $this->requestMethod = strtoupper($_SERVER['REQUEST_METHOD']);
-    }
-
-    /**
-     * Getter for requstMethod.
-     *
-     * @return string
-     */
-    public function getRequestMethod()
+    public function getRequestMethod(): string
     {
         return $this->requestMethod;
     }
 
-    /**
-     * Getter for responseStatus.
-     *
-     * @return int
-     */
-    public function getResponseStatus()
+    public function getResponseStatus(): int
     {
         return $this->responseStatus;
     }
 
-    /**
-     * Getter for requestData.
-     *
-     * @return array
-     */
-    public function getRequestData()
+    public function getRequestData(): array
     {
         return $this->requestData;
     }
 
     /**
-     * Get clent HTTP Request type.
-     *
-     * @return array
+     * Data sent by the client: the query string for GET, the form (or JSON
+     * body) for POST, and the body for PUT, PATCH, DELETE ...
      */
-    public function getRequest()
+    public function getRequest(): array
     {
-        // Use PHP Input to get request PUT, DELETE, HEAD, TRACE, OPTIONS, CONNECT and PATCH
-
-        return $_REQUEST;
+        return $this->requestData = match ($this->requestMethod) {
+            'GET', 'HEAD' => $_GET,
+            'POST' => $_POST ?: $this->getPHPInput(),
+            default => $this->getPHPInput(),
+        };
     }
 
     /**
-     * Get clent file(s) submited by POST or PUT.
-     *
-     * @return array
+     * Get client file(s) submitted by POST.
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return $_FILES;
     }
 
     /**
-     * Get client request headers.
-     *
-     * @return array
+     * Get client request headers, e.g. ['User-Agent' => '...'].
      */
-    public function getClientHeaders()
+    public function getClientHeaders(): array
     {
-        $headers = array();
+        $headers = [];
 
         foreach ($_SERVER as $key => $val) {
-            if (substr($key, 0, 5) == 'HTTP_') {
-                $key = str_replace('_', ' ', substr($key, 5));
-                $key = str_replace(' ', '-', ucwords(strtolower($key)));
-
+            if (str_starts_with((string) $key, 'HTTP_')) {
+                $key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
                 $headers[$key] = $val;
             }
         }
@@ -110,125 +100,113 @@ class Rest
     }
 
     /**
-     * See this trick at http://www.php.net/manual/en/function.curl-setopt.php#96056.
-     *
-     * @return array
+     * The request body, as JSON or as a form.
      */
-    private function getPHPInput()
+    private function getPHPInput(): array
     {
-        parse_str(file_get_contents('php://input'), $put_vars);
+        $input = (string) file_get_contents('php://input');
 
-        return $put_vars;
+        if (str_contains(strtolower($_SERVER['CONTENT_TYPE'] ?? ''), 'json')) {
+            $data = json_decode($input, true);
+
+            return is_array($data) ? $data : [];
+        }
+
+        parse_str($input, $data);
+
+        return $data;
     }
 
     /**
-     * Set additional HTTP Request headers.
-     *
-     * @param array $options
+     * Add HTTP request headers: setRequestHeaders(['Accept' => 'application/json']).
      */
-    public function setRequestHeaders($options = array())
+    public function setRequestHeaders(array $options = []): void
     {
         $this->requestHeaders = array_merge($this->requestHeaders, $options);
     }
 
     /**
-     * Set HTTP Headers Authorization.
-     *
-     * @param string $signature Secret string to access the server
-     * @param string $type      The Auth type eg: Basic, OAuth etc
+     * @param string $type Basic, Bearer, ...
      */
-    public function setRequestAuthorization($signature, $type = 'Basic')
+    public function setRequestAuthorization(string $signature, string $type = 'Basic'): void
     {
-        $this->requestHeaders = array_merge($this->requestHeaders, array('Authorization' => $type.' '.$signature));
+        $this->setRequestHeaders(['Authorization' => $type.' '.$signature]);
     }
 
     /**
-     * Send HTTP Request to server.
+     * Send an HTTP request.
      *
-     * @param string         $uri    The server's URL
-     * @param string         $method HTTP Request method type
-     * @param array | string $data   The data that need to send to server
+     * @param array|string|null $data query string for GET, body otherwise
      *
-     * @return bool if false and string if true
+     * @return string|false the response body (maybe ''), false when the
+     *                      request itself failed (no connection, timeout)
      */
-    public function sendRequest($uri, $method = 'GET', $data = null)
+    public function sendRequest(string $uri, string $method = 'GET', array|string|null $data = null): string|false
     {
-        foreach ($this->requestHeaders as $key => $value) {
-            $this->setRequestHeaders[] = $key.': '.$value;
+        if (!extension_loaded('curl')) {
+            throw new RunException('Curl extension that required by Rest Resource is not available.');
         }
 
-        $method        = strtoupper($method);
-        $urlSeparator    = (parse_url($uri, PHP_URL_QUERY)) ? '&' : '?';
-        $uri        = ($method == 'GET' && !empty($data)) ? $uri.$urlSeparator.(is_array($data) ? http_build_query($data) : $data) : $uri;
-        $c        = curl_init();
+        $method = strtoupper($method);
 
-        curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($c, CURLOPT_URL, $uri);
-        curl_setopt($c, CURLOPT_TIMEOUT, $this->timeout);
-        curl_setopt($c, CURLOPT_SSL_VERIFYPEER, $this->curlSSLVerifypeer);
-
-        if ($this->responseOutputHeader) {
-            curl_setopt($c, CURLOPT_HEADER, true);
+        if (is_array($data)) {
+            $data = http_build_query($data);
         }
 
-        if ($method != 'GET') {
-            if (is_array($data)) {
-                $data = http_build_query($data);
-            }
-
-            if ($method == 'POST') {
-                curl_setopt($c, CURLOPT_POST, true);
-            }
-
-            if ($method == 'PUT' || $method == 'DELETE') {
-                $this->setRequestHeaders[] = 'Content-Length: '.strlen($data);
-                curl_setopt($c, CURLOPT_CUSTOMREQUEST, $method);
-            }
-
-            curl_setopt($c, CURLOPT_POSTFIELDS, $data);
+        if ($method === 'GET' && $data) {
+            $uri .= (parse_url($uri, PHP_URL_QUERY) ? '&' : '?').$data;
         }
 
-        curl_setopt($c, CURLOPT_HTTPHEADER, $this->setRequestHeaders);
-        curl_setopt($c, CURLINFO_HEADER_OUT, true);
+        $headers = [];
 
-        $contents = curl_exec($c);
-        $this->responseStatus = curl_getinfo($c, CURLINFO_HTTP_CODE);
-        $this->headerSent = curl_getinfo($c, CURLINFO_HEADER_OUT);
-
-        curl_close($c);
-
-        if ($contents) {
-            return $contents;
+        foreach ($this->requestHeaders as $name => $value) {
+            $headers[] = $name.': '.$value;
         }
 
-        return false;
+        $curl = curl_init($uri);
+
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_SSL_VERIFYPEER => $this->curlSSLVerifypeer,
+            CURLOPT_HEADER => $this->responseOutputHeader,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLINFO_HEADER_OUT => true,
+        ]);
+
+        if ($method === 'HEAD') {
+            curl_setopt($curl, CURLOPT_NOBODY, true);
+        } elseif ($method !== 'GET') {
+            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $data ?? '');
+        }
+
+        $contents = curl_exec($curl);
+        $this->responseStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $this->headerSent = curl_getinfo($curl, CURLINFO_HEADER_OUT);
+
+        return is_string($contents) ? $contents : false;
     }
 
     /**
-     * Set HTTP Response headers code.
+     * Set the HTTP status code of the response.
      */
-    public function setResponseHeader($code = 200)
+    public function setResponseHeader(int $code = 200): void
     {
-        Tools::setStatusHeader($code);
+        Response::$statusCode = $code;
     }
 
     /**
-     * The return data type.
-     *
-     * @param array  $data
-     * @param string $format
-     * @param string $ContentType
-     *
-     * @return string
+     * Encode $data as JSON (default) or XML and set the Content-Type.
      */
-    public function wrapResponseOutput($data, $format = 'json', $ContentType = 'application')
+    public function wrapResponseOutput(mixed $data, string $format = 'json', string $ContentType = 'application'): string
     {
-        Response::setHeader('Content-type', $ContentType.'/'.$format);
+        Response::$headers['Content-Type'] = $ContentType.'/'.$format.'; charset=utf-8';
 
-        if ($format == 'xml') {
-            return Tools::xmlEncode($data);
-        } else {
-            return json_encode($data);
+        if ($format === 'xml') {
+            return (string) Tools::xmlEncode($data);
         }
+
+        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 }

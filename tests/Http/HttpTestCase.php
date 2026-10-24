@@ -104,7 +104,6 @@ abstract class HttpTestCase extends TestCase
 
         $body = (string) curl_exec($curl);
         $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-        curl_close($curl);
 
         foreach ($responseHeaders['set-cookie'] ?? [] as $cookie) {
             [$pair] = explode(';', $cookie, 2);

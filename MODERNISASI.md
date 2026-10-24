@@ -273,6 +273,29 @@ $links = (new \Resources\Pagination())->setOption([
   developer, jangan isi dengan input pengunjung.
 - Kurang dari 2 halaman: `[]` (dulu `null`). `limit` 0 tidak lagi membagi nol.
 
+### Rest
+
+```php
+$rest = new \Resources\Rest();
+$rest->setRequestAuthorization($token, 'Bearer');
+$body = $rest->sendRequest('https://api.example.com/items', 'PATCH', ['stock' => 3]);
+
+if ($body === false) { /* gagal koneksi / timeout */ }
+$status = $rest->getResponseStatus();
+```
+
+- PATCH (dan method lain selain GET/POST/PUT/DELETE) dulu terkirim sebagai POST.
+- Header tidak lagi menumpuk: request kedua dengan objek yang sama dulu
+  mengirim header ganda (termasuk `Content-Length` request sebelumnya).
+- `sendRequest()` mengembalikan `''` untuk respons kosong (mis. 204), `false`
+  hanya saat request gagal. Dulu respons kosong juga `false`.
+- `getRequest()` membaca body PUT/PATCH/DELETE (form atau JSON). Dulu
+  `$_REQUEST`, yang kosong untuk method itu dan bisa memuat cookie.
+- `outputJSON()`/`outputXML()` tidak lagi butuh ekstensi curl, tidak lagi
+  me-reset status ke 200, dan mengirim `charset=utf-8`.
+- `setResponseHeader(404)` kini benar-benar dipakai (dulu ditimpa 200 oleh
+  `Response` saat dikirim).
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -317,6 +340,13 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
 20. `setOption()` dengan nama opsi yang tidak ada (atau bukan public) melempar
     `RunException`.
 21. `Pagination::getUrl()` mengembalikan `[]` bila kurang dari 2 halaman.
+22. `Rest::sendRequest()` mengembalikan `''` (bukan `false`) untuk respons
+    kosong. Cek kegagalan dengan `=== false`.
+23. `Rest::getRequest()` untuk GET hanya `$_GET`, untuk POST `$_POST` (atau body
+    JSON), selain itu body request. Properti publik `$setRequestHeaders` (daftar
+    header yang menumpuk) dihapus; pakai `setRequestHeaders([...])`.
+24. JSON dari `outputJSON()` tidak lagi meng-escape `/` dan karakter Unicode
+    (sama dengan controller yang me-return array).
 
 ---
 
@@ -342,6 +372,6 @@ Isi test suite:
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
 PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`, `Image`,
-`Upload`, `Rest`, `Tools`, dan driver cache (`Redis`, `Memcache`,
+`Upload`, `Tools`, dan driver cache (`Redis`, `Memcache`,
 `Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
 `phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.

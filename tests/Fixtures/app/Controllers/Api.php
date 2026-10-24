@@ -8,4 +8,35 @@ class Api extends \Resources\Controller
     {
         return 'stored without csrf';
     }
+
+    public function inspect(): array
+    {
+        $rest = new \Resources\Rest();
+
+        return [
+            'method' => $rest->getRequestMethod(),
+            'data' => $rest->getRequest(),
+            'agent' => $rest->getClientHeaders()['User-Agent'] ?? '',
+        ];
+    }
+
+    public function created(): string
+    {
+        $rest = new \Resources\Rest();
+        $rest->setResponseHeader(201);
+
+        return $rest->wrapResponseOutput(['id' => 5, 'path' => 'a/b']);
+    }
+
+    public function accepted(): string
+    {
+        (new \Resources\Response())->setStatusCode(202);
+
+        return $this->outputJSON(['queued' => true]);
+    }
+
+    public function nothing(): string
+    {
+        return '';
+    }
 }

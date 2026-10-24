@@ -463,12 +463,6 @@ parameters:
 			path: panada/Resources/Image.php
 
 		-
-			message: '#^Access to an undefined property Resources\\Rest\:\:\$headerSent\.$#'
-			identifier: property.notFound
-			count: 1
-			path: panada/Resources/Rest.php
-
-		-
 			message: '#^Instantiated class Resources\\SimpleXMLElement not found\.$#'
 			identifier: class.notFound
 			count: 1
