@@ -1,6 +1,6 @@
 # palakar-spec-002: SECURITY.md (cara melapor celah keamanan)
 
-- **Status:** plan (menunggu `ACC SPEC 002`)
+- **Status:** done (ACC SPEC 002, 2026-10-24)
 - **Bergantung pada:** spec-001 (nama dan URL repo)
 
 ## Masalah
@@ -37,3 +37,13 @@ Aktifkan *Private vulnerability reporting* di GitHub: Settings → Code security
 ## Verifikasi
 
 `composer test` hijau; tautan di README benar.
+
+## Hasil
+
+- `SECURITY.md` dibuat (Inggris + ringkasan Indonesia), README menautkannya.
+- Pertanyaan terbuka belum dijawab saat ACC; dipakai nilai di spec:
+  konfirmasi **7 hari**. Bisa diganti lewat spec baru.
+- `composer test`: 135 test, 18 di-skip.
+- **Belum dilakukan (manual, pemilik repo):** aktifkan Private vulnerability
+  reporting di GitHub (Settings → Code security). Tanpa itu, tautan laporan
+  di SECURITY.md tidak berfungsi.
