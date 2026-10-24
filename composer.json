@@ -28,6 +28,7 @@
     },
     "require-dev": {
         "filp/whoops": "^2.16",
+        "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^11.5"
     },
     "suggest": {
@@ -53,6 +54,7 @@
     },
     "scripts": {
         "test": "phpunit",
+        "analyse": "phpstan analyse --no-progress --memory-limit=512M",
         "serve": "php -S localhost:8000 -t public public/index.php"
     },
     "config": {
