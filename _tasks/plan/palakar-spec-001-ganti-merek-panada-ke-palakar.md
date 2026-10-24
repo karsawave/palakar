@@ -43,11 +43,17 @@ tertulis. Paket `panada/panada` di Packagist juga milik upstream, dan "Panada
   lama tetap jalan.
 - Riwayat git upstream.
 
-## Pertanyaan terbuka (wajib dijawab sebelum ACC)
+## Jawaban pertanyaan terbuka
 
-1. Pemegang copyright di `LICENSE`: "KarsaWave" atau nama pribadi?
-2. Email author di `composer.json`.
-3. URL repo GitHub (mis. `https://github.com/karsawave/palakar`).
+1. Pemegang copyright: **KarsaWave** → `Copyright (C) 2026, KarsaWave.` di
+   bawah baris asli `LICENSE`.
+2. Email author: **tidak dicantumkan**. Author di `composer.json` hanya
+   `{"name": "KarsaWave", "homepage": "https://github.com/karsawave"}`;
+   Iskandar Soesman tetap tercantum sebagai penulis asli (emailnya dari
+   `composer.json` asli dipertahankan karena itu notice upstream).
+3. Repo: **https://github.com/karsawave/palakar** → `homepage`,
+   `support.source`, `support.issues` (`/issues`), link di README dan halaman
+   awal.
 
 ## Verifikasi
 
