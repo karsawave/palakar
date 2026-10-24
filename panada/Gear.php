@@ -284,9 +284,29 @@ final class Gear
     private function run(object $instance, string $method, array $request): void
     {
         $request = array_values($request);
+        $reflection = new ReflectionMethod($instance, $method);
 
-        if (count($request) < (new ReflectionMethod($instance, $method))->getNumberOfRequiredParameters()) {
+        if (count($request) < $reflection->getNumberOfRequiredParameters()) {
             throw new Resources\HttpException('Missing URL segment for '.$method.'()');
+        }
+
+        // /post/show/abc for show(int $id) is a wrong URL (404), not a crash (500).
+        foreach ($reflection->getParameters() as $i => $parameter) {
+            $type = $parameter->getType();
+
+            if (!isset($request[$i]) || !$type instanceof ReflectionNamedType) {
+                continue;
+            }
+
+            $valid = match ($type->getName()) {
+                'int' => filter_var($request[$i], FILTER_VALIDATE_INT) !== false,
+                'float' => is_numeric($request[$i]),
+                default => true,
+            };
+
+            if (!$valid) {
+                throw new Resources\HttpException('Invalid URL segment for $'.$parameter->getName());
+            }
         }
 
         // Controllers may `echo` instead of `return`; capture both.

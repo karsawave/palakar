@@ -597,7 +597,7 @@ abstract class Sql
         $separator = $separator === false ? 'AND' : strtoupper(trim($separator));
 
         if ($separator !== 'AND' && $separator !== 'OR') {
-            throw new RunException('Separator must be AND or OR');
+            throw new RunException('Invalid separator "'.$separator.'", use AND or OR');
         }
 
         return $separator;

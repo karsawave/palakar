@@ -1,7 +1,13 @@
 {
     "name": "panada/panada",
     "description": "A PHP Framework for those who love simplicity and performance at the same time",
-    "keywords": ["php", "panada", "framework", "simple", "kiss"],
+    "keywords": [
+        "php",
+        "panada",
+        "framework",
+        "simple",
+        "kiss"
+    ],
     "homepage": "http://panadaframework.com/",
     "type": "project",
     "license": "BSD-3-Clause",
@@ -31,14 +37,14 @@
     "autoload": {
         "psr-4": {
             "Resources\\": "panada/Resources/",
-            "Drivers\\": "panada/Drivers/",
-            "Controllers\\": "app/Controllers/",
-            "Models\\": "app/Models/",
-            "Libraries\\": "app/Libraries/",
-            "Modules\\": "app/Modules/"
+            "Drivers\\": "panada/Drivers/"
         },
-        "classmap": ["panada/Gear.php"],
-        "files": ["panada/helpers.php"]
+        "classmap": [
+            "panada/Gear.php"
+        ],
+        "files": [
+            "panada/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
