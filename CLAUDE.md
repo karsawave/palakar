@@ -111,6 +111,40 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 - **Kripto:** pakai libsodium (`Resources\Encryption`), `hash_equals`,
   `random_bytes`. Jangan `unserialize` data dari klien.
 
+## Open source: lisensi, atribusi, etika (wajib)
+
+Proyek ini fork dari Panada Framework 1.1.1, lisensi BSD-3-Clause (`LICENSE`,
+© 2011 Iskandar Soesman). Mengubah dan mendistribusikan ulang boleh tanpa izin,
+dengan syarat berikut.
+
+- **Notice asli tidak diubah atau dihapus:** isi `LICENSE`, baris copyright,
+  dan tag `@author`/`@link` di file yang berasal dari Panada. Copyright untuk
+  modifikasi ditambahkan sebagai baris baru di bawah yang asli.
+- **Nama dan merek Panada** (nama, logo, nama kontributor) tidak dipakai untuk
+  mempromosikan fork: tidak di nama paket, judul halaman, header HTTP/email,
+  User-Agent, banner, atau logo. Atribusi faktual boleh dan harus ada:
+  "fork dari Panada Framework 1.1.1 karya Iskandar Soesman".
+- **Jangan mengesankan resmi:** homepage, issue, support, dan dokumentasi
+  mengarah ke repo fork, bukan `github.com/panada/*` atau `panadaframework.com`.
+  Fork punya nomor versi sendiri (SemVer), tidak melanjutkan versi Panada.
+- **Kode dan aset dari luar** hanya yang lisensinya kompatibel dengan BSD-3
+  (MIT, BSD, ISC, Apache-2.0); notice-nya ikut disalin dan sumbernya dicatat.
+  GPL/AGPL, CC BY-SA (jawaban Stack Overflow), atau tanpa lisensi: tulis ulang
+  sendiri, jangan salin. Berlaku juga untuk dependency, termasuk `require-dev`.
+- **Atribusi pihak lain dipertahankan**, mis. komentar "Thanks to Wordpress"
+  dan "Thanks to djdykes".
+- **AI:** commit yang dibantu AI memakai trailer `Co-Authored-By`, tidak
+  disembunyikan. Kode dari AI direview dan diuji seperti kode lain, dan tidak
+  boleh berisi salinan verbatim kode berlisensi lain.
+- **Riwayat git upstream** (commit `baseline`) tidak di-squash atau dihapus:
+  itu bukti asal-usul kode.
+- **Celah keamanan** yang belum diperbaiki tidak ditulis di issue, PR, atau
+  commit publik. Celah yang juga ada di Panada asli: kabari maintainer upstream
+  secara privat sebelum detailnya dipublikasikan.
+- **Komunikasi publik** (README, issue, PR, release note) sopan dan faktual,
+  tidak merendahkan proyek asli atau penulisnya: "diperbaiki: ..." boleh,
+  "kode lama buruk" tidak.
+
 ## Keputusan desain (sudah diputuskan, jangan diubah tanpa alasan kuat)
 
 - Composer PSR-4 hanya memetakan `Resources\` dan `Drivers\`. Kelas aplikasi
@@ -145,10 +179,19 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 
 1. **Nama fork + nama paket Composer.** "Panada 2.0" resmi sudah ada di
    `github.com/panada/app`, dan `panada/panada` di Packagist milik upstream.
-   `composer.json` masih memakai nama lama; belum ada label versi.
-2. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
-3. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
+   `composer.json` masih memakai nama lama; belum ada label versi. Sebelum repo
+   publik, ganti semua nama dan merek Panada (lihat bagian Open source):
+   `composer.json`, README, `app/views/home.php` (logo, "Powered by", link
+   GitHub), `header.php`, `public/check.php`, header `X-Mailer`, User-Agent
+   Rest, judul halaman error. Tambahkan juga `SECURITY.md` dan CHANGELOG fork,
+   dan kabari upstream soal celah Panada 1.x yang dijelaskan di MODERNISASI.md.
+2. **Asal-usul lisensi:** `Pagination::getUrl()` (diadaptasi dari
+   `paginate_links()` WordPress) dan daftar MIME di `Upload` ("Original from
+   Wordpress 3.0") berasal dari WordPress yang berlisensi GPLv2. Periksa atau
+   tulis ulang supaya tidak ada keraguan lisensi.
+3. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
+4. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
    (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
    hapus atau rapikan.
-4. Driver cache `memcache` (ekstensi lama) belum diuji di CI; PHP 8.4 belum ada
+5. Driver cache `memcache` (ekstensi lama) belum diuji di CI; PHP 8.4 belum ada
    di matrix CI.
