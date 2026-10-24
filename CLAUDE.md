@@ -113,9 +113,11 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 
 ## Open source: lisensi, atribusi, etika (wajib)
 
-Proyek ini fork dari Panada Framework 1.1.1, lisensi BSD-3-Clause (`LICENSE`,
-© 2011 Iskandar Soesman). Mengubah dan mendistribusikan ulang boleh tanpa izin,
-dengan syarat berikut.
+Proyek ini (nama baru: **Palakar Framework**, paket `karsawave/palakar`, lihat
+palakar-spec-001) fork dari Panada Framework 1.1.1, lisensi BSD-3-Clause
+(`LICENSE`, © 2011 Iskandar Soesman; sumber:
+https://github.com/panada/panada?tab=License-1-ov-file). Mengubah dan
+mendistribusikan ulang boleh tanpa izin, dengan syarat berikut.
 
 - **Notice asli tidak diubah atau dihapus:** isi `LICENSE`, baris copyright,
   dan tag `@author`/`@link` di file yang berasal dari Panada. Copyright untuk
@@ -144,6 +146,38 @@ dengan syarat berikut.
 - **Komunikasi publik** (README, issue, PR, release note) sopan dan faktual,
   tidak merendahkan proyek asli atau penulisnya: "diperbaiki: ..." boleh,
   "kode lama buruk" tidak.
+
+## Alur kerja spec (wajib)
+
+Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
+
+- Nama file: `palakar-spec-{NNN}-{masalah-singkat}.md`, nomor 3 digit
+  berurutan (`001`, `002`, ...), slug huruf kecil dengan tanda hubung.
+- Spec baru masuk `_tasks/plan/`. Isinya: status, masalah, keputusan,
+  perubahan per file, yang tidak diubah, pertanyaan terbuka, verifikasi,
+  dan breaking change bila ada.
+- **Implementasi hanya setelah pengguna menulis `ACC SPEC {NNN}`** (mis.
+  `ACC SPEC 001`). Tanpa itu: boleh membaca, menganalisis, dan menulis
+  atau merevisi spec, tetapi tidak mengubah kode.
+- Pertanyaan terbuka harus dijawab sebelum ACC. Kalau saat implementasi
+  ternyata perlu menyimpang dari spec, berhenti, perbarui spec, minta ACC lagi.
+- Selesai: spec dipindah ke `_tasks/done/` (pakai `git mv`), diberi status
+  `done`, tanggal, hash commit, dan hasil verifikasi (jumlah test, PHPStan).
+  Satu spec = satu commit (atau beberapa commit yang disebut di spec).
+- Pesan commit menyebut nomor spec, mis. `spec-001: ...`.
+- Spec yang dibatalkan tetap disimpan dengan status `cancelled` dan alasannya,
+  supaya riwayat keputusan tetap transparan.
+
+## Transparansi (wajib)
+
+- Laporan ke pengguna jujur: test yang di-skip, bagian yang tidak bisa
+  diverifikasi (mis. CI belum pernah jalan, driver tanpa server), dan
+  penyimpangan dari rencana disebut terang-terangan.
+- Breaking change selalu dicatat di MODERNISASI.md; perubahan perilaku tidak
+  boleh diam-diam.
+- Pesan commit menjelaskan *kenapa*, bukan hanya *apa*.
+- Keputusan desain dan alasannya ditulis di spec atau CLAUDE.md, tidak hanya
+  di percakapan.
 
 ## Keputusan desain (sudah diputuskan, jangan diubah tanpa alasan kuat)
 
