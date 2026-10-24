@@ -1,7 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada validation API.
+ *
+ * Extend it, describe your rules, then validate:
+ *
+ *   class Register extends \Resources\Validation
+ *   {
+ *       public function setRules(): array
+ *       {
+ *           return [
+ *               'name'  => ['rules' => ['required', 'max' => 50], 'label' => 'Name'],
+ *               'email' => ['rules' => ['required', 'email'], 'filter' => ['lower']],
+ *               'age'   => ['rules' => ['integer'], 'filter' => ['int']],
+ *           ];
+ *       }
+ *   }
+ *
+ *   $form = new Register();
+ *   if ($form->validate()) {            // reads $_POST
+ *       $db->insert('users', $form->value());
+ *   } else {
+ *       $errors = $form->errorMessages();
+ *   }
+ *
+ * Every string is trimmed and cleaned of invisible control characters before
+ * the rules run (see $autoSanitize). value() returns only the fields that have
+ * rules, so extra fields a visitor adds to the form never reach your database.
+ *
+ * Sanitizing is not escaping: always print user data in views with e().
  *
  * @link	http://panadaframework.com/
  *
@@ -10,16 +39,19 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 class Validation
 {
-    private $errorMessages = array(),
-    $rules = array(),
-    $unsetValue = false;
+    /** Trim strings and drop control characters from all input before validating. */
+    protected bool $autoSanitize = true;
 
-    protected $ruleErrorMessages = array(),
-    $validValues = array();
+    protected array $ruleErrorMessages = [];
+    protected array $validValues = [];
+
+    private array $errorMessages = [];
+    private array $unsetValues = [];
 
     public function __construct()
     {
@@ -27,454 +59,230 @@ class Validation
     }
 
     /**
-     * Trim then make it lower.
-     *
-     * @param string $string
-     *
-     * @return string
+     * Specify the validation rules. Override this in your class.
      */
-    public function trimLower($string)
+    public function setRules(): array
     {
-        return trim(strtolower($string));
+        return [];
     }
 
     /**
-     * Email format validation.
+     * Performs the validation.
      *
-     * @param string $string
-     *
-     * @return mix false if woring or string if true
+     * @param array $fields Values to check. Empty: $_POST (and $_FILES).
      */
-    public function isEmail($string)
+    public function validate(array $fields = []): bool
     {
-        $string = $this->trimLower($string);
-
-        $chars = "/^([a-z0-9+_]|\\-|\\.)+@(([a-z0-9_]|\\-)+\\.)+[a-z]{2,6}\$/i";
-
-        if (strpos($string, '@') === false && strpos($string, '.') === false) {
-            return false;
+        if ($fields === []) {
+            $fields = $_POST + $_FILES;
         }
 
-        if (!preg_match($chars, $string)) {
-            return false;
-        }
-
-        return $string;
-    }
-
-    /**
-     * Url address format validation.
-     *
-     * @param string $string
-     *
-     * @return mix false if woring or string if true
-     */
-    public function isUrl($string)
-    {
-        $string = $this->trimLower($string);
-
-        return filter_var($string, FILTER_VALIDATE_URL);
-        /*
-        $chars = '|^http(s)?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i';
-
-        if( ! preg_match( $chars, $string ))
-            return false;
-        else
-            return $string;
-        */
-    }
-
-    /**
-     * Return only numeric character.
-     *
-     * @param string $string
-     *
-     * @return string
-     */
-    public function stripNumeric($string)
-    {
-        return filter_var($string, FILTER_SANITIZE_NUMBER_INT);
-        //return preg_replace('/[^0-9]/', '', $string);
-    }
-
-    /**
-     * Positive numeric validation.
-     *
-     * @param string or int $string
-     *
-     * @return bool
-     */
-    public function isPositiveNumeric($string)
-    {
-        return (bool) preg_match('/^[0-9]*\.?[0-9]+$/', $string);
-    }
-
-    /**
-     * Use this for filterize user first name and last name.
-     *
-     * @param string $string
-     *
-     * @return string
-     */
-    public function displayName($string)
-    {
-        //Only permit a-z, 0-9 and .,'" space this is enough for a name right?
-
-        //'/[^a-zA-Z0-9s -_.,]/'
-        $string = trim($string);
-        $string = strip_tags($string);
-        $string = stripslashes($string);
-        $string = preg_replace('/[^a-zA-Z0-9s .,"\']/', '', $string);
-
-        return $string;
-    }
-
-    /**
-     * specify the validation rule.
-     *
-     * @return array
-     */
-    public function setRules()
-    {
-        return array();
-    }
-
-    /**
-     * performs the validation.
-     *
-     * @param array $fields
-     *
-     * @return bool
-     */
-    public function validate($fields = array())
-    {
-        $return = true;
         $rules = $this->setRules();
+        $this->errorMessages = $this->validValues = $this->unsetValues = [];
+        $return = true;
 
-    // if user didn't specified any value, then lest catch it from PHP $_POST variable
-    if (empty($fields)) {
-        $fields = $_POST;
+        // Loop over the RULES, not the input: a required field that was
+        // removed from the form is still reported as missing.
+        foreach ($rules as $field => $rule) {
+            $value = $fields[$field] ?? null;
+            $label = $rule['label'] ?? $field;
 
-        if (isset($_FILES) || !empty($_FILES)) {
-            $fields = array_merge($fields, $_FILES);
-        }
-    }
+            if (is_array($value) && !$this->isUploadedFile($value)) {
+                foreach ($value as $key => $item) {
+                    $item = $this->sanitize($item, $rule['filter'] ?? []);
 
-        foreach ($fields as $field => $value) {
-            if (is_array($value) && !isset($value['tmp_name'])) {
-                $return = $this->validateArray($field, $value, $rules);
+                    if (!$this->check($field, $item, $label.' #'.$key, $rule, $rules, $fields)) {
+                        $return = false;
+                        unset($this->validValues[$field]);
+
+                        continue 2;
+                    }
+
+                    $this->validValues[$field][$key] = $item;
+                }
+
                 continue;
             }
 
-        // apply filter if any
-        $value = $this->applyFilter($field, $value, $rules);
+            $value = $this->sanitize($value, $rule['filter'] ?? []);
 
-            if (isset($rules[$field])) {
-                foreach ($rules[$field]['rules'] as $key => $rule) {
-
-            // use filed name if label not provided
-            $label = (isset($rules[$field]['label'])) ? $rules[$field]['label'] : $field;
-
-                    $response = $this->ruleToMethod($key, $rule, $field, $value, $label, $rules, $fields);
-
-                    if (!$response) {
-                        $return = false;
-
-                        unset($this->validValues[$field]);
-                        break;
-                    } else {
-                        $this->validValues[$field] = $value;
-                    }
-                }
+            if ($this->check($field, $value, $label, $rule, $rules, $fields)) {
+                $this->validValues[$field] = $value;
+            } else {
+                $return = false;
             }
-
-        // unset any specified field value
-        if ($this->unsetValue) {
-            unset($this->validValues[$this->unsetValue]);
         }
+
+        foreach ($this->unsetValues as $field) {
+            unset($this->validValues[$field]);
         }
 
         return $return;
     }
 
     /**
-     * Validating array value from a field.
-     *
-     * @param string $field  The html field name
-     * @param array  $values The array value form the filed
-     *
-     * @return bool
+     * Run every rule of one field, stop at the first failure.
      */
-    private function validateArray($field, $values)
+    private function check(string $field, mixed $value, string $label, array $rule, array $rules, array $fields): bool
     {
-        $return = true;
-        $rules = $this->setRules();
+        $fieldRules = $rule['rules'] ?? [];
+        $isRequired = in_array('required', $fieldRules, true) || in_array('file', $fieldRules, true);
 
-        foreach ($values as $k => $value) {
+        // An optional field left empty is valid, its other rules are skipped.
+        if (!$isRequired && $this->isEmpty($value)) {
+            return true;
+        }
 
-        // apply filter if any
-        $value = $this->applyFilter($field, $value, $rules);
+        foreach ($fieldRules as $name => $parameter) {
+            if (is_int($name)) {
+                [$name, $parameter] = [$parameter, null];
+            }
 
-            if (isset($rules[$field])) {
-                foreach ($rules[$field]['rules'] as $key => $rule) {
+            $passed = match ($name) {
+                'callback' => $this->runCallback($parameter, $field, $value, $label),
+                'compare' => $this->ruleCompare($field, $value, $label, $fields[$parameter] ?? null, $rules[$parameter]['label'] ?? $parameter, $parameter),
+                default => $this->runRule($name, $field, $value, $label, $parameter),
+            };
 
-            // use filed name if label not provided
-            $label = (isset($rules[$field]['label'])) ? $rules[$field]['label'] : $field;
-                    $label = $label.' #'.$k;
-
-                    $response = $this->ruleToMethod($key, $rule, $field, $value, $label);
-
-                    $htmlField = $field.'['.$k.']';
-
-                    if (!$response) {
-                        $return = false;
-
-                        unset($this->validValues[$htmlField], $this->validValues[$field][$k]);
-
-                        return;
-                    } else {
-                        $this->validValues[$htmlField] = $this->validValues[$field][$k] = $value;
-                    }
-                }
+            if (!$passed) {
+                return false;
             }
         }
 
-        return $return;
+        return true;
+    }
+
+    private function runRule(string $name, string $field, mixed $value, string $label, mixed $parameter): bool
+    {
+        $method = 'rule'.ucfirst($name);
+
+        if (!method_exists($this, $method)) {
+            throw new RunException('Unknown validation rule "'.$name.'" for field '.$field);
+        }
+
+        if (!$this->$method($value, $parameter)) {
+            $this->setErrorMessage($field, str_replace(
+                ['%label%', '%size%'],
+                [$label, is_scalar($parameter) ? (string) $parameter : ''],
+                $this->ruleErrorMessages[strtolower($name)] ?? '%label% is not valid'
+            ));
+
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Apply function to filter the string.
-     *
-     * @param string $field The html field name
-     * @param string $value The field value
-     * @param array  $rules The rules defined by user
-     *
-     * @return string
+     * 'callback' => 'myMethod' calls $this->myMethod($field, $value, $label),
+     * which returns bool and may call setErrorMessage() itself.
      */
-    private function applyFilter($field, $value, $rules)
+    private function runCallback(mixed $callback, string $field, mixed $value, string $label): bool
     {
-        // apply filter if any
-    if (isset($rules[$field]['filter'])) {
-        foreach ($rules[$field]['filter'] as $filter) {
-            $value = call_user_func_array($filter, array($value));
+        $callable = is_string($callback) && method_exists($this, $callback) ? [$this, $callback] : $callback;
+
+        if (!is_callable($callable)) {
+            throw new RunException('Validation callback for '.$field.' is not callable');
         }
+
+        $passed = (bool) $callable($field, $value, $label);
+
+        if (!$passed && !isset($this->errorMessages[$field])) {
+            $this->setErrorMessage($field, str_replace('%label%', $label, '%label% is not valid'));
+        }
+
+        return $passed;
     }
+
+    /**
+     * Automatic + per-field sanitizing.
+     *
+     * 'filter' accepts these names, or any PHP callable ('ucwords', fn ...):
+     *   trim, lower, upper, int, float, digits, strip_tags, email, escape
+     */
+    protected function sanitize(mixed $value, array $filters = []): mixed
+    {
+        if (is_array($value)) {
+            return $this->isUploadedFile($value) ? $value : array_map(fn ($item) => $this->sanitize($item, $filters), $value);
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_scalar($value) && !is_string($value)) {
+            $value = (string) $value;
+        }
+
+        if ($this->autoSanitize && is_string($value)) {
+            // Remove NUL and other invisible control characters, keep tab/newline.
+            $value = trim((string) preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value));
+        }
+
+        foreach ($filters as $filter) {
+            $value = match ($filter) {
+                'trim' => trim((string) $value),
+                'lower' => mb_strtolower((string) $value),
+                'upper' => mb_strtoupper((string) $value),
+                'int' => filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE) ?? $value,
+                'float' => filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE) ?? $value,
+                'digits' => (string) preg_replace('/\D/', '', (string) $value),
+                'strip_tags' => strip_tags((string) $value),
+                'email' => (string) filter_var($value, FILTER_SANITIZE_EMAIL),
+                'escape' => e($value),
+                default => is_callable($filter) ? $filter($value) : throw new RunException('Unknown filter: '.(is_string($filter) ? $filter : get_debug_type($filter))),
+            };
+        }
 
         return $value;
     }
 
     /**
-     * Map from rule to the actual method to handle the validation.
-     *
-     * @param string or int $key    Array key from rule list
-     * @param string        $rule   The rule name
-     * @param string        $field  Html field name
-     * @param string        $label  Label to identifed the field
-     * @param array         $rules  An array of user rules
-     * @param array         $fields original submitetd by user
-     *
-     * @return bool
-     */
-    private function ruleToMethod($key, $rule, $field, $value, $label, $rules = array(), $fields = array())
-    {
-        if (is_numeric($key)) {
-            $method = 'rule'.ucwords($rule);
-
-            $response = $this->$method($field, $value, $label);
-        } else {
-            if ($key == 'callback') {
-                $response = $this->$rule($field, $value, $label);
-            } elseif ($key == 'compare') {
-
-        // comparator field
-        //$rule;
-
-        $comparatorLabel = $rules[$rule]['label'];
-                $comparatorValue = $fields[$rule];
-
-                $method = 'rule'.ucwords($key);
-
-                $response = $this->$method($field, $value, $label, $comparatorValue, $comparatorLabel, $rule);
-            } else {
-                $method = 'rule'.ucwords($key);
-
-                $response = $this->$method($field, $value, $label, $rule);
-            }
-        }
-
-        return $response;
-    }
-
-    /**
      * Populate the error message(s).
      *
-     * @param string $field
-     * @param string $tagOpen
-     * @param string $tagClose
+     * @return array|string|null all messages, one field's message, or null
      */
-    public function errorMessages($field = false, $tagOpen = null, $tagClose = null)
+    public function errorMessages(string|false $field = false, ?string $tagOpen = null, ?string $tagClose = null): array|string|null
     {
-        if (empty($this->errorMessages)) {
-            return;
+        if ($this->errorMessages === []) {
+            return null;
         }
 
-        if ($field) {
+        if ($field !== false) {
             if (!isset($this->errorMessages[$field])) {
-                return;
+                return null;
             }
 
-            if (!is_null($tagOpen) || !is_null($tagClose)) {
-                return $tagOpen.$this->errorMessages[$field].$tagClose;
-            }
-
-            return $this->errorMessages[$field];
-        } else {
-            if (!is_null($tagOpen) || !is_null($tagClose)) {
-                $return = null;
-
-                foreach ($this->errorMessages as $message) {
-                    $return .= $tagOpen.$message.$tagClose;
-                }
-
-                return $return;
-            }
-
-            return $this->errorMessages;
+            return ($tagOpen !== null || $tagClose !== null)
+                ? $tagOpen.$this->errorMessages[$field].$tagClose
+                : $this->errorMessages[$field];
         }
+
+        if ($tagOpen !== null || $tagClose !== null) {
+            return implode('', array_map(fn ($message) => $tagOpen.$message.$tagClose, $this->errorMessages));
+        }
+
+        return $this->errorMessages;
     }
 
     /**
      * Setter for error message.
-     *
-     * @param string $field
-     * @param string $message
      */
-    public function setErrorMessage($field, $message)
+    public function setErrorMessage(string $field, string $message): void
     {
         $this->errorMessages[$field] = $message;
     }
 
     /**
-     * Filterized value.
-     *
-     * @param string | false $field
-     *
-     * @return string
+     * Validated (and sanitized) values: all of them, or one field.
      */
-    public function value($field = false)
+    public function value(string|false $field = false): mixed
     {
-        if (!$field) {
-            $validValues = $this->validValues;
-            foreach ($validValues as $key => $value) {
-                if (is_array($value)) {
-                    foreach ($value as $k => $v) {
-                        $f = $key.'['.$k.']';
-                        unset($validValues[$f]);
-                    }
-                }
-            }
-
-            return $validValues;
+        if ($field === false) {
+            return $this->validValues;
         }
 
-        if (!isset($this->validValues[$field])) {
-            return;
-        }
-
-        return $this->validValues[$field];
-    }
-
-    /**
-     * Translate from error message to actial error message.
-     *
-     * @param string $rule
-     * @param string $label
-     *
-     * @return string
-     */
-    private function ruleErrorMessage($rule, $label)
-    {
-        return str_replace('%label%', $label, $this->ruleErrorMessages[$rule]);
-    }
-
-    /**
-     * Methode to chek the value was empty or not.
-     *
-     * @param string $field
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
-     */
-    private function ruleRequired($field, $value, $label)
-    {
-        if (empty($value)) {
-            $this->setErrorMessage($field, $this->ruleErrorMessage('required', $label));
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Method to validate the email format.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
-     */
-    private function ruleEmail($field, $value, $label)
-    {
-        if (!$this->isEmail($value)) {
-            $this->setErrorMessage($field, $this->ruleErrorMessage('email', $label));
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Method to validate minimum string length.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
-     */
-    private function ruleMin($field, $value, $label, $minVal)
-    {
-        if (strlen($value) < $minVal) {
-            $this->setErrorMessage($field, str_replace(array('%label%', '%size%'), array($label, $minVal), $this->ruleErrorMessages['min']));
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Method to validate maximum string length.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
-     */
-    private function ruleMax($field, $value, $label, $maxVal)
-    {
-        if (strlen($value) > $maxVal) {
-            $this->setErrorMessage($field, str_replace(array('%label%', '%size%'), array($label, $maxVal), $this->ruleErrorMessages['max']));
-
-            return false;
-        }
-
-        return true;
+        return $this->validValues[$field] ?? null;
     }
 
     /**
@@ -482,237 +290,189 @@ class Validation
      *
      * @param array $messages User defined message by rule
      */
-    protected function setRuleErrorMessages($messages = array())
+    protected function setRuleErrorMessages(array $messages = []): void
     {
-        $this->ruleErrorMessages = array(
-        'required' => '%label% can not be empty',
-        'email' => '%label% not valid email format',
-        'min' => '%label% need more then %size% character',
-        'max' => '%label% need less then %size% character',
-        'compare' => '%label% value did not match compare to %comparatorLabel%',
-        'file' => '%label% can not be empty',
-        'regex' => '%label% input format not valid',
-        'in' => '%label% did not match to any specified values',
-        'url' => '%label% not valid URL format',
-        'alpha' => '%label% can only alphabet character',
-        'numeric' => '%label% can only numerical character',
-        'alphanumeric' => '%label% can only alphabet or numerical character',
-        'match' => '%label% length must exactly %size% character',
-    );
+        $this->ruleErrorMessages = array_merge([
+            'required' => '%label% can not be empty',
+            'email' => '%label% not valid email format',
+            'min' => '%label% need more then %size% character',
+            'max' => '%label% need less then %size% character',
+            'compare' => '%label% value did not match compare to %comparatorLabel%',
+            'file' => '%label% can not be empty',
+            'regex' => '%label% input format not valid',
+            'in' => '%label% did not match to any specified values',
+            'url' => '%label% not valid URL format',
+            'alpha' => '%label% can only alphabet character',
+            'numeric' => '%label% can only numerical character',
+            'integer' => '%label% must be a whole number',
+            'alphanumeric' => '%label% can only alphabet or numerical character',
+            'match' => '%label% length must exactly %size% character',
+        ], $messages);
+    }
 
-        $this->ruleErrorMessages = array_merge($this->ruleErrorMessages, $messages);
+    // ---------------------------------------------------------------------
+    // Rules. Each one receives the value and its parameter, returns bool.
+    // ---------------------------------------------------------------------
+
+    protected function ruleRequired(mixed $value): bool
+    {
+        return !$this->isEmpty($value);
+    }
+
+    protected function ruleEmail(mixed $value): bool
+    {
+        return is_string($value) && $this->isEmail($value) !== false;
+    }
+
+    protected function ruleUrl(mixed $value): bool
+    {
+        return is_string($value) && $this->isUrl($value) !== false;
+    }
+
+    protected function ruleMin(mixed $value, mixed $size): bool
+    {
+        return mb_strlen((string) $value) >= (int) $size;
+    }
+
+    protected function ruleMax(mixed $value, mixed $size): bool
+    {
+        return mb_strlen((string) $value) <= (int) $size;
+    }
+
+    protected function ruleMatch(mixed $value, mixed $size): bool
+    {
+        return mb_strlen((string) $value) === (int) $size;
+    }
+
+    protected function ruleIn(mixed $value, mixed $list): bool
+    {
+        return in_array((string) $value, array_map('strval', (array) $list), true);
+    }
+
+    protected function ruleRegex(mixed $value, mixed $pattern): bool
+    {
+        return preg_match((string) $pattern, (string) $value) === 1;
+    }
+
+    protected function ruleAlpha(mixed $value): bool
+    {
+        return preg_match('/^\p{L}+$/u', (string) $value) === 1;
+    }
+
+    protected function ruleNumeric(mixed $value): bool
+    {
+        return preg_match('/^[\-+]?[0-9]*\.?[0-9]+$/', (string) $value) === 1;
+    }
+
+    protected function ruleInteger(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_INT) !== false;
+    }
+
+    protected function ruleAlphanumeric(mixed $value): bool
+    {
+        return preg_match('/^[\p{L}0-9]+$/u', (string) $value) === 1;
     }
 
     /**
-     * Ensuring the attribute is equal to another attribute.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     * @param string $comparatorValue Value from comparator field
-     * @param string $comparatorLabel label from comparator field
-     * @param string $comparatorField field name of comparator field
-     *
-     * @return bool
+     * Ensuring the field contains an uploaded file (or several).
      */
-    private function ruleCompare($field, $value, $label, $comparatorValue, $comparatorLabel, $comparatorField)
+    protected function ruleFile(mixed $value): bool
     {
-        if (empty($comparatorValue)) {
+        if (!is_array($value) || !isset($value['name'])) {
             return false;
         }
 
-        if ($value == $comparatorValue) {
-            return true;
-        }
-
-        $this->setErrorMessage($field, str_replace(array('%label%', '%comparatorLabel%'), array($label, $comparatorLabel), $this->ruleErrorMessages['compare']));
-
-    // unset comparator filed value
-    $this->unsetValue = $comparatorField;
-
-        return false;
-    }
-
-    /**
-     * Ensuring the attribute contains the name of an uploaded file.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
-     */
-    private function ruleFile($field, $value, $label)
-    {
-        // its mean uploaded file more then 1 field
-    if (is_array($value['name'])) {
-        foreach ($value['name'] as $name) {
-            if (empty($name)) {
-                goto ret;
+        foreach ((array) $value['name'] as $name) {
+            if ($name === '' || $name === null) {
+                return false;
             }
         }
 
         return true;
-    } else {
-        if (!empty($value['name'])) {
-            return true;
-        }
-    }
-
-        ret:
-    $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['file']));
-
-        return false;
     }
 
     /**
-     * Ensuring the data is among a pre-specified list of values.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * Ensuring the attribute is equal to another attribute (e.g. password confirmation).
      */
-    private function ruleIn($field, $value, $label)
+    private function ruleCompare(string $field, mixed $value, string $label, mixed $comparatorValue, string $comparatorLabel, string $comparatorField): bool
     {
-        $rules = $this->setRules();
-        $list = $rules[$field]['rules']['in'];
-
-        if (array_search($value, $list) !== false) {
+        if (!$this->isEmpty($comparatorValue) && $this->sanitize($comparatorValue) === $value) {
             return true;
         }
 
-        $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['in']));
+        $this->setErrorMessage($field, str_replace(['%label%', '%comparatorLabel%'], [$label, $comparatorLabel], $this->ruleErrorMessages['compare']));
+        $this->unsetValues[] = $comparatorField;
 
         return false;
     }
 
+    // ---------------------------------------------------------------------
+    // Helpers, also usable on their own.
+    // ---------------------------------------------------------------------
+
     /**
-     * Ensuring the data matches a regular expression.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * Trim then make it lower.
      */
-    private function ruleRegex($field, $value, $label, $pattern = false)
+    public function trimLower(string $string): string
     {
-        if (!$pattern) {
-            $rules = $this->setRules();
-            $pattern = $rules[$field]['rules']['regex'];
-        }
-
-        if (preg_match($pattern, $value)) {
-            return true;
-        }
-
-        $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['regex']));
-
-        return false;
+        return trim(mb_strtolower($string));
     }
 
     /**
-     * Ensuring the data is a valid URL.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * Email format validation. Returns the cleaned email or false.
      */
-    private function ruleUrl($field, $value, $label)
+    public function isEmail(string $string): string|false
     {
-        if ($this->isUrl($value)) {
-            return true;
-        }
+        $string = $this->trimLower($string);
 
-        $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['url']));
-
-        return false;
+        return filter_var($string, FILTER_VALIDATE_EMAIL) ? $string : false;
     }
 
     /**
-     * Ansuring the data is a valid alphabet format.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * URL validation, http and https only (rejects javascript: and data: links).
      */
-    private function ruleAlpha($field, $value, $label)
+    public function isUrl(string $string): string|false
     {
-        if ($this->ruleRegex($field, $value, $label, '/^([a-z])+$/i')) {
-            return true;
-        }
+        $string = trim($string);
+        $scheme = strtolower((string) parse_url($string, PHP_URL_SCHEME));
 
-        $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['alpha']));
-
-        return false;
+        return in_array($scheme, ['http', 'https'], true) ? filter_var($string, FILTER_VALIDATE_URL) : false;
     }
 
     /**
-     * ensuring the data is a valid number.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * Return only numeric character.
      */
-    private function ruleNumeric($field, $value, $label)
+    public function stripNumeric(string $string): string
     {
-        if ($this->ruleRegex($field, $value, $label, '/^[\-+]?[0-9]*\.?[0-9]+$/')) {
-            return true;
-        }
-
-        $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['numeric']));
-
-        return false;
+        return (string) filter_var($string, FILTER_SANITIZE_NUMBER_INT);
     }
 
     /**
-     * ensuring the data is a valid alphanumeric.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * Positive numeric validation.
      */
-    private function ruleAlphaNumeric($field, $value, $label)
+    public function isPositiveNumeric(string|int|float $string): bool
     {
-        if ($this->ruleRegex($field, $value, $label, '/^([a-z0-9])+$/i')) {
-            return true;
-        }
-
-        $this->setErrorMessage($field, str_replace('%label%', $label, $this->ruleErrorMessages['alphanumeric']));
-
-        return false;
+        return (bool) preg_match('/^[0-9]*\.?[0-9]+$/', (string) $string);
     }
 
     /**
-     * Ensuring the value length exact certain size.
-     *
-     * @param string $feld
-     * @param string $value
-     * @param string $label
-     *
-     * @return bool
+     * Use this for filterize user first name and last name.
      */
-    private function ruleMatch($field, $value, $label)
+    public function displayName(string $string): string
     {
-        $rules = $this->setRules();
-        $size = $rules[$field]['rules']['match'];
+        $string = strip_tags(trim($string));
 
-        if (strlen($value) == $size) {
-            return true;
-        }
+        return (string) preg_replace('/[^\p{L}0-9 .,\'"-]/u', '', $string);
+    }
 
-        $this->setErrorMessage($field, str_replace(array('%label%', '%size%'), array($label, $size), $this->ruleErrorMessages['match']));
+    private function isEmpty(mixed $value): bool
+    {
+        return $value === null || $value === '' || $value === [];
+    }
 
-        return false;
+    private function isUploadedFile(array $value): bool
+    {
+        return isset($value['tmp_name'], $value['name']);
     }
 }

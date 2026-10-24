@@ -18,3 +18,23 @@ if (!function_exists('e')) {
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
+
+if (!function_exists('csrf_token')) {
+    /**
+     * CSRF token of the current session, e.g. for an AJAX header.
+     */
+    function csrf_token(): string
+    {
+        return Resources\Csrf::token();
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    /**
+     * Hidden CSRF input. Put it inside every <form method="post">.
+     */
+    function csrf_field(): string
+    {
+        return Resources\Csrf::field();
+    }
+}

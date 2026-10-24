@@ -13,6 +13,7 @@
     <h1>Documentation and resource</h1>
     <ul>
         <li>To check your system minimum requirements, please click this <a href="check.php">Checking Tools</a>.</li>
+        <li>To try a form with CSRF protection, validation and PDO, open the <a href="<?php echo $this->location('guestbook'); ?>">guestbook demo</a>.</li>
         <li>To see Hello World page from a module sample, <a href="<?php echo $this->location('modSample'); ?>">click here.</a></li>
         <li>To get latest update, follow our twitter <a target="_blank" href="http://twitter.com/panadaframework">@panadaframework</a>.</li>
         <li>To contribute the project, fork on github <a target="_blank" href="https://github.com/panada/Panada">https://github.com/panada/Panada</a>.</li>

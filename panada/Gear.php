@@ -9,7 +9,7 @@
  *
  * A request travels through this file from top to bottom:
  *   1. send()              registers the autoloader and the error handler.
- *   2. __construct()       reads the URI.
+ *   2. __construct()       reads the URI, then the CSRF token is checked.
  *   3. controllerHandler() looks for app/Controllers/{Name}.php,
  *      subControllerHandler() for app/Controllers/{Folder}/{Name}.php,
  *      moduleHandler()     for app/Modules/{Module}/Controllers/{Name}.php.
@@ -51,6 +51,7 @@ final class Gear
 
         try {
             $gear = new self($config);
+            Resources\Csrf::verifyRequest($gear->uriObj->pathInfo);
             $gear->controllerHandler();
             $response = new Resources\Response();
         } catch (Resources\HttpException $e) {
