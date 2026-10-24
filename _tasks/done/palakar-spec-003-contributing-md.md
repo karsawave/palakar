@@ -1,6 +1,6 @@
 # palakar-spec-003: CONTRIBUTING.md (cara berkontribusi)
 
-- **Status:** plan (menunggu `ACC SPEC 003`)
+- **Status:** done (ACC SPEC 003, 2026-10-24)
 - **Bergantung pada:** spec-001
 
 ## Masalah
@@ -34,3 +34,11 @@ Tidak ada.
 ## Verifikasi
 
 `composer test` hijau; isi tidak bertentangan dengan CLAUDE.md.
+
+## Hasil
+
+- `CONTRIBUTING.md` dibuat; README menautkannya.
+- Tambahan kecil: perbaikan kecil (typo, dokumentasi) boleh tanpa spec.
+- Backlog CLAUDE.md: Private vulnerability reporting sudah diaktifkan pemilik
+  repo (spec-002), dihapus dari daftar.
+- `composer test`: 135 test, 18 di-skip.

@@ -1,0 +1,65 @@
+# Berkontribusi ke Palakar Framework
+
+Terima kasih sudah mau membantu. Panduan ini singkat supaya mudah diikuti.
+
+## Filosofi
+
+- **KISS dan transparan:** seluruh core harus bisa dibaca pemula dalam
+  semalam. Pilih kode yang lebih pendek dan lebih mudah dibaca.
+- **Tanpa dependency baru di core**, tanpa container DI, tanpa middleware
+  stack. Paket tambahan hanya boleh di `require-dev`.
+- **Keamanan tidak dilonggarkan:** nilai database selalu di-bind, view
+  memakai `e()`, CSRF global, mode `debug => false` tidak membocorkan detail.
+
+## Alur kerja
+
+1. **Buka issue** untuk menjelaskan masalah atau ide.
+2. **Tulis spec** di `_tasks/plan/palakar-spec-{NNN}-{masalah-singkat}.md`
+   (nomor 3 digit berikutnya). Isinya: masalah, keputusan, perubahan per file,
+   yang tidak diubah, pertanyaan terbuka, cara verifikasi, breaking change.
+   Contoh: lihat `_tasks/done/`.
+3. **Tunggu persetujuan:** maintainer menulis `ACC SPEC {NNN}`. Pekerjaan
+   besar tanpa spec yang disetujui kemungkinan tidak di-merge.
+4. **Kerjakan dan kirim PR.** Satu spec = satu PR. Pesan commit diawali
+   `spec-NNN:` dan menjelaskan *kenapa*, bukan hanya *apa*.
+5. Setelah selesai, spec dipindah ke `_tasks/done/` beserta hasilnya.
+
+Perbaikan kecil (salah ketik, dokumentasi) boleh langsung PR tanpa spec.
+
+## Wajib sebelum PR
+
+```bash
+composer test       # semua test hijau
+composer analyse    # PHPStan level 2 tanpa temuan
+```
+
+- Bug atau fitur baru disertai test. Test ditulis dulu dan harus gagal
+  terhadap kode lama.
+- Breaking change dicatat di `MODERNISASI.md`.
+- `declare(strict_types=1)` di file baru (pengecualian ada di `CLAUDE.md`).
+- Komentar kode dalam bahasa Inggris dan menjelaskan *kenapa*. Dokumentasi
+  pengguna dalam bahasa Indonesia.
+
+## Lisensi dan atribusi
+
+- Kontribusi Anda masuk di bawah lisensi BSD-3-Clause proyek ini
+  ([LICENSE](LICENSE)).
+- Jangan mengubah atau menghapus notice copyright dan `@author` dari Panada
+  Framework.
+- Kode atau aset dari luar hanya yang lisensinya kompatibel (MIT, BSD, ISC,
+  Apache-2.0), dengan notice dan sumbernya. Kode GPL/AGPL, jawaban Stack
+  Overflow, atau tanpa lisensi: tulis ulang sendiri.
+- Jangan memakai nama atau logo Panada untuk mempromosikan Palakar.
+
+## Bantuan AI
+
+Boleh, asal diungkap (trailer `Co-Authored-By` di commit), direview, dan
+diuji seperti kode lain. Jangan menyertakan salinan kode berlisensi lain.
+
+## Celah keamanan
+
+Jangan lewat issue atau PR publik. Ikuti [SECURITY.md](SECURITY.md).
+
+## Etika
+
+Sopan, faktual, dan menghargai penulis Panada serta kontributor lain.

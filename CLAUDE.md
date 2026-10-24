@@ -214,9 +214,9 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
 
 ## Backlog (urut prioritas)
 
-1. **Sebelum repo publik:** spec 003–005 (CONTRIBUTING, CODE OF
-   CONDUCT, CHANGELOG), aktifkan Private vulnerability reporting di GitHub
-   (SECURITY.md, spec-002), dan kabari upstream soal celah Panada 1.x yang
+1. **Sebelum repo publik:** spec 004–005 (CODE OF
+   CONDUCT, CHANGELOG)
+   dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
 2. **Asal-usul lisensi:** `Pagination::getUrl()` (diadaptasi dari
    `paginate_links()` WordPress) dan daftar MIME di `Upload` ("Original from
