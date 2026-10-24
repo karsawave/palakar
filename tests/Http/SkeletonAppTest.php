@@ -33,7 +33,7 @@ final class SkeletonAppTest extends HttpTestCase
         $response = $this->request(self::$url);
 
         $this->assertSame(200, $response['status']);
-        $this->assertStringContainsString('Panada has been installed successfully', $response['body']);
+        $this->assertStringContainsString('Palakar has been installed successfully', $response['body']);
         $this->assertSame(['nosniff'], $response['headers']['x-content-type-options']);
     }
 

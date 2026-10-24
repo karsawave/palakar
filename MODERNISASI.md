@@ -1,4 +1,8 @@
-# Modernisasi Panada untuk PHP 8.2+
+# Modernisasi Panada untuk PHP 8.2+ (Palakar Framework)
+
+> Proyek ini sekarang bernama **Palakar Framework** (`karsawave/palakar`), fork
+> dari Panada Framework 1.1.1 karya Iskandar Soesman. Dokumen ini mencatat
+> perubahan dari Panada 1.x.
 
 Catatan perubahan dari Panada 1.1.1 (2015) ke versi modern ini. Filosofi tetap:
 **KISS, transparan, bisa dibaca habis dalam semalam.** Inti yang direfaktor
@@ -524,6 +528,11 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
     namespace kini acak), cukup diisi ulang. Driver cache buatan sendiri yang
     meng-*implements* `Resources\Interfaces\Cache` tetap jalan (interface hanya
     menambah tipe parameter, tanpa tipe return).
+34. Nama paket Composer kini `karsawave/palakar`. Teks yang berubah: header
+    email `X-Mailer: Palakar Mailer`, User-Agent Rest `Palakar Framework REST
+    API/0.1`, judul halaman error Whoops, halaman awal, dan contoh nama
+    database di `app/config/database.php` (`palakar`). Logo dan banner Panada
+    dihapus dari `public/assets/img`.
 
 ---
 

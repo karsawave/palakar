@@ -138,8 +138,8 @@ final class ErrorHandler
         }
 
         $page = new \Whoops\Handler\PrettyPageHandler();
-        $page->setPageTitle('Panada error');
-        $page->addDataTable('Panada', [
+        $page->setPageTitle('Palakar error');
+        $page->addDataTable('Palakar', [
             'PHP version' => PHP_VERSION,
             'Application path' => defined('APP') ? APP : '',
         ]);

@@ -1,6 +1,6 @@
 # palakar-spec-001: Ganti merek Panada ke Palakar Framework
 
-- **Status:** plan (menunggu `ACC SPEC 001`)
+- **Status:** done (ACC SPEC 001, 2026-10-24)
 - **Dibuat:** 2026-10-24
 - **Backlog:** CLAUDE.md nomor 1
 
@@ -61,3 +61,17 @@ tertulis. Paket `panada/panada` di Packagist juga milik upstream, dan "Panada
 - `grep -ri panada` di luar notice/atribusi, `panada/` (nama folder core), dan
   dokumen sejarah hanya menyisakan atribusi yang disengaja.
 - Halaman awal di `composer serve` menampilkan Palakar dan atribusinya.
+
+## Hasil
+
+- `composer test`: 135 test, 18 di-skip (sama seperti sebelumnya);
+  `composer analyse`: tanpa temuan.
+- Sisa kata "Panada" di aplikasi dan README hanya atribusi yang disengaja,
+  path folder `panada/` (sengaja tidak diganti), dan nama kelas `PanadaPDO`.
+- Penyimpangan kecil dari tabel perubahan: contoh nama database di
+  `app/config/database.php` dan dua komentar (`main.php`, `public/index.php`)
+  ikut diganti; tercatat sebagai breaking change nomor 34 di MODERNISASI.md.
+- Catatan: `composer validate` menyarankan tanpa field `version` bila paket
+  dipublikasikan di Packagist (versi dibaca dari tag git). Dipertahankan
+  sesuai spec; bisa dihapus saat tag `v0.1.0` dibuat (lihat spec-005).
+- Commit: lihat `git log --grep "spec-001"`.

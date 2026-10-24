@@ -24,7 +24,7 @@ return [
         'port' => 3306,
         'user' => 'root',
         'password' => '',
-        'database' => 'panada',
+        'database' => 'palakar',
         'charset' => 'utf8mb4',
         'persistent' => false,
     ],
@@ -35,7 +35,7 @@ return [
         'port' => 5432,
         'user' => 'postgres',
         'password' => '',
-        'database' => 'panada',
+        'database' => 'palakar',
         'charset' => 'UTF8',
         'persistent' => false,
     ],
@@ -43,8 +43,8 @@ return [
     // Any PDO DSN and PDO options can also be given directly:
     'custom' => [
         'driver' => 'pgsql',
-        'dsn' => 'pgsql:host=db;port=5432;dbname=panada;sslmode=require',
-        'user' => 'panada',
+        'dsn' => 'pgsql:host=db;port=5432;dbname=palakar;sslmode=require',
+        'user' => 'palakar',
         'password' => 'secret',
         'options' => [PDO::ATTR_TIMEOUT => 5],
     ],

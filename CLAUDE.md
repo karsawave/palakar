@@ -1,12 +1,15 @@
-# CLAUDE.md — Panada (modernisasi PHP 8.2+)
+# CLAUDE.md — Palakar Framework
 
 Konteks proyek untuk Claude Code. Detail lengkap perubahan dan catatan migrasi
-dari 1.x ada di `MODERNISASI.md`.
+dari Panada 1.x ada di `MODERNISASI.md`.
 
 ## Tentang proyek
 
-Fork Panada Framework 1.1.1 (PHP, Indonesia, 2010) yang dimodernisasi untuk
-PHP 8.2+. Filosofi wajib dijaga: **KISS, transparan, seluruh core bisa dibaca
+**Palakar Framework** (`karsawave/palakar`, versi 0.1.0,
+https://github.com/karsawave/palakar), fork Panada Framework 1.1.1 (PHP,
+Indonesia, 2010) yang dimodernisasi untuk PHP 8.2+. Folder core tetap bernama
+`panada/` dan namespace tetap `Resources\`/`Drivers\`, supaya aplikasi lama
+tetap jalan. Filosofi wajib dijaga: **KISS, transparan, seluruh core bisa dibaca
 pemula dalam semalam.** Jangan menambah lapisan abstraksi, container DI,
 middleware stack, atau dependency baru di core. Kalau ragu, pilih kode yang
 lebih pendek dan lebih mudah dibaca.
@@ -211,14 +214,9 @@ Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.
 
 ## Backlog (urut prioritas)
 
-1. **Nama fork + nama paket Composer.** "Panada 2.0" resmi sudah ada di
-   `github.com/panada/app`, dan `panada/panada` di Packagist milik upstream.
-   `composer.json` masih memakai nama lama; belum ada label versi. Sebelum repo
-   publik, ganti semua nama dan merek Panada (lihat bagian Open source):
-   `composer.json`, README, `app/views/home.php` (logo, "Powered by", link
-   GitHub), `header.php`, `public/check.php`, header `X-Mailer`, User-Agent
-   Rest, judul halaman error. Tambahkan juga `SECURITY.md` dan CHANGELOG fork,
-   dan kabari upstream soal celah Panada 1.x yang dijelaskan di MODERNISASI.md.
+1. **Sebelum repo publik:** spec 002–005 (SECURITY, CONTRIBUTING, CODE OF
+   CONDUCT, CHANGELOG), dan kabari upstream soal celah Panada 1.x yang
+   dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
 2. **Asal-usul lisensi:** `Pagination::getUrl()` (diadaptasi dari
    `paginate_links()` WordPress) dan daftar MIME di `Upload` ("Original from
    Wordpress 3.0") berasal dari WordPress yang berlisensi GPLv2. Periksa atau

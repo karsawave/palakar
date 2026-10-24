@@ -36,7 +36,7 @@ class Rest
     public bool $responseOutputHeader = false;
     public int $timeout = 30;
     public bool $curlSSLVerifypeer = true;
-    public array $requestHeaders = ['User-Agent' => 'Panada PHP Framework REST API/0.3'];
+    public array $requestHeaders = ['User-Agent' => 'Palakar Framework REST API/0.1'];
 
     /** Request headers curl sent last time, handy for debugging. */
     public string|false $headerSent = false;

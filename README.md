@@ -1,26 +1,30 @@
-# Panada (PHP 8.2+ modernization)
+# Palakar Framework
 
-This is a modernized fork of Panada 1.1.1 for PHP 8.2 and newer: PDO with
-automatic prepared statements, built-in CSRF protection, input sanitizing,
-hardened session cookies, Composer PSR-4 autoloading (with Panada's own
-autoloader as fallback) and an interactive error page. The philosophy is
-unchanged: the whole core should be readable in one evening.
+A simple and secure PHP 8.2+ framework: PDO with automatic prepared
+statements, built-in CSRF protection, input sanitizing, hardened session
+cookies, Composer PSR-4 autoloading (with its own autoloader as fallback) and
+an interactive error page. The philosophy: keep it simple, keep it
+transparent, the whole core should be readable in one evening.
+
+**Palakar** = *Palaka* (Sanskrit: guardian, protector) + *Karsa*
+(Indonesian: will, intention; also from KarsaWave).
+
+Origin
+------
+
+Palakar is a fork of [Panada Framework](https://github.com/panada/Panada)
+1.1.1 by Iskandar Soesman, modernized for PHP 8.2+. It is not an official
+Panada release and is not endorsed by the Panada authors. The original
+copyright notice and BSD license are kept in [LICENSE](LICENSE).
 
 See [MODERNISASI.md](MODERNISASI.md) (Bahasa Indonesia) for every change and
-the upgrade notes from 1.x.
-
-About Panada
-------------
-
-Panada is a high performance PHP development framework, yet simple.
-Not only in contexts about how to use it, but also how the core system run it.
+the upgrade notes from Panada 1.x.
 
 Requirements
 ------------
 
 PHP 8.2 or newer with the PDO and mbstring extensions. Sodium is needed for
 encryption and the cookie session driver. Composer is optional.
-
 
 Installation
 ------------
@@ -36,19 +40,12 @@ Tests
 -----
 
 ```
-composer test
+composer test           # PHPUnit
+composer analyse        # PHPStan level 2
 ```
 
-Documentation
--------------
+Links
+-----
 
-Documentation is available in Indonesian language at [https://panadaframework.com/documentation/id/](https://panadaframework.com/documentation/id/)
-
-Samples
--------
-
-Twlike, a twitter like simple app http://twlike.gopagoda.com/
-
-You can download more simple applications on this https://github.com/panada/samples repo.
-But remember, Panada core system are not included. You need to download it by your
-self at this repo https://github.com/panada/Panada/tree/master
+- Source and issues: https://github.com/karsawave/palakar
+- License: BSD-3-Clause, see [LICENSE](LICENSE)

@@ -1,6 +1,6 @@
 <?php
 /**
- * Panada Installation Check: open /check.php in the browser.
+ * Palakar Installation Check: open /check.php in the browser.
  *
  * Only works while 'debug' is true in app/config/main.php.
  * Delete this file on production servers.
@@ -41,7 +41,7 @@ $checks = [
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Panada Installation Check</title>
+    <title>Palakar Installation Check</title>
     <link rel="stylesheet" href="assets/css/main.css" type="text/css" media="screen" />
     <style>
     table { width: 100%; border-collapse: collapse; }
@@ -53,7 +53,7 @@ $checks = [
 </head>
 <body>
 <div id="konten">
-    <h1>Panada Installation Check</h1>
+    <h1>Palakar Installation Check</h1>
     <table>
     <?php foreach ($checks as [$label, $passed, $required, $note]): ?>
         <tr>

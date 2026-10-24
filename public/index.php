@@ -11,11 +11,11 @@ define('APP', dirname(__DIR__).'/app/');
 // The INDEX_FILE constant is this default file name.
 define('INDEX_FILE', basename(__FILE__));
 
-// The GEAR constant is where panada folder located.
+// The GEAR constant is where the core (panada/ folder) is located.
 define('GEAR', dirname(__DIR__).'/panada/');
 
 // The VENDOR constant is where Composer installs packages (`composer install`).
-// Panada still runs when this folder does not exist.
+// Palakar still runs when this folder does not exist.
 define('VENDOR', dirname(__DIR__).'/vendor/');
 
 require_once GEAR.'Gear.php';

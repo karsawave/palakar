@@ -1,25 +1,33 @@
 {
-    "name": "panada/panada",
-    "description": "A PHP Framework for those who love simplicity and performance at the same time",
+    "name": "karsawave/palakar",
+    "description": "Palakar Framework: a simple and secure PHP 8.2+ framework, fork of Panada Framework 1.1.1",
+    "version": "0.1.0",
     "keywords": [
         "php",
-        "panada",
+        "palakar",
         "framework",
         "simple",
-        "kiss"
+        "kiss",
+        "panada"
     ],
-    "homepage": "http://panadaframework.com/",
+    "homepage": "https://github.com/karsawave/palakar",
     "type": "project",
     "license": "BSD-3-Clause",
     "authors": [
         {
+            "name": "KarsaWave",
+            "homepage": "https://github.com/karsawave",
+            "role": "Maintainer of the Palakar fork"
+        },
+        {
             "name": "Iskandar Soesman",
-            "email": "k4ndar@yahoo.com"
+            "email": "k4ndar@yahoo.com",
+            "role": "Original author of Panada Framework"
         }
     ],
     "support": {
-        "issues": "https://github.com/panada/Panada/issues",
-        "source": "https://github.com/panada/Panada/"
+        "issues": "https://github.com/karsawave/palakar/issues",
+        "source": "https://github.com/karsawave/palakar"
     },
     "require": {
         "php": ">=8.2",

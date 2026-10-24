@@ -287,7 +287,7 @@ class Email
             'Date' => date(DATE_RFC2822),
             'Message-ID' => '<'.bin2hex(random_bytes(16)).'@'.$domain.'>',
             'X-Priority' => (string) $this->priority,
-            'X-Mailer' => 'Panada Mailer',
+            'X-Mailer' => 'Palakar Mailer',
             'MIME-Version' => '1.0',
         ] + $contentHeaders;
 
@@ -331,7 +331,7 @@ class Email
      */
     private function multipart(string $subtype, array $parts): array
     {
-        $boundary = 'Panada-'.bin2hex(random_bytes(12));
+        $boundary = 'Palakar-'.bin2hex(random_bytes(12));
         $body = '';
 
         foreach ($parts as [$headers, $content]) {

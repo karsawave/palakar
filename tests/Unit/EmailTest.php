@@ -94,7 +94,7 @@ final class EmailTest extends TestCase
 
         $this->assertStringContainsString('multipart/mixed', $transcript);
         $this->assertStringContainsString('multipart/alternative', $transcript);
-        $this->assertSame(2, preg_match_all('/^--Panada-[a-f0-9]+--\r$/m', $transcript), 'Both multiparts are closed');
+        $this->assertSame(2, preg_match_all('/^--Palakar-[a-f0-9]+--\r$/m', $transcript), 'Both multiparts are closed');
         $this->assertStringContainsString('filename="laporan bulanan.txt"', $transcript);
         $this->assertStringContainsString(base64_encode('isi laporan'), $transcript);
         $this->assertStringContainsString("\r\n..\r\n", $transcript, 'A line with a single dot is doubled');

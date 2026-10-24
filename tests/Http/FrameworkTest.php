@@ -49,7 +49,7 @@ final class FrameworkTest extends HttpTestCase
         $response = $this->request($this->url().'/boom');
 
         $this->assertSame(500, $response['status']);
-        $this->assertStringContainsString('Panada error', $response['body']);
+        $this->assertStringContainsString('Palakar error', $response['body']);
         $this->assertStringContainsString('Kaboom', $response['body']);
         $this->assertStringNotContainsString('<script>alert(1)</script>', $response['body']);
 

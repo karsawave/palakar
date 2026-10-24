@@ -12,7 +12,7 @@ return [
     'indexFile' => INDEX_FILE.'/',
 
     // Set to true only when the app runs behind a reverse proxy you control
-    // (Traefik, Nginx, Cloudflare Tunnel). Panada will then trust the
+    // (Traefik, Nginx, Cloudflare Tunnel). Palakar will then trust the
     // X-Forwarded-Proto header to know the visitor is on HTTPS.
     'trustProxyHeaders' => false,
 
