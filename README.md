@@ -44,6 +44,19 @@ composer test           # PHPUnit
 composer analyse        # PHPStan level 2
 ```
 
+Credits
+-------
+
+Thank you to **Iskandar Soesman** and all contributors of
+[Panada Framework](https://github.com/panada/Panada). Palakar started from
+Panada Framework 1.1.1 (upstream commit `dc904d0`): the first commit in this
+repository's history is that original code, unchanged. Panada's own history
+is kept in [CHANGELOG-PANADA](CHANGELOG-PANADA) and its license in
+[LICENSE](LICENSE).
+
+The modernization was done with the help of AI (Claude by Anthropic); those
+commits say so with a `Co-Authored-By` trailer.
+
 Links
 -----
 

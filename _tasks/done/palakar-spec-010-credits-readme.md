@@ -1,6 +1,6 @@
 # palakar-spec-010: Bagian Credits di README
 
-- **Status:** plan (menunggu `ACC SPEC 010`)
+- **Status:** done (ACC SPEC 010, 2026-10-25)
 - **Dibuat:** 2026-10-25
 
 ## Masalah
@@ -32,3 +32,8 @@ Tidak ada.
 ## Verifikasi
 
 `composer test` hijau; tautan benar.
+
+## Hasil
+
+- Bagian Credits di README (sebelum Links), bahasa Inggris seperti isi README.
+- `composer test`: 135 test, 18 di-skip.
