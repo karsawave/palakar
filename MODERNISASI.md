@@ -401,6 +401,18 @@ quoted-printable (huruf non-ASCII dan baris panjang aman), subject dan nama
 non-ASCII di-*encode*, ada header `Date` dan `Message-ID`, hanya CRLF (server
 modern menolak LF tunggal).
 
+### Tools
+
+- `xmlDecode()` dulu selalu fatal untuk string XML (`SimpleXMLElement` tanpa
+  `\`). XML tidak valid kini `false`, bukan warning.
+- `xmlEncode()` (juga dipakai `outputXML()`): nilai di-escape untuk XML (dulu
+  `htmlentities`, jadi `Café` merusak XML), nama elemen tidak valid diganti `_`,
+  objek bersarang didukung.
+- `getRandomString()` memakai `random_int()` (dulu `mt_rand()` yang bisa
+  ditebak, berbahaya bila dipakai untuk token atau password).
+- `setStatusHeader()` kini mengatur status di `Response`; dulu langsung
+  `header()` lalu ditimpa 200 saat Gear mengirim respons.
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -464,6 +476,9 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
     dari itu tetap "terkirim".
 29. `smtpSecure => 'tls'` mewajibkan STARTTLS. Server yang tidak mendukungnya
     ditolak (pakai `'ssl'` atau `false` dengan sadar).
+30. `Tools::setStatusHeader($code, $text)`: `$text` diabaikan (PHP mengirim
+    teks status standar). `Tools::xmlDecode()` mengembalikan `false` untuk XML
+    tidak valid.
 
 ---
 
@@ -489,6 +504,6 @@ Isi test suite:
 
 Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
 PHPStan level 2), belum di-*strict type* dan belum punya test:
-`Tools`, dan driver cache (`Redis`, `Memcache`,
+driver cache (`Redis`, `Memcache`,
 `Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
 `phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.

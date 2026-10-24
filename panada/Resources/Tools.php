@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Panada Tools Class.
  *
@@ -10,92 +12,26 @@
  *
  * @since	Version 0.1
  */
+
 namespace Resources;
 
 class Tools
 {
     /**
-     * Set the header response status.
+     * Set the HTTP status code of the response.
      *
-     * @param int
-     * @param string
+     * @param string $text ignored: PHP sends the standard reason phrase (and
+     *                     HTTP/2 has none). Kept for old calls.
      */
-    public static function setStatusHeader($code = 200, $text = '')
+    public static function setStatusHeader(int $code = 200, string $text = ''): void
     {
-        $status = [
-            100 => 'Continue',
-            101 => 'Switching Protocols',
-            102 => 'Processing',
-            200 => 'OK',
-            201 => 'Created',
-            202 => 'Accepted',
-            203 => 'Non-Authoritative Information',
-            204 => 'No Content',
-            205 => 'Reset Content',
-            206 => 'Partial Content',
-            207 => 'Multi-status',
-            208 => 'Already Reported',
-            300 => 'Multiple Choices',
-            301 => 'Moved Permanently',
-            302 => 'Found',
-            303 => 'See Other',
-            304 => 'Not Modified',
-            305 => 'Use Proxy',
-            306 => 'Switch Proxy',
-            307 => 'Temporary Redirect',
-            400 => 'Bad Request',
-            401 => 'Unauthorized',
-            402 => 'Payment Required',
-            403 => 'Forbidden',
-            404 => 'Not Found',
-            405 => 'Method Not Allowed',
-            406 => 'Not Acceptable',
-            407 => 'Proxy Authentication Required',
-            408 => 'Request Time-out',
-            409 => 'Conflict',
-            410 => 'Gone',
-            411 => 'Length Required',
-            412 => 'Precondition Failed',
-            413 => 'Request Entity Too Large',
-            414 => 'Request-URI Too Large',
-            415 => 'Unsupported Media Type',
-            416 => 'Requested range not satisfiable',
-            417 => 'Expectation Failed',
-            418 => 'I\'m a teapot',
-            422 => 'Unprocessable Entity',
-            423 => 'Locked',
-            424 => 'Failed Dependency',
-            425 => 'Unordered Collection',
-            426 => 'Upgrade Required',
-            428 => 'Precondition Required',
-            429 => 'Too Many Requests',
-            431 => 'Request Header Fields Too Large',
-            500 => 'Internal Server Error',
-            501 => 'Not Implemented',
-            502 => 'Bad Gateway',
-            503 => 'Service Unavailable',
-            504 => 'Gateway Time-out',
-            505 => 'HTTP Version not supported',
-            506 => 'Variant Also Negotiates',
-            507 => 'Insufficient Storage',
-            508 => 'Loop Detected',
-            511 => 'Network Authentication Required',
-        ];
-
-        if (isset($status[$code]) and $text == '') {
-            $text = $status[$code];
-        }
-
-        header("HTTP/1.1 $code $text", true, $code);
+        Response::$statusCode = $code;
     }
 
     /**
-     * Create random string.
-     *
-     * @param int
-     * @param bool
+     * Random string from a cryptographically secure source.
      */
-    public static function getRandomString($length = 12, $specialChars = true)
+    public static function getRandomString(int $length = 12, bool $specialChars = true): string
     {
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
@@ -104,106 +40,82 @@ class Tools
         }
 
         $str = '';
+
         for ($i = 0; $i < $length; $i++) {
-            $str .= substr($chars, mt_rand(0, strlen($chars) - 1), 1);
+            $str .= $chars[random_int(0, strlen($chars) - 1)];
         }
 
         return $str;
     }
 
     /**
-     * Thanks to djdykes {@link: http://snipplr.com/view.php?codeview&id=3491} for great array to xml class.
-     * Encode an array into xml.
+     * Array (or object) to XML. Thanks to djdykes {@link: http://snipplr.com/view.php?codeview&id=3491}.
      *
-     * @param array
-     * @param string
-     * @param string
+     *   Tools::xmlEncode(['user' => ['name' => 'Budi']]);
+     *   // <data><user><name>Budi</name></user></data>
+     *
+     * Numeric keys become <unknownNode_0>, other invalid characters in a
+     * name become "_". Values are escaped.
      */
-    public static function xmlEncode($data, $rootNodeName = 'data', $xml = null)
+    public static function xmlEncode(array|object $data, string $rootNodeName = 'data', ?\SimpleXMLElement $xml = null): string|false
     {
-        // Turn off compatibility mode as simple xml throws a wobbly if you don't.
-    if (ini_get('zend.ze1_compatibility_mode') == 1) {
-        ini_set('zend.ze1_compatibility_mode', 0);
-    }
+        $xml ??= new \SimpleXMLElement('<?xml version="1.0" encoding="utf-8"?><'.self::xmlName($rootNodeName).'/>');
 
-        if (is_null($xml)) {
-            $xml = simplexml_load_string("<?xml version='1.0' encoding='utf-8'?><$rootNodeName />");
+        foreach ($data as $key => $value) {
+            $key = self::xmlName(is_numeric($key) ? 'unknownNode_'.$key : (string) $key);
+
+            if (is_array($value) || is_object($value)) {
+                self::xmlEncode($value, $rootNodeName, $xml->addChild($key));
+            } else {
+                // addChild() does not escape "&" by itself.
+                $xml->addChild($key, htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+            }
         }
 
-    // Loop through the data passed in.
-    foreach ($data as $key => $value) {
-        // No numeric keys in our xml please!
-        if (is_numeric($key)) {
-            // Make string key...
-        $key = 'unknownNode_'.(string) $key;
-        }
-
-        // Replace anything not alpha numeric
-        //$key = preg_replace('/[^a-z]/i', '', $key);
-
-        // If there is another array found recrusively call this function
-        if (is_array($value)) {
-            $node = $xml->addChild($key);
-        // Recrusive call.
-        self::xmlEncode($value, $rootNodeName, $node);
-        } else {
-            // Add single node.
-        $value = htmlentities($value);
-            $xml->addChild($key, $value);
-        }
-    }
-    // Pass back as string. or simple xml object if you want!
-    return $xml->asXML();
+        return $xml->asXML();
     }
 
     /**
-     * Decoded xml variable or file or url into object.
-     *
-     * @param string
-     * @param string $type Flag for data type option: object | array
+     * A valid XML element name.
      */
-    public static function xmlDecode($xml, $type = 'object')
+    private static function xmlName(string $name): string
     {
-        // Does it local file?
-    if (is_file($xml)) {
-        $xml = simplexml_load_file($xml);
-    }
-    // Or this is an url file ?
-    elseif (filter_var($xml, FILTER_VALIDATE_URL)) {
-        $xml = simplexml_load_file($xml);
-    }
-    // Or it just a variable.
-    else {
-        $xml = new SimpleXMLElement($xml);
+        $name = preg_replace('/[^A-Za-z0-9_.-]/', '_', $name);
+
+        return preg_match('/^[A-Za-z_]/', $name) ? $name : '_'.$name;
     }
 
-        switch ($type) {
-        case 'array':
-        return (array) self::objectToArray($xml);
-        exit;
-        default:
-        return $xml;
-        exit;
-    }
+    /**
+     * XML string, file or URL into an object (or an array with $type 'array').
+     * Returns false when it is not valid XML.
+     */
+    public static function xmlDecode(string $xml, string $type = 'object'): \SimpleXMLElement|array|false
+    {
+        $previous = libxml_use_internal_errors(true);
+        $result = str_starts_with(ltrim($xml), '<') ? simplexml_load_string($xml) : simplexml_load_file($xml);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if ($result === false) {
+            return false;
+        }
+
+        return $type === 'array' ? (array) self::objectToArray($result) : $result;
     }
 
     /**
      * Convert an object into array.
-     *
-     * @param object
      */
-    public static function objectToArray($object)
+    public static function objectToArray(mixed $object): mixed
     {
-        return json_decode(json_encode($object), true);
+        return json_decode((string) json_encode($object), true);
     }
 
     /**
      * Convert an array into object.
-     *
-     * @param array $var
      */
-    public static function arrayToObject($var)
+    public static function arrayToObject(mixed $var): mixed
     {
-        return json_decode(json_encode($var));
+        return json_decode((string) json_encode($var));
     }
 }
