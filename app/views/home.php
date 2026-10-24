@@ -19,7 +19,7 @@
     </ul>
     <p>
         Palakar is a fork of <a target="_blank" rel="noopener" href="https://github.com/panada/Panada">Panada Framework</a> 1.1.1
-        by Iskandar Soesman, licensed under the <a href="https://github.com/karsawave/palakar/blob/main/LICENSE">BSD License</a>.
+        by Iskandar Soesman, licensed under the <a href="https://github.com/karsawave/palakar/blob/master/LICENSE">BSD License</a>.
     </p>
 </div>
 

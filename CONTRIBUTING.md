@@ -20,7 +20,8 @@ Terima kasih sudah mau membantu. Panduan ini singkat supaya mudah diikuti.
    Contoh: lihat `_tasks/done/`.
 3. **Tunggu persetujuan:** maintainer menulis `ACC SPEC {NNN}`. Pekerjaan
    besar tanpa spec yang disetujui kemungkinan tidak di-merge.
-4. **Kerjakan dan kirim PR.** Satu spec = satu PR. Pesan commit mengikuti
+4. **Kerjakan dan kirim PR ke branch `development`** (bukan `master`;
+   `master` hanya untuk rilis bertag). Satu spec = satu PR. Pesan commit mengikuti
    [Conventional Commits](https://www.conventionalcommits.org/), lihat
    bagian "Pesan commit" di bawah.
 5. Setelah selesai, spec dipindah ke `_tasks/done/` beserta hasilnya.

@@ -150,6 +150,16 @@ mendistribusikan ulang boleh tanpa izin, dengan syarat berikut.
   tidak merendahkan proyek asli atau penulisnya: "diperbaiki: ..." boleh,
   "kode lama buruk" tidak.
 
+## Branch (wajib)
+
+- **`master`:** hanya rilis stabil, setiap rilis diberi tag `vX.Y.Z`
+  (Packagist membaca tag). Default branch di GitHub.
+- **`development`:** tempat kerja. Semua spec yang di-ACC dikerjakan dan
+  di-commit di sini. Saat rilis, `development` di-merge ke `master` (merge,
+  bukan rebase).
+- Tidak ada force push ke `master` atau `development`. Sebelum commit, cek
+  branch aktif (`git branch --show-current`) adalah `development`.
+
 ## Alur kerja spec (wajib)
 
 Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.

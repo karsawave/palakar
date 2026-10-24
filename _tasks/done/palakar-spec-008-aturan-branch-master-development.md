@@ -1,6 +1,6 @@
 # palakar-spec-008: Aturan branch master/development
 
-- **Status:** plan (menunggu `ACC SPEC 008`)
+- **Status:** done (ACC SPEC 008, 2026-10-25)
 - **Dibuat:** 2026-10-25
 
 ## Masalah
@@ -46,3 +46,14 @@ Tidak ada.
 `composer test` hijau; `git branch -vv` menampilkan `master` →
 `origin/master` dan `development` → `origin/development`; link LICENSE di
 halaman awal tidak 404.
+
+## Hasil
+
+- Branch lokal `main` diganti nama menjadi `master`. Upstream belum diset
+  karena repo GitHub dibuat ulang dan masih kosong; diset saat push pertama
+  (`git push -u`).
+- `master` berhenti di commit spec-007; spec 008–010 ada di `development`
+  dan masuk ke `master` saat rilis (spec-006).
+- Bagian "Branch" di CLAUDE.md, PR ke `development` di CONTRIBUTING.md,
+  link LICENSE di halaman awal ke `blob/master`.
+- `composer test`: 135 test, 18 di-skip.
