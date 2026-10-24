@@ -44,11 +44,15 @@ final class Uri
 
         $this->requestScheme = $this->isHttps() ? 'https://' : 'http://';
 
-        $scriptPath = explode('/', $_SERVER['SCRIPT_FILENAME']);
+        // Windows servers report file paths with backslashes.
+        $scriptFilename = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        $documentRoot = str_replace('\\', '/', (string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+
+        $scriptPath = explode('/', $scriptFilename);
         $this->frontController = end($scriptPath);
 
-        $docRoot = str_replace('/'.$this->frontController, '', $_SERVER['DOCUMENT_ROOT']);
-        $scriptFile = str_replace('/'.$this->frontController, '', $_SERVER['SCRIPT_FILENAME']);
+        $docRoot = str_replace('/'.$this->frontController, '', $documentRoot);
+        $scriptFile = str_replace('/'.$this->frontController, '', $scriptFilename);
         $requestURI = str_replace('/'.$this->frontController, '', $_SERVER['REQUEST_URI'] ?? '/');
         $this->basePath = str_replace($docRoot, '', $scriptFile);
 
