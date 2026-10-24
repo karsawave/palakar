@@ -149,7 +149,7 @@ class Rest
      * @param string         $method HTTP Request method type
      * @param array | string $data   The data that need to send to server
      *
-     * @return booeal if false and string if true
+     * @return bool if false and string if true
      */
     public function sendRequest($uri, $method = 'GET', $data = null)
     {

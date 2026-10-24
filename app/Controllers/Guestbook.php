@@ -5,7 +5,7 @@ namespace Controllers;
 use Resources;
 
 /**
- * Small demo of Panada 2: CSRF-protected form, validation with sanitizing,
+ * Small demo: CSRF-protected form, validation with sanitizing,
  * PDO prepared statements and escaped output. Open /guestbook.
  */
 class Guestbook extends Resources\Controller

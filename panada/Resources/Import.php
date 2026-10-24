@@ -51,7 +51,7 @@ class Import
     /**
      * Method to embrace composer native autoloader.
      *
-     * Since Panada 2 the Composer autoloader is loaded automatically by Gear
+     * The Composer autoloader is now loaded automatically by Gear
      * when vendor/autoload.php exists, so you rarely need to call this.
      */
     public static function composer()

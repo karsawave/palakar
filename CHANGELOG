@@ -1,3 +1,20 @@
+Unreleased (PHP 8.2+ modernization)
+-----------------------------------
+- Breaking: requires PHP 8.2+, see MODERNISASI.md for the upgrade notes
+- New: Composer PSR-4 autoloading, Panada autoloader kept as fallback
+- New: PDO-only database layer, every value bound (prepared statements)
+- New: built-in CSRF protection (csrf_field(), X-CSRF-Token header)
+- New: Validation auto-sanitize and named filters
+- New: ErrorHandler with optional Whoops page, safe production page
+- New: session cookies with SameSite, Secure 'auto', HttpOnly, strict mode
+- New: libsodium Encryption, signed cookie session driver
+- New: PHPUnit 11 test suite (unit + HTTP)
+- Sec: SQL injection in PDO driver (escape() returned input unchanged)
+- Sec: XSS in 404/500 error pages
+- Sec: inherited controller methods reachable from URLs
+- Bug: required fields missing from the request passed validation
+- Removed: mysql, mysqli, pgsql, sqlite, cubrid and mongodb drivers
+
 Version 1.1.1
 -------------
 - Bug 97b3952: Bug fix for uri parse

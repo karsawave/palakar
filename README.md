@@ -1,28 +1,43 @@
-##### Due to several work related commitments, the development rate is a little slow and I apologize for that. However, I'm looking for awesome folks :metal: who could contribute and help me maintain this project. If you have any queries that you may have on how to contribute, or you have just general questions about how to use the components in your app - feel free to shoot an email. I'll help you out! :smile_cat:
+# Panada (PHP 8.2+ modernization)
 
-> This repo is contain of Panada version 1 which is still going to maintain for bug and security issue until the end of 2016. To get to know more about Panada 2 go to this project [https://github.com/panada/app](https://github.com/panada/app)
+This is a modernized fork of Panada 1.1.1 for PHP 8.2 and newer: PDO with
+automatic prepared statements, built-in CSRF protection, input sanitizing,
+hardened session cookies, Composer PSR-4 autoloading (with Panada's own
+autoloader as fallback) and an interactive error page. The philosophy is
+unchanged: the whole core should be readable in one evening.
 
-[![Build Status](https://semaphoreci.com/api/v1/ikandars/panada/branches/master/shields_badge.svg)](https://semaphoreci.com/ikandars/panada)
+See [MODERNISASI.md](MODERNISASI.md) (Bahasa Indonesia) for every change and
+the upgrade notes from 1.x.
 
 About Panada
 ------------
 
-Panada is a high performance PHP 5.5 base development framework, yet simple.
+Panada is a high performance PHP development framework, yet simple.
 Not only in contexts about how to use it, but also how the core system run it.
 
 Requirements
 ------------
 
-Panada is only supported on PHP 5.5 and up.
+PHP 8.2 or newer with the PDO and mbstring extensions. Sodium is needed for
+encryption and the cookie session driver. Composer is optional.
 
 
 Installation
 ------------
 
 ```
-composer create-project panada/panada myapp "1.1.1" --prefer-dist
+composer install        # optional: Whoops error page, PHPUnit, your own packages
+composer serve          # php -S localhost:8000 -t public public/index.php
 ```
-or Just [download](https://github.com/panada/Panada/archive/1.1.1.tar.gz) the latest stable release.
+
+Then open http://localhost:8000/ and http://localhost:8000/check.php.
+
+Tests
+-----
+
+```
+composer test
+```
 
 Documentation
 -------------

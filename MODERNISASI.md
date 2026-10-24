@@ -1,0 +1,276 @@
+# Modernisasi Panada untuk PHP 8.2+
+
+Catatan perubahan dari Panada 1.1.1 (2015) ke versi modern ini. Filosofi tetap:
+**KISS, transparan, bisa dibaca habis dalam semalam.** Inti yang direfaktor
+(bootstrap, routing, database, validasi, CSRF, session, error) totalnya sekitar
+3.500 baris termasuk komentar, dan folder `panada/` justru lebih kecil dari
+versi lama (9.334 → 7.657 baris).
+
+Status: 84 test PHPUnit lulus di PHP 8.3 (SQLite + PostgreSQL 16), ditambah
+PHPStan level 2 tanpa temuan pada kode baru.
+
+Riwayat git dibuat satu commit per langkah, jadi setiap perubahan bisa dibaca
+terpisah dengan `git log -p`.
+
+---
+
+## Mulai cepat
+
+```bash
+composer install              # opsional, untuk Whoops + PHPUnit + paket lain
+composer serve                # = php -S localhost:8000 -t public public/index.php
+```
+
+Tanpa Composer juga jalan: autoloader bawaan Panada memuat semuanya sendiri.
+
+- Buka `http://localhost:8000/` untuk halaman awal.
+- Buka `/check.php` untuk cek kebutuhan server (hanya aktif saat `debug` true).
+- Buka `/guestbook` untuk demo form: CSRF + validasi + PDO + escape output.
+
+Sebelum produksi:
+
+1. `app/config/main.php` → `'debug' => false`.
+2. `app/config/security.php` → isi `secretKey` dengan
+   `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`.
+3. Hapus `public/check.php`.
+4. `composer install --no-dev` (Whoops tidak ikut terpasang).
+
+---
+
+## 1. Kompatibilitas PHP 8.2 / 8.3
+
+Panada 1.1.1 langsung *fatal* di PHP 8.3 pada request pertama: *dynamic
+property* `Controller::$childClass` memicu deprecation, error handler lama
+mengubahnya jadi exception, lalu halaman error-nya sendiri ikut gagal.
+
+Yang diperbaiki:
+
+- `declare(strict_types=1)`, typed properties, constructor property promotion,
+  `match`, nullsafe operator di seluruh komponen inti.
+- Semua *dynamic property* dihapus (Controller, Uri, PropertiesLoader).
+  `ActiveRecord` sengaja diberi `#[\AllowDynamicProperties]` karena kolom
+  tabel memang menjadi properti objek.
+- `create_function()` (dihapus di PHP 8) → closure di `Request`.
+- `FILTER_SANITIZE_STRING`, `FILTER_FLAG_SCHEME_REQUIRED`, `apc_*` (jadi APCu),
+  `Redis::setnx()` dengan 3 argumen, dan beberapa variabel tak terdefinisi.
+
+Catatan desain: `Gear.php`, `Resources\Database`, `Resources\Session`, dan
+`PropertiesLoader` sengaja **tidak** `strict_types`. Mereka hanya meneruskan
+panggilan, dan segmen URL selalu string. Jadi `show(int $id)` tetap menerima
+`/post/show/15` sebagai integer 15, sedangkan `/post/show/abc` dijawab 404.
+
+## 2. Composer PSR-4 + autoloader bawaan sebagai fallback
+
+Urutan pemuatan kelas (`Gear::registerAutoloader()`):
+
+1. **Composer** (`vendor/autoload.php`), kalau sudah `composer install`.
+   Memetakan `Resources\` dan `Drivers\` (PSR-4), plus semua paket vendor.
+2. **Autoloader Panada**, selalu terdaftar. Memuat kelas aplikasi
+   (`Controllers\`, `Models\`, `Libraries\`, `Modules\`) dari folder yang
+   ditunjuk konstanta `APP`, plus namespace kustom di `main.php` → `namespace`.
+
+Kenapa kelas aplikasi tidak dipetakan di `composer.json`? Karena `APP` bisa
+diarahkan ke folder lain (satu core untuk beberapa aplikasi). Pemetaan statis di
+Composer akan diam-diam memuat controller dari folder yang salah.
+
+Autoloader Panada kini mengikuti aturan PSR-4: tidak pernah melempar exception
+saat file tidak ada, sehingga `class_exists()` bisa menjawab `false`.
+
+Pakai paket Composer apa saja langsung di controller:
+
+```bash
+composer require monolog/monolog
+```
+
+## 3. Database: PDO + prepared statement otomatis
+
+Driver lama (`mysql`, `mysqli`, `pgsql`, `sqlite`, `cubrid`, `mongodb`) dihapus.
+Sisa satu: `Drivers\Database\PanadaPDO` untuk MySQL/MariaDB, PostgreSQL, SQLite.
+
+Temuan di kode lama: `PanadaPDO::escape()` hanya `return $string;`, sehingga
+`insert()`, `update()`, dan `where()` menempelkan nilai mentah ke SQL.
+
+Aturan baru:
+
+- **Setiap nilai** dikirim sebagai parameter terikat (`?`), tidak pernah
+  disambung ke string SQL.
+- **Nama tabel/kolom** tidak bisa diikat, jadi dicek dengan pola ketat
+  (`users`, `u.name`, `COUNT(id)`). Selain itu ditolak. Aman untuk parameter
+  `?sort=` dari URL.
+- `update()` / `delete()` tanpa WHERE ditolak (cegah hapus seluruh tabel).
+- Error selalu dilempar sebagai `RunException` berisi SQL (tanpa nilai).
+
+API lama tetap sama:
+
+```php
+$db = new \Resources\Database();            // atau $this->resource->database()
+
+$db->insert('users', ['name' => $name, 'email' => $email]);
+$user  = $db->getOne('users', ['email' => $email]);
+$users = $db->select('id', 'name')->from('users')
+            ->where('status', 'IN', ['active', 'trial'])
+            ->where('deleted_at', '=', null)          // IS NULL
+            ->orderBy($_GET['sort'] ?? 'id', 'DESC')  // aman
+            ->limit(20, 0)
+            ->getAll();
+
+$db->where('id', '=', $id)->update('users', ['name' => $name]);
+$db->query('UPDATE posts SET views = views + 1 WHERE id = ?', [$id]);
+
+$db->transaction(function ($db) {
+    $db->insert('orders', [...]);
+    $db->insert('order_items', [...]);
+});   // exception di dalamnya = rollback
+```
+
+Baru: `whereRaw($sql, $bindings)`, `transaction()`, `affectedRows()`,
+`getLastBindings()`, binding bernama (`:email`), koneksi lazy, DSN mentah lewat
+`'dsn'`, dan `'options'` PDO di config.
+
+Konfigurasi default sekarang SQLite di `app/storage/database.sqlite` (tanpa
+setup). Contoh MySQL dan PostgreSQL ada di `app/config/database.php`.
+
+## 4. Validation: sanitize otomatis + CSRF bawaan
+
+Class-nya tetap `Resources\Validation` (di Panada tidak ada `Tools\Validation`),
+cara pakainya tidak berubah: extend, isi `setRules()`, panggil `validate()`.
+
+Perbaikan bug:
+
+- Field `required` yang **dihapus dari form** dulu lolos, karena yang di-loop
+  adalah input, bukan aturan. Sekarang yang di-loop adalah aturan.
+- `"0"` dulu dianggap kosong oleh `required`.
+- `min`/`max` memakai `mb_strlen` (huruf non-ASCII dihitung benar).
+- `url` hanya menerima `http`/`https` (`javascript:` ditolak).
+
+Sanitize otomatis: semua string di-*trim* dan dibersihkan dari karakter kontrol
+tak terlihat (termasuk NUL byte) sebelum aturan dijalankan. Per field ada
+`'filter'` dengan nama siap pakai (`trim`, `lower`, `upper`, `int`, `float`,
+`digits`, `strip_tags`, `email`, `escape`) atau callable apa saja.
+
+```php
+'email' => ['rules' => ['required', 'email'], 'filter' => ['lower']],
+'age'   => ['rules' => ['integer'], 'filter' => ['int']],
+```
+
+`value()` hanya mengembalikan field yang punya aturan, jadi field tambahan
+seperti `is_admin=1` dari pengunjung tidak ikut ke `insert()`.
+
+Sanitize bukan pengganti escape. Di view selalu pakai `e()`:
+
+```php
+<p><?= e($user->name) ?></p>
+```
+
+**CSRF** (`Resources\Csrf`) aktif otomatis. Gear memeriksa token pada setiap
+request selain GET/HEAD/OPTIONS, sebelum controller dijalankan; gagal = 403.
+
+```php
+<form method="post">
+    <?= csrf_field() ?>
+    ...
+</form>
+```
+
+AJAX: kirim header `X-CSRF-Token: <?= csrf_token() ?>`. Webhook atau API
+berbasis token dikecualikan di `app/config/security.php` → `csrf.except`
+(mis. `'api/*'`).
+
+## 5. Error handler interaktif
+
+`Resources\ErrorHandler` dipasang di fase bootstrap (`Gear::send()`).
+
+| `debug` | Whoops terpasang? | Hasil |
+| --- | --- | --- |
+| `true` | ya (`composer require --dev filp/whoops`) | Halaman interaktif Whoops; JSON untuk request AJAX |
+| `true` | tidak | Halaman bawaan Panada: pesan, potongan kode, stack trace (semua di-escape) |
+| `false` | apa saja | Halaman umum "Something went wrong", detail hanya ke error log |
+
+- Warning/notice diubah jadi exception agar tidak terlewat.
+- Deprecation hanya dicatat ke log, supaya upgrade PHP tidak menjatuhkan situs
+  (persis penyebab Panada lama mati di PHP 8.2).
+- Fatal error (mis. memori habis) ditangkap di shutdown.
+- Whoops dipakai hanya sebagai *renderer*, tidak didaftarkan global, jadi alur
+  respons tetap lewat `Resources\Response`.
+
+## 6. Session: cookie modern
+
+```php
+// app/config/session.php
+'cookieSecure'   => 'auto',   // Secure hanya saat HTTPS
+'cookieHttpOnly' => true,     // tidak bisa dibaca JavaScript
+'cookieSameSite' => 'Lax',    // 'None' otomatis memaksa Secure
+```
+
+- `session.use_strict_mode` aktif: ID session yang dikarang penyerang ditolak
+  (anti *session fixation*). Panggil `regenerateId()` setelah login.
+- Di balik reverse proxy (Traefik, Nginx, Cloudflare Tunnel), set
+  `'trustProxyHeaders' => true` di `main.php` agar `X-Forwarded-Proto: https`
+  dipercaya. Default `false`, karena header itu bisa dipalsukan pengunjung.
+- Driver `database` dan `cache` ditulis ulang sebagai `SessionHandlerInterface`.
+  Struktur tabel ada di `panada/Drivers/Session/DatabaseHandler.php`.
+- Driver `cookie` sekarang ditandatangani HMAC-SHA256 dan berformat JSON
+  (tidak ada `unserialize`), opsional dienkripsi. Dulu hanya MD5 checksum.
+- `Resources\Encryption` sekarang libsodium (authenticated encryption). Versi
+  lama hanya menggeser karakter, bukan enkripsi.
+
+---
+
+## Perubahan yang memutus kompatibilitas
+
+Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
+
+1. **PHP minimal 8.2.**
+2. **Semua form POST butuh `csrf_field()`.** Endpoint API/webhook masukkan ke
+   `csrf.except`.
+3. **Database hanya PDO.** Nama driver lama (`mysqli`, `postgres`, `sqlite3`)
+   dipetakan otomatis. MongoDB dan CUBRID dihapus.
+4. `where('a.id', '=', 'b.a_id')` dulu dianggap perbandingan kolom; sekarang
+   nilainya selalu diikat. Pakai `join()->on()` atau `whereRaw('a.id = b.a_id')`.
+5. Nama tabel/kolom dengan karakter khusus atau tanda kutip ditolak oleh query
+   builder. Pakai `query($sql, $bindings)` untuk kasus itu.
+6. `results()`/`getAll()` mengembalikan `[]` (bukan `false`) saat kosong.
+   `if (!$rows)` tetap bekerja.
+7. `update()`/`delete()` tanpa kondisi melempar exception. `setThrowError()`
+   tidak berefek lagi (error selalu dilempar).
+8. Hanya method **publik yang ditulis di controller Anda** yang bisa dipanggil
+   lewat URL. Method warisan (`output`, `redirect`, ...) tidak lagi bisa.
+9. Model yang memakai `$this->model` / `$this->library` / `$this->resource` harus
+   `extends \Resources\Model` (atau `use \Resources\Loadable;`).
+10. Validation: field opsional yang kosong melewati aturan lain; field
+    `required` yang tidak dikirim sekarang gagal.
+11. Session: cookie dari driver `cookie` versi lama tidak valid lagi (pengguna
+    logout sekali). Driver `cookie` dan `Encryption` butuh `secretKey` minimal
+    32 karakter. Data terenkripsi versi lama tidak bisa dibuka.
+12. Tampilan error diatur oleh `'debug'` di `main.php`, bukan lagi oleh
+    parameter `Gear::send()` (parameter itu kini hanya `error_reporting`).
+13. Controller yang mengembalikan array otomatis dikirim sebagai JSON.
+14. Cache query di `ActiveRecord` dihapus (rawan data basi setelah update).
+15. Driver cache `apc` sekarang memakai APCu.
+
+---
+
+## Menjalankan test
+
+```bash
+composer install
+composer test                      # = vendor/bin/phpunit
+
+# termasuk PostgreSQL:
+PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
+```
+
+Isi test suite:
+
+- `tests/Unit`: autoloader, config, encryption, request, validation, CSRF,
+  session (native/database/cookie), query builder (SQLite + PostgreSQL).
+- `tests/Http`: request HTTP sungguhan ke `php -S`. Mencakup aplikasi bawaan,
+  plus aplikasi fixture untuk mode error (Whoops / bawaan / produksi), mode
+  tanpa Composer, CSRF, dan flag cookie.
+
+## Belum disentuh
+
+Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
+PHPStan level 2), belum di-*strict type* dan belum punya test: `Email`, `Image`,
+`Upload`, `Pagination`, `Rest`, `Tools`, driver cache (`Redis`, `Memcache`,
+`Memcached`, `Apc`, `Dummy`), dan `ActiveRecord` (sudah di-port, belum diuji).

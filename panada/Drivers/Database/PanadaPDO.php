@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Panada PDO Database Driver, the only database driver since Panada 2.
+ * Panada PDO Database Driver, the only database driver since PHP 8 support.
  *
  * Supports MySQL/MariaDB, PostgreSQL and SQLite through PHP's PDO extension.
  * Every query is a prepared statement: values are bound, never concatenated.
