@@ -270,5 +270,5 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
 4. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
    (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
    hapus atau rapikan.
-5. Driver cache `memcache` (ekstensi lama) belum diuji di CI; PHP 8.4 belum ada
+5. PHP 8.4 belum ada
    di matrix CI.

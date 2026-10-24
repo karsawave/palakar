@@ -41,9 +41,10 @@ Upload, dll.) punya bug serta celah keamanan. Hampir tidak ada test.
 
 - 135 test PHPUnit, 18 di-skip lokal (14 PostgreSQL, 4 driver cache tanpa
   server). PHPStan level 2 tanpa temuan dan tanpa baseline.
-- **Belum terverifikasi:** workflow CI belum pernah dijalankan; test
-  PostgreSQL, Redis, Memcached, APCu baru akan jalan di CI. Driver `memcache`
-  (ekstensi lama) tidak diuji di mana pun.
+- Saat ditulis, CI belum pernah jalan. **Terverifikasi 2026-10-25** (CI #1,
+  commit `c2d2ca9`): PHP 8.2 dan 8.3 masing-masing OK, 135 test, 622
+  assertion, tanpa skip (PostgreSQL 16, Redis 7, Memcached, APCu, memcache
+  ikut jalan), PHPStan tanpa temuan.
 
 ## Breaking change
 

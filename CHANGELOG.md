@@ -10,10 +10,10 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
-## [0.1.0] - not released yet
+## [0.1.0] - 2026-10-25
 
 First version of Palakar, a fork of Panada Framework 1.1.1 by Iskandar
-Soesman, modernized for PHP 8.2+ (specs 000 and 001).
+Soesman, modernized for PHP 8.2+ (specs 000 to 010).
 
 ### Added
 
@@ -27,7 +27,8 @@ Soesman, modernized for PHP 8.2+ (specs 000 and 001).
 - `Resources\Configurable` (`setOption()` for Pagination, Upload, Image, Email).
 - PHPUnit test suite (135 tests, unit + real HTTP), PHPStan level 2,
   GitHub Actions CI with PostgreSQL, Redis and Memcached.
-- SECURITY.md, CONTRIBUTING.md, spec workflow in `_tasks/`.
+- SECURITY.md, CONTRIBUTING.md, credits, spec workflow in `_tasks/`,
+  Conventional Commits and master/development branch rules.
 
 ### Changed
 
@@ -65,3 +66,6 @@ Soesman, modernized for PHP 8.2+ (specs 000 and 001).
 
 - Database drivers mysql, mysqli, pgsql, sqlite, cubrid, mongodb (PDO only).
 - Panada logo and GitHub banner from the welcome page.
+
+[Unreleased]: https://github.com/karsawave/palakar/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/karsawave/palakar/releases/tag/v0.1.0

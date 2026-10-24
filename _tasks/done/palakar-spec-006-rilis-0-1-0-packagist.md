@@ -1,6 +1,6 @@
 # palakar-spec-006: Rilis 0.1.0 dan publikasi ke Packagist
 
-- **Status:** plan (menunggu `ACC SPEC 006`)
+- **Status:** done (ACC SPEC 006, 2026-10-25)
 - **Dibuat:** 2026-10-25
 - **Bergantung pada:** repo sudah ter-push ke `github.com/karsawave/palakar`
 
@@ -43,3 +43,18 @@ Kode, namespace, `"type": "project"` (dipasang dengan
 
 `composer validate` bersih; `git tag -l` menampilkan `v0.1.0`;
 setelah submit, `composer create-project karsawave/palakar demo` berhasil.
+
+## Hasil
+
+- Field `version` dihapus dari `composer.json`, `composer.lock` diperbarui;
+  `composer validate` tanpa peringatan.
+- CHANGELOG: `[0.1.0] - 2026-10-25` (pertanyaan terbuka: tanggal = hari tag,
+  nilai bawaan spec), mencakup spec 000–010, plus tautan perbandingan.
+- Tambahan yang disepakati sebelum ACC: hasil CI #1 dicatat di spec-000
+  (135 test, 622 assertion, tanpa skip, PHP 8.2 dan 8.3), dan butir backlog
+  "memcache belum diuji di CI" dihapus dari CLAUDE.md.
+- `development` di-merge ke `master` (`--no-ff`), tag beranotasi `v0.1.0`
+  di commit merge.
+- `composer test`: 135 test, 18 di-skip lokal; `composer analyse` bersih.
+- **Belum dilakukan:** push `master`, `development`, tag (perintah pemilik),
+  dan submit ke Packagist (manual, lihat langkah di atas).
