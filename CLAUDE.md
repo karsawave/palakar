@@ -67,8 +67,8 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli)
 
 - `declare(strict_types=1)` di semua file baru, **kecuali** file yang hanya
   meneruskan panggilan: `Gear.php`, `Resources/Database.php`,
-  `Resources/Session.php`, `Resources/PropertiesLoader.php`. Segmen URL selalu
-  string; kalau file ini strict, `show(int $id)` jadi TypeError.
+  `Resources/Session.php`, `Resources/Cache.php`, `Resources/PropertiesLoader.php`.
+  Segmen URL selalu string; kalau file ini strict, `show(int $id)` jadi TypeError.
 - Komentar dan docblock dalam bahasa Inggris (mengikuti kode asli), singkat,
   menjelaskan *kenapa*. Dokumentasi untuk pengguna dalam bahasa Indonesia.
 - Tidak boleh ada dynamic property. Pengecualian yang disengaja:

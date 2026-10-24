@@ -1,7 +1,20 @@
 <?php
 
+// No strict_types here on purpose: this class forwards calls coming from
+// your code to the cache driver, so it must not change the typing mode the
+// caller is used to (an $expire read from config may be a string).
+
 /**
  * Panada cache API.
+ *
+ *   $cache = new \Resources\Cache();          // 'default' in app/config/cache.php
+ *   $cache->setValue('rates', $rates, 3600);
+ *   $rates = $cache->getValue('rates');       // false when missing or expired
+ *
+ * Drivers: dummy (memory of the current request), apc (APCu), memcached,
+ * memcache and redis. Calls go to the driver, see
+ * panada/Resources/Interfaces/Cache.php. The Redis and Memcached drivers
+ * also accept their native methods, e.g. $cache->hSet(...).
  *
  * @link	http://panadaframework.com/
  *
@@ -10,66 +23,58 @@
  *
  * @since	Version 0.3
  */
+
 namespace Resources;
 
 /**
- * @method mixed getValue(string $key, string|false $namespace = false)
- * @method mixed setValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false)
- * @method mixed addValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false)
- * @method mixed updateValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false)
- * @method mixed deleteValue(string $key, string|false $namespace = false)
- * @method mixed flushValues()
+ * @mixin Interfaces\Cache
  */
 class Cache
 {
-    private $driver, $config;
+    /** Drivers that need a PHP extension. */
+    private const EXTENSIONS = [
+        'apc' => 'apcu',
+        'memcache' => 'memcache',
+        'memcached' => 'memcached',
+        'redis' => 'redis',
+    ];
 
-    public function __construct($connection = 'default', $specifiedDriver = false)
+    private Interfaces\Cache $driver;
+
+    public function __construct(string $connection = 'default', string|false $specifiedDriver = false)
     {
-        $this->config = Config::cache();
-        $this->config = $this->config[$connection];
+        $config = Config::cache()[$connection] ?? null;
 
-        if ($specifiedDriver) {
-            $this->config['driver'] = $specifiedDriver;
+        if (!is_array($config)) {
+            throw new RunException('Cache connection "'.$connection.'" is not defined in app/config/cache.php');
         }
 
-        $driverNamespace = 'Drivers\Cache\\'.ucwords($this->config['driver']);
+        $driver = strtolower((string) ($specifiedDriver ?: ($config['driver'] ?? '')));
+        $class = 'Drivers\\Cache\\'.ucfirst($driver);
 
-        $this->driver = new $driverNamespace($this->config);
+        if (isset(self::EXTENSIONS[$driver]) && !extension_loaded(self::EXTENSIONS[$driver])) {
+            throw new RunException('Cache driver "'.$driver.'" needs the '.self::EXTENSIONS[$driver].' PHP extension.');
+        }
+
+        if (!preg_match('/^[a-z]+$/', $driver) || !is_subclass_of($class, Interfaces\Cache::class)) {
+            throw new RunException('Unknown cache driver "'.$driver.'" in app/config/cache.php');
+        }
+
+        $this->driver = new $class($config);
     }
 
-    /**
-     * Use magic method 'call' to pass user method
-     * into driver method.
-     *
-     * @param string @name
-     * @param array @arguments
-     */
-    public function __call($name, $arguments)
+    public function __call(string $name, array $arguments): mixed
     {
-        return call_user_func_array(array($this->driver, $name), $arguments);
+        return $this->driver->$name(...$arguments);
     }
 
-    /**
-     * PHP Magic method for calling a class property dinamicly.
-     *
-     * @param string $name
-     *
-     * @return mix
-     */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return $this->driver->$name;
     }
 
-    /**
-     * PHP Magic method for set a class property dinamicly.
-     *
-     * @param string $name
-     * @param mix    $value
-     */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         $this->driver->$name = $value;
     }
-} // End Library_cache
+}

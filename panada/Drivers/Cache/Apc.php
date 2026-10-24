@@ -1,171 +1,61 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada APC API Driver.
+ * Panada APCu Driver: memory shared by the PHP processes of one server.
+ * On the command line it needs apc.enable_cli=1.
  *
  * @author	Iskandar Soesman
  *
  * @since	Version 0.2
- *
- * Install APC on Ubuntu: aptitude install libpcre3-dev;
- * pecl install apc
  */
+
 namespace Drivers\Cache;
 
-use Resources\Interfaces as Interfaces;
-use Resources\RunException as RunException;
+use Resources\Interfaces;
 
 class Apc implements Interfaces\Cache
 {
-    public function __construct()
+    use KeyNamespace;
+
+    public function setValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        /*
-        * Makesure APC extension is enabled
-        */
-       if (!extension_loaded('apcu')) {
-           throw new RunException('APC extension that required by APC Driver is not available.');
-       }
+        return apcu_store($this->keyToNamespace($key, $namespace), $value, $expire);
     }
 
-    /**
-     * PHP Magic method for calling a method dinamicly.
-     *
-     * @param string $name
-     * @param mix    $arguments
-     *
-     * @return mix
-     */
-    public function __call($name, $arguments)
+    public function addValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        return call_user_func_array($name, $arguments);
+        return apcu_add($this->keyToNamespace($key, $namespace), $value, $expire);
     }
 
-    /**
-     * PHP Magic method for calling a static method dinamicly.
-     *
-     * @param string $name
-     * @param mix    $arguments
-     *
-     * @return mix
-     */
-    public static function __callStatic($name, $arguments)
+    public function updateValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        return call_user_func_array($name, $arguments);
+        return $this->setValue($key, $value, $expire, $namespace);
     }
 
-    /**
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     */
-    public function setValue($key, $value, $expire = 0, $namespace = false)
+    public function getValue(string $key, string|false $namespace = false): mixed
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return apcu_store($key, $value, $expire);
+        return apcu_fetch($this->keyToNamespace($key, $namespace));
     }
 
-    /**
-     * Cached the value if the key doesn't exists,
-     * other wise will false.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     */
-    public function addValue($key, $value, $expire = 0, $namespace = false)
+    public function deleteValue(string $key, string|false $namespace = false): bool
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return apcu_add($key, $value, $expire);
+        return apcu_delete($this->keyToNamespace($key, $namespace));
     }
 
-    /**
-     * Update cache value base on the key given.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     */
-    public function updateValue($key, $value, $expire = 0, $namespace = false)
-    {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->setValue($key, $value, $expire);
-    }
-
-    /**
-     * @param string $key
-     *
-     * @return mix
-     */
-    public function getValue($key, $namespace = false)
-    {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return apcu_fetch($key);
-    }
-
-    /**
-     * @param string $key
-     */
-    public function deleteValue($key, $namespace = false)
-    {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return apcu_delete($key);
-    }
-
-    /**
-     * Flush all cached object.
-     *
-     * @return bool
-     */
-    public function flushValues()
+    public function flushValues(): bool
     {
         return apcu_clear_cache();
     }
 
-    /**
-     * Increment numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to increment the item's value
-     */
-    public function incrementBy($key, $offset = 1)
+    public function incrementBy(string $key, int $offset = 1): int|false
     {
         return apcu_inc($key, $offset);
     }
 
-    /**
-     * Decrement numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to decrement the item's value
-     */
-    public function decrementBy($key, $offset = 1)
+    public function decrementBy(string $key, int $offset = 1): int|false
     {
         return apcu_dec($key, $offset);
-    }
-
-    /**
-     * Namespace usefull when we need to wildcard deleting cache object.
-     *
-     * @param string $namespaceKey
-     *
-     * @return int Unixtimestamp
-     */
-    private function keyToNamespace($key, $namespaceKey = false)
-    {
-        if (!$namespaceKey) {
-            return $key;
-        }
-
-        if (!$namespaceValue = apcu_fetch($namespaceKey)) {
-            $namespaceValue = time();
-            apcu_store($namespaceKey, $namespaceValue, 0);
-        }
-
-        return $namespaceValue.'_'.$key;
     }
 }

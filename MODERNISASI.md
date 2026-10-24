@@ -54,9 +54,9 @@ Yang diperbaiki:
 - `FILTER_SANITIZE_STRING`, `FILTER_FLAG_SCHEME_REQUIRED`, `apc_*` (jadi APCu),
   `Redis::setnx()` dengan 3 argumen, dan beberapa variabel tak terdefinisi.
 
-Catatan desain: `Gear.php`, `Resources\Database`, `Resources\Session`, dan
-`PropertiesLoader` sengaja **tidak** `strict_types`. Mereka hanya meneruskan
-panggilan, dan segmen URL selalu string. Jadi `show(int $id)` tetap menerima
+Catatan desain: `Gear.php`, `Resources\Database`, `Resources\Session`,
+`Resources\Cache`, dan `PropertiesLoader` sengaja **tidak** `strict_types`.
+Mereka hanya meneruskan panggilan, dan segmen URL selalu string. Jadi `show(int $id)` tetap menerima
 `/post/show/15` sebagai integer 15, sedangkan `/post/show/abc` dijawab 404.
 
 ## 2. Composer PSR-4 + autoloader bawaan sebagai fallback
@@ -413,6 +413,40 @@ modern menolak LF tunggal).
 - `setStatusHeader()` kini mengatur status di `Response`; dulu langsung
   `header()` lalu ditimpa 200 saat Gear mengirim respons.
 
+### Cache
+
+```php
+$cache = new \Resources\Cache();              // 'default' di app/config/cache.php
+$cache->setValue('rates', $rates, 3600);
+$rates = $cache->getValue('rates');           // false bila tidak ada / kedaluwarsa
+
+$cache->setValue('item_15', $item, 0, 'products');
+$cache->deleteValue('products');              // semua nilai namespace 'products' hilang
+```
+
+Semua driver (`dummy`, `apc`, `memcached`, `memcache`, `redis`) kini lolos test
+kontrak yang sama (`tests/Unit/CacheTest.php`). Yang diperbaiki:
+
+- `dummy`: `flushValues()` dulu fatal, nilai `0`/`''`/`false` dulu dianggap
+  tidak ada, dan `setValue()` mengembalikan `null`, sehingga session driver
+  `cache` dengan `dummy` gagal menulis.
+- `redis`: kunci namespace dibaca dengan serializer berbeda di `deleteValue()`,
+  jadi menghapus nilai bernamespace mengenai kunci yang salah. `incrementBy()`
+  gagal untuk angka yang disimpan dengan `setValue()`. `delete()` lama diganti
+  `del()`.
+- `memcached`: opsi `persistent` dulu dikirim sebagai *weight* server.
+- `apc`: `$cache->namaFungsiApaSaja()` dulu diteruskan ke fungsi global PHP
+  dengan nama itu (termasuk `exec`). Dihapus.
+- Namespace memakai versi acak, bukan `time()`: namespace yang dihapus lalu
+  dipakai lagi di detik yang sama dulu menampilkan nilai lama.
+- Ekstensi yang belum terpasang, koneksi atau driver yang salah tulis memberi
+  `RunException` yang jelas (dulu `die()` atau warning). Di `app/config/cache.php`
+  koneksi `memcached` dulu memakai driver `memcache`.
+
+Test Redis/Memcached jalan bila server tersedia:
+`PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test`.
+APCu butuh `apc.enable_cli=1`.
+
 ---
 
 ## Perubahan yang memutus kompatibilitas
@@ -479,6 +513,16 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
 30. `Tools::setStatusHeader($code, $text)`: `$text` diabaikan (PHP mengirim
     teks status standar). `Tools::xmlDecode()` mengembalikan `false` untuk XML
     tidak valid.
+31. Cache `apc`: method yang tidak ada di driver tidak lagi diteruskan ke
+    fungsi global (`$cache->apcu_cas(...)` tidak bisa lagi; panggil fungsinya
+    langsung).
+32. Cache `dummy`: method statis `_get()`, `_set()`, `_delete()`, `_flush()`
+    dihapus. `deleteValue()` mengembalikan `bool` di semua driver (Redis dulu
+    jumlah kunci).
+33. Nilai bernamespace yang disimpan versi lama tidak terbaca lagi (versi
+    namespace kini acak), cukup diisi ulang. Driver cache buatan sendiri yang
+    meng-*implements* `Resources\Interfaces\Cache` tetap jalan (interface hanya
+    menambah tipe parameter, tanpa tipe return).
 
 ---
 
@@ -499,11 +543,3 @@ Isi test suite:
 - `tests/Http`: request HTTP sungguhan ke `php -S`. Mencakup aplikasi bawaan,
   plus aplikasi fixture untuk mode error (Whoops / bawaan / produksi), mode
   tanpa Composer, CSRF, dan flag cookie.
-
-## Belum disentuh
-
-Komponen berikut hanya diperbaiki sebatas kompatibel PHP 8 (lolos lint dan
-PHPStan level 2), belum di-*strict type* dan belum punya test:
-driver cache (`Redis`, `Memcache`,
-`Memcached`, `Apc`, `Dummy`). Temuan PHPStan lama mereka ada di
-`phpstan-baseline.neon` dan hilang satu per satu saat komponennya dirapikan.

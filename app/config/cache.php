@@ -11,7 +11,7 @@ return [
     ],
 
     'memcached' => [
-        'driver' => 'memcache',
+        'driver' => 'memcached',
         'server' => [
             [
                 'host' => 'localhost',

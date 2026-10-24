@@ -1,155 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada Memcached API Driver.
+ * Panada Memcached Driver (the "memcached" PHP extension).
  *
  * @author	Iskandar Soesman
  *
  * @since	Version 0.1
  */
 
-/**
- * EN: Makesure Memcache extension is enabled.
- */
 namespace Drivers\Cache;
 
-use Resources\Interfaces as Interfaces;
+use Resources\Interfaces;
 
 class Memcached extends \Memcached implements Interfaces\Cache
 {
-    private $port = 11211;
+    use KeyNamespace;
 
-    public function __construct($config)
+    public function __construct(array $config)
     {
-        if (!extension_loaded('memcached')) {
-            die('Memcached extension that required by Driver memcached is not available.');
-        }
-
         parent::__construct();
 
-        foreach ($config['server'] as $server) {
-            $this->addServer($server['host'], $server['port'], $server['persistent']);
+        foreach ($config['server'] ?? [] as $server) {
+            $this->addServer($server['host'] ?? '127.0.0.1', (int) ($server['port'] ?? 11211), (int) ($server['weight'] ?? 0));
         }
     }
 
-    /**
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     * @param string $namespace
-     */
-    public function setValue($key, $value, $expire = 0, $namespace = false)
+    public function setValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->set($key, $value, $expire);
+        return $this->set($this->keyToNamespace($key, $namespace), $value, $expire);
     }
 
-    /**
-     * Cached the value if the key doesn't exists,
-     * other wise will false.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     * @param string $namespace
-     */
-    public function addValue($key, $value, $expire = 0, $namespace = false)
+    public function addValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->add($key, $value, $expire);
+        return $this->add($this->keyToNamespace($key, $namespace), $value, $expire);
     }
 
-    /**
-     * Update cache value base on the key given.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     * @param string $namespace
-     */
-    public function updateValue($key, $value, $expire = 0, $namespace = false)
+    /** Only when the key exists. */
+    public function updateValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->replace($key, $value, $expire);
+        return $this->replace($this->keyToNamespace($key, $namespace), $value, $expire);
     }
 
-    /**
-     * @param string $key
-     * @param string $namespace
-     *
-     * @return mix
-     */
-    public function getValue($key, $namespace = false)
+    public function getValue(string $key, string|false $namespace = false): mixed
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->get($key);
+        return $this->get($this->keyToNamespace($key, $namespace));
     }
 
-    /**
-     * @param string $key
-     * @param string $namespace
-     */
-    public function deleteValue($key, $namespace = false)
+    public function deleteValue(string $key, string|false $namespace = false): bool
     {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->delete($key);
+        return $this->delete($this->keyToNamespace($key, $namespace));
     }
 
-    /**
-     * Flush all cached object.
-     *
-     * @return bool
-     */
-    public function flushValues()
+    public function flushValues(): bool
     {
         return $this->flush();
     }
 
-    /**
-     * Increment numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to increment the item's value
-     */
-    public function incrementBy($key, $offset = 1)
+    public function incrementBy(string $key, int $offset = 1): int|false
     {
         return $this->increment($key, $offset);
     }
 
-    /**
-     * Decrement numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to decrement the item's value
-     */
-    public function decrementBy($key, $offset = 1)
+    public function decrementBy(string $key, int $offset = 1): int|false
     {
         return $this->decrement($key, $offset);
-    }
-
-    /**
-     * Namespace usefull when we need to wildcard deleting cache object.
-     *
-     * @param string $namespaceKey
-     *
-     * @return int Unixtimestamp
-     */
-    private function keyToNamespace($key, $namespaceKey = false)
-    {
-        if (!$namespaceKey) {
-            return $key;
-        }
-
-        if (!$namespaceValue = $this->get($namespaceKey)) {
-            $namespaceValue = time();
-            $this->set($namespaceKey, $namespaceValue, 0);
-        }
-
-        return $namespaceValue.'_'.$key;
     }
 }

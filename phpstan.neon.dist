@@ -1,9 +1,3 @@
-includes:
-    # Old findings in the legacy resources (see the backlog in CLAUDE.md).
-    # Each component that gets modernized removes its entries; then this
-    # file goes away.
-    - phpstan-baseline.neon
-
 parameters:
     level: 2
     paths:

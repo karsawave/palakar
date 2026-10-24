@@ -1,155 +1,84 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada Local Memory Cacher.
- * This class useful when you calling an object twice or
- * more in a single run time.
+ * Panada Local Memory Cacher: values live until the end of this request.
+ * Handy when the same object is needed twice in one request, and as a
+ * stand-in for a cache server in development. Expiry is ignored.
  *
  * @author	Iskandar Soesman
  *
  * @since	Version 0.3
  */
+
 namespace Drivers\Cache;
 
-use Resources\Interfaces as Interfaces;
+use Resources\Interfaces;
 
 class Dummy implements Interfaces\Cache
 {
-    private static $holder = array();
+    use KeyNamespace;
 
-    public function __construct()
+    /** Shared by every Dummy of this request. */
+    private static array $holder = [];
+
+    public function setValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        // none
-    }
-
-    /**
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     */
-    public function setValue($key, $value, $expire = 0, $namespace = false)
-    {
-        return self::_set($key, $value);
-    }
-
-    /**
-     * Cached the value if the key doesn't exists,
-     * other wise will false.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     */
-    public function addValue($key, $value, $expire = 0, $namespace = false)
-    {
-        return self::_get($key) ? false : self::_set($key, $value);
-    }
-
-    /**
-     * Update cache value base on the key given.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     */
-    public function updateValue($key, $value, $expire = 0, $namespace = false)
-    {
-        return self::_set($key, $value);
-    }
-
-    /**
-     * @param string $key
-     *
-     * @return mix
-     */
-    public function getValue($key, $namespace = false)
-    {
-        return self::_get($key);
-    }
-
-    /**
-     * @param string $key
-     */
-    public function deleteValue($key, $namespace = false)
-    {
-        return self::_delete($key);
-    }
-
-    /**
-     * Flush all cached object.
-     *
-     * @return bool
-     */
-    public function flushValues()
-    {
-        return self::_flush();
-    }
-
-    /**
-     * @param string $key
-     *
-     * @return mix
-     */
-    public static function _get($key = false)
-    {
-        if (isset(self::$holder[$key])) {
-            return self::$holder[$key];
-        }
-
-        return false;
-    }
-
-    /**
-     * @param string $key
-     * @param mix
-     */
-    public static function _set($key, $value)
-    {
-        self::$holder[$key] = $value;
-    }
-
-    /**
-     * @param string $key
-     */
-    public static function _delete($key)
-    {
-        unset(self::$holder[$key]);
-    }
-
-    public static function _flush()
-    {
-        unset(self::$holder);
+        self::$holder[$this->keyToNamespace($key, $namespace)] = $value;
 
         return true;
     }
 
-    /**
-     * Increment numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to increment the item's value
-     */
-    public function incrementBy($key, $offset = 1)
+    public function addValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        $incr = $this->getValue($key) + $offset;
+        $key = $this->keyToNamespace($key, $namespace);
 
-        $this->updateValue($key, $incr);
+        if (array_key_exists($key, self::$holder)) {
+            return false;
+        }
 
-        return $incr;
+        self::$holder[$key] = $value;
+
+        return true;
     }
 
-    /**
-     * Decrement numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to decrement the item's value
-     */
-    public function decrementBy($key, $offset = 1)
+    public function updateValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
     {
-        $decr = $this->getValue($key) - $offset;
+        return $this->setValue($key, $value, $expire, $namespace);
+    }
 
-        $this->updateValue($key, $decr);
+    public function getValue(string $key, string|false $namespace = false): mixed
+    {
+        $key = $this->keyToNamespace($key, $namespace);
 
-        return $decr;
+        return array_key_exists($key, self::$holder) ? self::$holder[$key] : false;
+    }
+
+    public function deleteValue(string $key, string|false $namespace = false): bool
+    {
+        unset(self::$holder[$this->keyToNamespace($key, $namespace)]);
+
+        return true;
+    }
+
+    public function flushValues(): bool
+    {
+        self::$holder = [];
+
+        return true;
+    }
+
+    public function incrementBy(string $key, int $offset = 1): int
+    {
+        $value = (int) $this->getValue($key) + $offset;
+        $this->setValue($key, $value);
+
+        return $value;
+    }
+
+    public function decrementBy(string $key, int $offset = 1): int
+    {
+        return $this->incrementBy($key, -$offset);
     }
 }

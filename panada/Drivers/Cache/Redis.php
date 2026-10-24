@@ -1,184 +1,111 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Panada Redis API Driver.
+ * Panada Redis Driver (the "redis" PHP extension).
+ *
+ * Values are serialize()d (the same bytes phpredis' PHP serializer writes,
+ * so old entries stay readable), except integers: Redis stores them as
+ * they are, so incrementBy() works on a value set by setValue().
  *
  * @author	Iskandar Soesman
  *
  * @since	Version 1.0
  */
 
-/**
- * Makesure Memcache extension is enabled.
- */
 namespace Drivers\Cache;
 
-use Resources\Interfaces as Interfaces;
+use Resources\Interfaces;
+use Resources\RunException;
 
 class Redis extends \Redis implements Interfaces\Cache
 {
-    private $port = 6379;
+    use KeyNamespace;
 
-    public function __construct($config)
+    public function __construct(array $config)
     {
-        if (!extension_loaded('redis')) {
-            die('Redis extension that required by Driver Redis is not available.');
-        }
-
         parent::__construct();
 
-        foreach ($config['server'] as $server) {
-            if ($server['persistent']) {
-                $this->pconnect($server['host'], $server['port'], $server['timeout']);
+        $server = $config['server'][0] ?? [];
+        $host = $server['host'] ?? '127.0.0.1';
+        $port = (int) ($server['port'] ?? 6379);
+
+        try {
+            if (!empty($server['persistent'])) {
+                $this->pconnect($host, $port, (float) ($server['timeout'] ?? 0));
             } else {
-                $this->connect($server['host'], $server['port'], $server['timeout']);
+                $this->connect($host, $port, (float) ($server['timeout'] ?? 0));
             }
+
+            if (!empty($config['password'])) {
+                $this->auth($config['password']);
+            }
+        } catch (\RedisException $e) {
+            throw new RunException('Unable to connect to Redis at '.$host.':'.$port.': '.$e->getMessage(), 0, E_ERROR, null, null, $e);
+        }
+    }
+
+    public function setValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
+    {
+        $key = $this->keyToNamespace($key, $namespace);
+
+        return (bool) ($expire > 0 ? $this->setex($key, $expire, $this->pack($value)) : $this->set($key, $this->pack($value)));
+    }
+
+    public function addValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
+    {
+        // SET with NX: only when the key is missing.
+        $options = $expire > 0 ? ['nx', 'ex' => $expire] : ['nx'];
+
+        return (bool) $this->set($this->keyToNamespace($key, $namespace), $this->pack($value), $options);
+    }
+
+    public function updateValue(string $key, mixed $value, int $expire = 0, string|false $namespace = false): bool
+    {
+        return $this->setValue($key, $value, $expire, $namespace);
+    }
+
+    public function getValue(string $key, string|false $namespace = false): mixed
+    {
+        $value = $this->get($this->keyToNamespace($key, $namespace));
+
+        if (!is_string($value)) {
+            return false;
         }
 
-        if (isset($config['password']) && $config['password']) {
-            $this->auth($config['password']);
-        }
+        return preg_match('/^-?\d+$/', $value) ? (int) $value : unserialize($value);
+    }
+
+    public function deleteValue(string $key, string|false $namespace = false): bool
+    {
+        return (bool) $this->del($this->keyToNamespace($key, $namespace));
     }
 
     /**
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     * @param string $namespace
+     * Empties the whole Redis database of this connection.
      */
-    public function setValue($key, $value, $expire = 0, $namespace = false)
+    public function flushValues(): bool
     {
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
-
-        $key = $this->keyToNamespace($key, $namespace);
-        $return = $this->set($key, $value, $expire);
-
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_NONE);
-
-        return $return;
+        return (bool) $this->flushDB();
     }
 
-    /**
-     * Cached the value if the key doesn't exists,
-     * other wise will false.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     * @param string $namespace
-     */
-    public function addValue($key, $value, $expire = 0, $namespace = false)
+    public function incrementBy(string $key, int $offset = 1): int|false
     {
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+        $value = $this->incrBy($key, $offset);
 
-        $key = $this->keyToNamespace($key, $namespace);
-        // SET with NX + EX: add only when missing, with an expiry (setnx() takes no expiry).
-        $return = $expire > 0 ? $this->set($key, $value, ['nx', 'ex' => $expire]) : $this->setnx($key, $value);
-
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_NONE);
-
-        return $return;
+        return is_int($value) ? $value : false;
     }
 
-    /**
-     * Update cache value base on the key given.
-     *
-     * @param string $key
-     * @param mix    $value
-     * @param int    $expire
-     * @param string $namespace
-     */
-    public function updateValue($key, $value, $expire = 0, $namespace = false)
+    public function decrementBy(string $key, int $offset = 1): int|false
     {
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+        $value = $this->decrBy($key, $offset);
 
-        $key = $this->keyToNamespace($key, $namespace);
-        $return = $this->setValue($key, $value, $expire);
-
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_NONE);
-
-        return $return;
+        return is_int($value) ? $value : false;
     }
 
-    /**
-     * @param string $key
-     * @param string $namespace
-     *
-     * @return mix
-     */
-    public function getValue($key, $namespace = false)
+    private function pack(mixed $value): string
     {
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
-
-        $key = $this->keyToNamespace($key, $namespace);
-        $return = $this->get($key);
-
-        $this->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_NONE);
-
-        return $return;
-    }
-
-    /**
-     * @param string $key
-     * @param string $namespace
-     */
-    public function deleteValue($key, $namespace = false)
-    {
-        $key = $this->keyToNamespace($key, $namespace);
-
-        return $this->delete($key);
-    }
-
-    /**
-     * Flush all cached object.
-     *
-     * @return bool
-     */
-    public function flushValues()
-    {
-        return $this->flushDB();
-    }
-
-    /**
-     * Increment numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to increment the item's value
-     */
-    public function incrementBy($key, $offset = 1)
-    {
-        return $this->incr($key, $offset);
-    }
-
-    /**
-     * Decrement numeric item's value.
-     *
-     * @param string $key    The key of the item
-     * @param int    $offset The amount by which to decrement the item's value
-     */
-    public function decrementBy($key, $offset = 1)
-    {
-        return $this->decr($key, $offset);
-    }
-
-    /**
-     * Namespace usefull when we need to wildcard deleting cache object.
-     *
-     * @param string $namespaceKey
-     *
-     * @return int Unixtimestamp
-     */
-    private function keyToNamespace($key, $namespaceKey = false)
-    {
-        if (!$namespaceKey) {
-            return $key;
-        }
-
-        if (!$namespaceValue = $this->get($namespaceKey)) {
-            $namespaceValue = time();
-            $this->set($namespaceKey, $namespaceValue, 0);
-        }
-
-        return $namespaceValue.'_'.$key;
+        return is_int($value) ? (string) $value : serialize($value);
     }
 }
