@@ -164,6 +164,30 @@ mendistribusikan ulang boleh tanpa izin, dengan syarat berikut.
 - Tidak ada force push ke `master` atau `development`. Sebelum commit, cek
   branch aktif (`git branch --show-current`) adalah `development`.
 
+## Rilis (wajib, spec-022)
+
+Tag `vX.Y.Z` hanya dibuat bila **semua** poin ini terpenuhi, termasuk
+rilis patch. Satu poin gagal: perbaiki di `development`, lalu ulangi dari
+poin 1. Tidak ada "rilis dulu, perbaiki nanti": bug yang lolos rilis
+menjadi utang yang ditemukan pengguna, bukan kita.
+
+1. **CI hijau** di commit yang dirilis: semua versi PHP di matrix dan
+   semua service (PostgreSQL, MariaDB, Redis, Memcached), tanpa test yang
+   dilewati.
+2. **Lokal:** `composer test` dan `composer analyse` hijau.
+3. **Uji dari paket, bukan dari repo:** `composer create-project` (atau
+   `composer archive`) di folder kosong, `composer serve`, lalu buka
+   manual: halaman awal, demo Guestbook (form + CSRF), halaman error
+   dengan `debug` true dan false.
+4. **`composer audit`** tanpa temuan.
+5. **Dokumen:** CHANGELOG `[Unreleased]` → `[X.Y.Z] - tanggal`; setiap
+   breaking change ada di CHANGELOG dan MODERNISASI.md; versi yang
+   didukung di SECURITY.md diperbarui.
+6. **Utang tidak tersembunyi:** `grep -rn "TODO\|FIXME\|ponytail:" panada/`;
+   setiap temuan diperbaiki atau dicatat di Backlog beserta alasannya.
+7. **Hasil dicatat** di spec rilis (hash commit, link run CI, jumlah
+   test, hasil uji manual). Baru setelah itu merge ke `master` dan tag.
+
 ## Alur kerja spec (wajib)
 
 Setiap perubahan kode atau dokumen proyek dimulai dari spec di `_tasks/`.

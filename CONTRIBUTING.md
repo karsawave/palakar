@@ -56,8 +56,11 @@ BREAKING CHANGE: .php*, .phtml, .phar, .htaccess are always refused.
 
 ```bash
 composer test       # semua test hijau
-composer analyse    # PHPStan level 2 tanpa temuan
+composer analyse    # PHPStan level 5 tanpa temuan
 ```
+
+Rilis hanya dibuat setelah checklist uji di bagian "Rilis" `CLAUDE.md`
+terpenuhi (CI, uji dari paket, audit, dokumen).
 
 - Bug atau fitur baru disertai test. Test ditulis dulu dan harus gagal
   terhadap kode lama.
