@@ -1,6 +1,6 @@
 # palakar-spec-025: Bingkai, layout view standar
 
-**Status:** plan
+**Status:** done (2026-10-25)
 
 ## Masalah
 
@@ -114,3 +114,29 @@ template atau cache di disk. Tambahan per request hanya satu `include` dan satu
 ## Breaking change
 
 Tidak ada untuk core. Hanya aplikasi contoh `app/` (dicatat di CHANGELOG).
+
+## Hasil
+
+- Pertanyaan terbuka: diterima sesuai usul (ACC SPEC 025): nama Bingkai,
+  `header.php` dihapus, teks contoh tetap bahasa Inggris.
+- Test ditulis dulu: `SkeletonAppTest` (judul, skip link, satu `<main>`,
+  satu `<h1>`, satu `</html>`) gagal di view lama, lulus sesudahnya.
+- Lokal (PHP 8.3): 151 test, 497 assertion, 32 skip (test server tanpa env).
+  PHPStan level 5 tanpa temuan, `composer cs` 0 file.
+- `php -S`: halaman awal dan Guestbook 200 dengan layout; 404 memuat CSS
+  bersama. Validator W3C (nu) tanpa pesan untuk halaman awal dan Guestbook.
+- CSS 2.718 byte. Kontras dihitung dengan rumus WCAG: teks 14,7:1, tautan
+  `#0b5cad` 6,7:1, teks redup 7,6:1, error 6,4:1; mode gelap tautan 8,6:1.
+- Penyimpangan kecil: `$head` dan `$scripts` ditambah sebagai slot opsional
+  di layout (contoh aturan 4); `$this->uri` dicek di halaman error karena
+  bisa `null` saat error terjadi di fase bootstrap.
+
+## Belum terverifikasi
+
+- Uji visual di browser (ponsel 360px, zoom 200%, Tab saja) **belum bisa**:
+  `composer serve` tidak melayani CSS (bug lama, bukan dari spec ini),
+  dicatat di spec-027.
+- Komentar `Controller.php:30` masih menyebut `output('header')`; tidak
+  diubah karena spec ini tidak menyentuh core.
+- README masih menulis "PHPStan level 2" (seharusnya 5) dan belum menyebut
+  `composer cs`; di luar cakupan.

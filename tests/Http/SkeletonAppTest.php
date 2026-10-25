@@ -37,6 +37,19 @@ final class SkeletonAppTest extends HttpTestCase
         $this->assertSame(['nosniff'], $response['headers']['x-content-type-options']);
         $this->assertSame(['SAMEORIGIN'], $response['headers']['x-frame-options']);
         $this->assertSame(['strict-origin-when-cross-origin'], $response['headers']['referrer-policy']);
+        $this->assertUsesLayout($response['body'], 'Hello world!');
+    }
+
+    /**
+     * Pages are wrapped by views/layouts/main.php: one landmark set, one <h1>.
+     */
+    private function assertUsesLayout(string $body, string $title): void
+    {
+        $this->assertStringContainsString('<title>' . $title . '</title>', $body);
+        $this->assertStringContainsString('href="#isi"', $body, 'Skip link');
+        $this->assertSame(1, substr_count($body, '<main id="isi"'));
+        $this->assertSame(1, substr_count($body, '<h1'));
+        $this->assertSame(1, substr_count($body, '</html>'));
     }
 
     public function testInheritedControllerMethodsAreNotRoutable(): void
@@ -59,6 +72,7 @@ final class SkeletonAppTest extends HttpTestCase
     {
         $page = $this->request(self::$url . '/guestbook');
         $this->assertSame(200, $page['status']);
+        $this->assertUsesLayout($page['body'], 'Guestbook');
 
         $cookie = $page['headers']['set-cookie'][0];
         $this->assertStringContainsString('HttpOnly', $cookie);

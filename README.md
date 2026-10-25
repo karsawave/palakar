@@ -36,6 +36,35 @@ composer serve          # php -S localhost:8000 -t public public/index.php
 
 Then open http://localhost:8000/ and http://localhost:8000/check.php.
 
+Layout (Bingkai)
+----------------
+
+Views are plain PHP; there is no template engine. A layout is a view that
+receives another rendered view as `$content`:
+
+```php
+return $this->output('layouts/main', [
+    'title'   => 'Guestbook',
+    'content' => $this->output('guestbook', $data),
+]);
+```
+
+Six rules keep it simple and fast (OPcache caches views; there is no
+compile step):
+
+1. One layout per look, in `views/layouts/`; page views hold content only.
+2. Layouts do not think: no queries or models, the controller prepares data.
+3. Print everything with `e()`, except `$content` (already-rendered HTML).
+4. Optional slots use `??`: `<?= $scripts ?? '' ?>`, `e($title ?? 'Palakar')`.
+5. Reuse pieces as partials: `<?= $this->output('partials/footer') ?>`.
+6. One level only: view, then layout. No layout inside a layout.
+
+The sample theme in `public/assets/css/main.css` uses CSS variables (change
+the colors in `:root`), follows WCAG 2.2 AA contrast, works on phones and
+supports dark mode, without a build step. Set `<html lang>` to the language
+of your content. Error pages in `views/errors/` stay standalone so they still
+render when a layout is broken.
+
 Tests
 -----
 

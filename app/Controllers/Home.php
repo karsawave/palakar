@@ -8,8 +8,9 @@ class Home extends Resources\Controller
 {
     public function index()
     {
-        $data['title'] = 'Hello world!';
-
-        return $this->output('home', $data);
+        return $this->output('layouts/main', [
+            'title' => 'Hello world!',
+            'content' => $this->output('home'),
+        ]);
     }
 }

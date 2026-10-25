@@ -1,14 +1,94 @@
-html{background:#ddd;;}
-body{background:#fff;color:#333;font-family:"Lucida Grande",Verdana,Arial,sans-serif;margin:1em auto;width:700px;padding:1em 2em;border-radius:11px;border:1px solid #999;}
-a{color:#2583ad;text-decoration:none;}
-a:hover{color:#d54e21;}
-a img{border:0;}
-h1{border-bottom:1px solid #dadada;clear:both;color:#666;font:24px Georgia,"Times New Roman",Times,serif;margin:5px 0 0 -4px; padding-top:5px;}
-h1.logo{margin:7px 0 20px 0;border-bottom:none; text-align:center;}
-h2{font-size:16px;}p,li,dd,dt,td{padding-bottom:2px;font-size:12px;line-height:18px;}
-h3{font-size:14px;}
-ul,ol,dl{padding:5px 5px 5px 22px; }
-p{text-align: justify;}
-code{font:14px Consolas,Courier New,Verdana;background:#ddf;color:#c00;border:1px solid #D0D0D0;display:block;margin:14px 0;padding:10px;border-radius:8px;}
-#foot {text-align: left; margin-top: 1.8em; border-top: 1px solid #dadada; padding-top: 1em; font-size: 0.7em;}
-#foot span.right {float:right;}
+/* Palakar sample theme. Change the colors here; contrast meets WCAG 2.2 AA. */
+:root {
+    --bg: #ffffff;
+    --surface: #f3f4f6;
+    --text: #1f2937;
+    --muted: #4b5563;
+    --link: #0b5cad;
+    --border: #d1d5db;
+    --error: #b91c1c;
+    --focus: #0b5cad;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, Consolas, "Courier New", monospace;
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #111827;
+        --surface: #1f2937;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --link: #7cb8ff;
+        --border: #374151;
+        --error: #fca5a5;
+        --focus: #7cb8ff;
+    }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0 auto;
+    max-width: 48rem;
+    padding: 0 1rem;
+    background: var(--bg);
+    color: var(--text);
+    font: 1rem/1.6 var(--font);
+    overflow-wrap: break-word;
+}
+
+a { color: var(--link); }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+h1, h2, h3 { line-height: 1.25; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.3rem; }
+
+code, pre {
+    font-family: var(--mono);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+code { display: block; padding: .5rem .75rem; overflow-x: auto; }
+pre { padding: .75rem; overflow: auto; }
+
+/* Visible only when focused with the keyboard. */
+.lewati { position: absolute; left: -999rem; }
+.lewati:focus { position: static; display: inline-block; padding: .5rem; }
+
+header.situs { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.logo { font-weight: 700; font-size: 1.25rem; text-decoration: none; }
+footer.situs { margin: 2rem 0; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .875rem; }
+
+label { display: block; font-weight: 600; }
+input, textarea, button { font: inherit; color: inherit; }
+input, textarea {
+    width: 100%;
+    padding: .5rem;
+    background: var(--bg);
+    border: 1px solid var(--muted);
+    border-radius: 6px;
+}
+button {
+    padding: .5rem 1.25rem;
+    background: var(--link);
+    color: var(--bg);
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.errors { color: var(--error); }
+.entry { padding: .75rem 0; border-top: 1px solid var(--border); }
+.entry small { color: var(--muted); }
+
+/* Error page source listing (debug mode). */
+.n { display: inline-block; width: 3em; color: var(--muted); }
+.current { display: block; color: var(--error); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

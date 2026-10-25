@@ -15,6 +15,19 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 - `.editorconfig` and PER Coding Style 2.0 checked by PHP-CS-Fixer
   (`composer cs`, `composer cs:fix`, and in CI). Whitespace-only reformat
   of the code base; no behavior change.
+- Sample app: shared layout `views/layouts/main.php` and
+  `views/partials/footer.php` ("Bingkai", see README). No core change.
+
+### Changed
+
+- Sample app views: semantic HTML (skip link, `<main>`, one `<h1>`),
+  responsive theme with WCAG 2.2 AA contrast and dark mode. Error pages load
+  the same stylesheet.
+
+### Removed
+
+- Sample app `views/header.php`, replaced by the layout. Applications that
+  call `output('header')` keep their own copy.
 
 ## [0.2.0] - 2026-10-25
 
