@@ -24,6 +24,11 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
   responsive theme with WCAG 2.2 AA contrast and dark mode. Error pages load
   the same stylesheet.
 
+### Fixed
+
+- `composer serve` answered every static file (such as the CSS) with the
+  home page, so the sample pages had no styling on the dev server.
+
 ### Removed
 
 - Sample app `views/header.php`, replaced by the layout. Applications that
