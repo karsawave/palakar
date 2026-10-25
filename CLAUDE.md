@@ -38,6 +38,7 @@ composer install                    # Whoops + PHPUnit (dev)
 composer serve                      # php -S localhost:8000 -t public public/index.php
 composer test                       # semua test (unit + http)
 composer analyse                    # PHPStan level 5 (phpstan.neon.dist)
+composer cs                         # PER-CS 2.0 (cs:fix untuk merapikan)
 vendor/bin/phpunit --testsuite unit
 vendor/bin/phpunit --testsuite http
 vendor/bin/phpunit --filter ValidationTest
@@ -48,7 +49,7 @@ PANADA_TEST_MYSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada
 PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test
 ```
 
-`composer test` dan `composer analyse` wajib hijau sebelum commit. PHPStan
+`composer test`, `composer analyse`, dan `composer cs` wajib hijau sebelum commit. PHPStan
 tidak memakai baseline; temuan baru diperbaiki, bukan diabaikan.
 
 ## Struktur
@@ -81,7 +82,8 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 
 - `declare(strict_types=1)` di semua file baru, **kecuali** file yang hanya
   meneruskan panggilan: `Gear.php`, `Resources/Database.php`,
-  `Resources/Session.php`, `Resources/Cache.php`, `Resources/PropertiesLoader.php`.
+  `Resources/Session.php`, `Resources/Cache.php`, `Resources/PropertiesLoader.php`,
+  `Resources/Import.php` (meneruskan argumen ke kelas vendor lama).
   Segmen URL selalu string; kalau file ini strict, `show(int $id)` jadi TypeError.
 - Komentar dan docblock dalam bahasa Inggris (mengikuti kode asli), singkat,
   menjelaskan *kenapa*. Dokumentasi untuk pengguna dalam bahasa Indonesia.
@@ -178,7 +180,7 @@ menjadi utang yang ditemukan pengguna, bukan kita.
    harus sama dengan `git rev-parse HEAD`. Gagal karena infrastruktur
    (timeout unduh, runner): `gh run rerun --failed`, baru lolos setelah
    hijau, penyebabnya dicatat di spec rilis.
-2. **Lokal:** `composer test` dan `composer analyse` hijau.
+2. **Lokal:** `composer test`, `composer analyse`, dan `composer cs` hijau.
 3. **Uji dari paket, bukan dari repo:** `composer create-project` (atau
    `composer archive`) di folder kosong, `composer serve`, lalu buka
    manual: halaman awal, demo Guestbook (form + CSRF), halaman error

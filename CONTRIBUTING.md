@@ -57,7 +57,12 @@ BREAKING CHANGE: .php*, .phtml, .phar, .htaccess are always refused.
 ```bash
 composer test       # semua test hijau
 composer analyse    # PHPStan level 5 tanpa temuan
+composer cs         # gaya kode PER-CS 2.0 (perbaiki otomatis: composer cs:fix)
 ```
+
+Gaya kode mengikuti [PER Coding Style 2.0](https://www.php-fig.org/per/coding-style/).
+Tidak perlu dihafal: jalankan `composer cs:fix` sebelum commit. Editor yang
+membaca `.editorconfig` otomatis memakai UTF-8, LF, dan 4 spasi.
 
 Rilis hanya dibuat setelah checklist uji di bagian "Rilis" `CLAUDE.md`
 terpenuhi (CI, uji dari paket, audit, dokumen).

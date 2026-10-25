@@ -10,6 +10,12 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Added
+
+- `.editorconfig` and PER Coding Style 2.0 checked by PHP-CS-Fixer
+  (`composer cs`, `composer cs:fix`, and in CI). Whitespace-only reformat
+  of the code base; no behavior change.
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed
