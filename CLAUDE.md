@@ -17,7 +17,7 @@ lebih pendek dan lebih mudah dibaca.
 ## Status saat ini
 
 Selesai dan teruji (151 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
-MariaDB 11, Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
+MariaDB 11, Redis, Memcached, APCu; PHPStan level 5 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2–8.5 (strict types, typed props, tanpa dynamic property)
 2. Composer PSR-4 + autoloader Panada sebagai fallback
@@ -37,7 +37,7 @@ Riwayat git: satu commit per langkah (`git log -p` untuk membaca alasannya).
 composer install                    # Whoops + PHPUnit (dev)
 composer serve                      # php -S localhost:8000 -t public public/index.php
 composer test                       # semua test (unit + http)
-composer analyse                    # PHPStan level 2 (phpstan.neon.dist)
+composer analyse                    # PHPStan level 5 (phpstan.neon.dist)
 vendor/bin/phpunit --testsuite unit
 vendor/bin/phpunit --testsuite http
 vendor/bin/phpunit --filter ValidationTest
