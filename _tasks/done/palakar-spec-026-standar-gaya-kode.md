@@ -97,4 +97,4 @@ Dikerjakan **sebelum** spec-025, supaya view baru Bingkai langsung mengikuti sta
   PostgreSQL/MySQL/Redis/Memcached, tanpa env); sama dengan sebelum
   perapian. PHPStan level 5 tanpa temuan. `composer cs` 0 file.
   `composer audit` tanpa temuan.
-- CI: belum jalan (belum di-push).
+- CI hijau di `a8e7704`: https://github.com/karsawave/palakar/actions/runs/40200441082
