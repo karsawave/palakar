@@ -79,13 +79,6 @@ final class ErrorHandler
             ob_end_clean();
         }
 
-        // Out of memory: the error page needs a little room too. PHP 8.5
-        // keeps more memory after the fatal error (backtraces), which left
-        // the page blank.
-        if (str_starts_with($error['message'], 'Allowed memory size')) {
-            ini_set('memory_limit', (string) (memory_get_usage() + 16 * 1024 * 1024));
-        }
-
         echo self::render(new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']))->send();
     }
 

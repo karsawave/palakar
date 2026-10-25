@@ -40,7 +40,11 @@ class Response
             return;
         }
 
-        http_response_code(self::$statusCode);
+        // After a fatal error PHP already set "HTTP/1.0 500"; setting it again
+        // is a warning since PHP 8.5, which broke the error page.
+        if (http_response_code() !== self::$statusCode) {
+            http_response_code(self::$statusCode);
+        }
 
         foreach (self::$headers as $name => $value) {
             header($name.': '.$value, true);

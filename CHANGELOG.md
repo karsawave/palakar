@@ -24,6 +24,12 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 - `app/config/security.php` reads `secretKey` from the
   `PALAKAR_SECRET_KEY` environment variable first.
 
+### Fixed
+
+- PHP 8.5: a fatal error (e.g. out of memory) gave a blank 500 page.
+  PHP had already set the 500 status, and setting it again is a warning
+  since 8.5; `Response` now only sets a status that differs (spec-014).
+
 ### Security
 
 - **Breaking:** every response sends `X-Frame-Options: SAMEORIGIN` and
