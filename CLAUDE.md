@@ -16,8 +16,8 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (137 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
-Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
+Selesai dan teruji (151 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
+MariaDB 11, Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2–8.5 (strict types, typed props, tanpa dynamic property)
 2. Composer PSR-4 + autoloader Panada sebagai fallback
@@ -44,6 +44,7 @@ vendor/bin/phpunit --filter ValidationTest
 
 # Test dengan server (opsional, dilewati kalau env kosong):
 PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
+PANADA_TEST_MYSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
 PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test
 ```
 
@@ -278,4 +279,3 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    CONDUCT)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
-2. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
