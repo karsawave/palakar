@@ -23,6 +23,6 @@
     </p>
 </div>
 
-<div id="foot">Powered by <a href="https://github.com/karsawave/palakar">Palakar</a> version 0.1.0</div>
+<div id="foot">Powered by <a href="https://github.com/karsawave/palakar">Palakar</a> version 0.2.0</div>
 </body>
 </html>

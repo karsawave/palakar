@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 8.2 is the minimum in composer.json, 8.3 what development uses.
-        php: ['8.2', '8.3']
+        # 8.2 is the minimum in composer.json; up to the latest stable.
+        php: ['8.2', '8.3', '8.4', '8.5']
 
     services:
       postgres:
@@ -27,6 +27,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_USER: panada
+          MARIADB_PASSWORD: panada
+          MARIADB_DATABASE: panada_test
+          MARIADB_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
       # So the Redis and Memcached cache drivers are tested too.
       redis:
         image: redis:7
@@ -37,6 +50,7 @@ jobs:
 
     env:
       PANADA_TEST_PGSQL: host=127.0.0.1;dbname=panada_test;user=panada;password=panada
+      PANADA_TEST_MYSQL: host=127.0.0.1;dbname=panada_test;user=panada;password=panada
       PANADA_TEST_REDIS: 127.0.0.1:6379
       PANADA_TEST_MEMCACHED: 127.0.0.1:11211
 
@@ -46,11 +60,14 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_pgsql, pdo_sqlite, gd, sodium, curl, mbstring, redis, memcached, apcu
+          extensions: fileinfo, pdo_mysql, pdo_pgsql, pdo_sqlite, gd, sodium, curl, mbstring, redis, memcached, apcu
           ini-values: apc.enable_cli=1
           coverage: none
 
       - run: composer install --no-interaction --no-progress
+
+      # Known vulnerabilities (and abandoned packages) in dependencies.
+      - run: composer audit
 
       - run: composer test
 

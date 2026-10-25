@@ -10,6 +10,42 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-25
+
+### Changed
+
+- The Composer package no longer ships development files (`_tasks/`,
+  `tests/`, `.github/`, `CLAUDE.md`, PHPUnit/PHPStan config), via
+  `export-ignore` in `.gitattributes`.
+- **Breaking:** `Upload::getMimeTypes()` reads the type from the file
+  content with ext-fileinfo, not from the extension. It now takes a path
+  to an existing file and returns `false` for a bare name. `getFileInfo()`
+  `mime` and Email attachment `Content-Type` follow (a renamed `.php` sent
+  as `.png` no longer reports `image/png`). `ext-fileinfo` is required.
+- `Pagination::getUrl()` rewritten from scratch; output unchanged.
+- `app/config/security.php` reads `secretKey` from the
+  `PALAKAR_SECRET_KEY` environment variable first.
+
+### Fixed
+
+- PHP 8.5: a fatal error (e.g. out of memory) gave a blank 500 page.
+  PHP had already set the 500 status, and setting it again is a warning
+  since 8.5; `Response` now only sets a status that differs (spec-014).
+
+### Security
+
+- **Breaking:** every response sends `X-Frame-Options: SAMEORIGIN` and
+  `Referrer-Policy: strict-origin-when-cross-origin`. Apps framed by other
+  domains unset `Response::$headers['X-Frame-Options']` (spec-020).
+- CI runs `composer audit`.
+
+### Removed
+
+- WordPress-derived code (GPLv2): the extension-to-MIME list in `Upload`
+  and the `paginate_links()` adaptation in `Pagination` (spec-011).
+- `panada/Modules/ModSample`, an old sample nothing loaded; the module
+  example lives in `app/Modules` (spec-012).
+
 ## [0.1.0] - 2026-10-25
 
 First version of Palakar, a fork of Panada Framework 1.1.1 by Iskandar
@@ -67,5 +103,6 @@ Soesman, modernized for PHP 8.2+ (specs 000 to 010).
 - Database drivers mysql, mysqli, pgsql, sqlite, cubrid, mongodb (PDO only).
 - Panada logo and GitHub banner from the welcome page.
 
-[Unreleased]: https://github.com/karsawave/palakar/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/karsawave/palakar/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/karsawave/palakar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/karsawave/palakar/releases/tag/v0.1.0

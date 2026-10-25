@@ -41,8 +41,13 @@ BREAKING CHANGE: .php*, .phtml, .phar, .htaccess are always refused.
 
 - **type:** `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`,
   `chore`, `revert`. **scope** opsional: nama komponen.
-- Ringkasan bahasa Inggris, kalimat perintah, maksimal 72 karakter, tanpa
-  titik. Isi menjelaskan *kenapa*.
+- Ringkasan bahasa Inggris, kalimat perintah, maksimal 72 karakter
+  (sebaiknya ≤ 50), tanpa titik. Isi menjelaskan *kenapa*.
+- Ringkasan menyebut apa yang berubah, bukan nomor spec; satu hal saja;
+  tanpa kata kosong (`update`, `misc`, `wip`). Contoh: bukan
+  `docs(spec): plan specs 012-018`, tetapi
+  `docs(spec): plan next steps toward 1.0.0`. Rilis:
+  `chore(release): X.Y.Z`.
 - Breaking change: `!` dan footer `BREAKING CHANGE:`.
 - Nomor spec di footer `Refs: spec-NNN`; bantuan AI di `Co-Authored-By:`.
 - Jangan menulis rahasia, email pribadi, atau detail celah keamanan.
@@ -51,8 +56,11 @@ BREAKING CHANGE: .php*, .phtml, .phar, .htaccess are always refused.
 
 ```bash
 composer test       # semua test hijau
-composer analyse    # PHPStan level 2 tanpa temuan
+composer analyse    # PHPStan level 5 tanpa temuan
 ```
+
+Rilis hanya dibuat setelah checklist uji di bagian "Rilis" `CLAUDE.md`
+terpenuhi (CI, uji dari paket, audit, dokumen).
 
 - Bug atau fitur baru disertai test. Test ditulis dulu dan harus gagal
   terhadap kode lama.

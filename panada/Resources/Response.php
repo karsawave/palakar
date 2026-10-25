@@ -14,6 +14,10 @@ class Response
     public static array $headers = [
         'Content-Type' => 'text/html; charset=utf-8',
         'X-Content-Type-Options' => 'nosniff',
+        // Against clickjacking and leaking full URLs to other sites. Apps that
+        // must be framed elsewhere unset() this entry.
+        'X-Frame-Options' => 'SAMEORIGIN',
+        'Referrer-Policy' => 'strict-origin-when-cross-origin',
     ];
 
     public static string $body = '';
@@ -36,7 +40,11 @@ class Response
             return;
         }
 
-        http_response_code(self::$statusCode);
+        // After a fatal error PHP already set "HTTP/1.0 500"; setting it again
+        // is a warning since PHP 8.5, which broke the error page.
+        if (http_response_code() !== self::$statusCode) {
+            http_response_code(self::$statusCode);
+        }
 
         foreach (self::$headers as $name => $value) {
             header($name.': '.$value, true);

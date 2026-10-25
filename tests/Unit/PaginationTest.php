@@ -67,6 +67,26 @@ final class PaginationTest extends TestCase
         $this->assertSame('<a href="/search?q=&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&amp;p=2">2</a>', $links[1]);
     }
 
+    /**
+     * Values for many option combinations, locked before the spec-011 rewrite.
+     */
+    public function testEdgeCases(): void
+    {
+        $values = fn (array $options) => array_column($this->pagination($options + ['noHref' => true])->getUrl(), 'value');
+        $prev = '&laquo; Previous';
+        $next = 'Next &raquo;';
+
+        $this->assertSame([1, '...', 10], $values(['total' => 100, 'limit' => 10, 'current' => 0, 'midSize' => 1]));
+        $this->assertSame([$prev, 1, '...', 8, 9, 10], $values(['total' => 100, 'limit' => 10, 'current' => 10]));
+        $this->assertSame([1, 2, 3, $next], $values(['total' => 30, 'limit' => 10, 'current' => 1]));
+        $this->assertSame([$prev, 1, '...', 10], $values(['total' => 100, 'limit' => 10, 'current' => 12]));
+        $this->assertSame(range(1, 10), $values(['total' => 100, 'limit' => 10, 'current' => 5, 'showAll' => true, 'prevNext' => false]));
+        $this->assertSame([$prev, $next], $values(['total' => 100, 'limit' => 10, 'current' => 5, 'showNumber' => false]));
+        $this->assertSame([1, 2, '...', 5, '...', 9, 10], $values(['total' => 100, 'limit' => 10, 'current' => 5, 'endSize' => 2, 'midSize' => 0, 'prevNext' => false]));
+        $this->assertSame([1, '...', 5, '...', 10], $values(['total' => 100, 'limit' => 10, 'current' => 5, 'endSize' => 0, 'midSize' => -3, 'prevNext' => false]));
+        $this->assertSame([1, 2, 3, 4], $values(['total' => 31, 'limit' => 10, 'current' => 2, 'midSize' => 1, 'prevNext' => false]));
+    }
+
     public function testOnePageOrBadLimitGivesNoLinks(): void
     {
         $this->assertSame([], $this->pagination(['total' => 5, 'limit' => 10])->getUrl());

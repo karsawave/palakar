@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+/_tasks            export-ignore
+/CLAUDE.md         export-ignore
+/.claude           export-ignore
+/.github           export-ignore
+/tests             export-ignore
+/phpunit.xml       export-ignore
+/phpstan.neon.dist export-ignore
+/.gitignore        export-ignore
+/.gitattributes    export-ignore

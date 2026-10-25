@@ -5,7 +5,7 @@ dari Panada 1.x ada di `MODERNISASI.md`.
 
 ## Tentang proyek
 
-**Palakar Framework** (`karsawave/palakar`, versi 0.1.0,
+**Palakar Framework** (`karsawave/palakar`, versi 0.2.0,
 https://github.com/karsawave/palakar), fork Panada Framework 1.1.1 (PHP,
 Indonesia, 2010) yang dimodernisasi untuk PHP 8.2+. Folder core tetap bernama
 `panada/` dan namespace tetap `Resources\`/`Drivers\`, supaya aplikasi lama
@@ -16,10 +16,10 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (135 test, PHP 8.3 lokal; CI: PHP 8.2 + 8.3, PostgreSQL 16,
-Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
+Selesai dan teruji (151 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
+MariaDB 11, Redis, Memcached, APCu; PHPStan level 5 tanpa baseline):
 
-1. Kompatibilitas PHP 8.2/8.3 (strict types, typed props, tanpa dynamic property)
+1. Kompatibilitas PHP 8.2–8.5 (strict types, typed props, tanpa dynamic property)
 2. Composer PSR-4 + autoloader Panada sebagai fallback
 3. Database PDO-only, prepared statement otomatis
 4. Validation dengan sanitize otomatis + CSRF bawaan
@@ -37,13 +37,14 @@ Riwayat git: satu commit per langkah (`git log -p` untuk membaca alasannya).
 composer install                    # Whoops + PHPUnit (dev)
 composer serve                      # php -S localhost:8000 -t public public/index.php
 composer test                       # semua test (unit + http)
-composer analyse                    # PHPStan level 2 (phpstan.neon.dist)
+composer analyse                    # PHPStan level 5 (phpstan.neon.dist)
 vendor/bin/phpunit --testsuite unit
 vendor/bin/phpunit --testsuite http
 vendor/bin/phpunit --filter ValidationTest
 
 # Test dengan server (opsional, dilewati kalau env kosong):
 PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
+PANADA_TEST_MYSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" composer test
 PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test
 ```
 
@@ -111,6 +112,9 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 - **Error:** `debug => false` tidak boleh membocorkan pesan, path, atau trace.
 - **Session:** strict mode, HttpOnly, SameSite; `X-Forwarded-Proto` hanya
   dipercaya bila `trustProxyHeaders` true.
+- **Header default:** `nosniff`, `X-Frame-Options: SAMEORIGIN`,
+  `Referrer-Policy: strict-origin-when-cross-origin`. CSP dan HSTS tidak
+  dikirim core (tergantung aplikasi/web server, spec-020).
 - **Kripto:** pakai libsodium (`Resources\Encryption`), `hash_equals`,
   `random_bytes`. Jangan `unserialize` data dari klien.
 
@@ -159,6 +163,30 @@ mendistribusikan ulang boleh tanpa izin, dengan syarat berikut.
   bukan rebase).
 - Tidak ada force push ke `master` atau `development`. Sebelum commit, cek
   branch aktif (`git branch --show-current`) adalah `development`.
+
+## Rilis (wajib, spec-022)
+
+Tag `vX.Y.Z` hanya dibuat bila **semua** poin ini terpenuhi, termasuk
+rilis patch. Satu poin gagal: perbaiki di `development`, lalu ulangi dari
+poin 1. Tidak ada "rilis dulu, perbaiki nanti": bug yang lolos rilis
+menjadi utang yang ditemukan pengguna, bukan kita.
+
+1. **CI hijau** di commit yang dirilis: semua versi PHP di matrix dan
+   semua service (PostgreSQL, MariaDB, Redis, Memcached), tanpa test yang
+   dilewati.
+2. **Lokal:** `composer test` dan `composer analyse` hijau.
+3. **Uji dari paket, bukan dari repo:** `composer create-project` (atau
+   `composer archive`) di folder kosong, `composer serve`, lalu buka
+   manual: halaman awal, demo Guestbook (form + CSRF), halaman error
+   dengan `debug` true dan false.
+4. **`composer audit`** tanpa temuan.
+5. **Dokumen:** CHANGELOG `[Unreleased]` → `[X.Y.Z] - tanggal`; setiap
+   breaking change ada di CHANGELOG dan MODERNISASI.md; versi yang
+   didukung di SECURITY.md diperbarui.
+6. **Utang tidak tersembunyi:** `grep -rn "TODO\|FIXME\|ponytail:" panada/`;
+   setiap temuan diperbaiki atau dicatat di Backlog beserta alasannya.
+7. **Hasil dicatat** di spec rilis (hash commit, link run CI, jumlah
+   test, hasil uji manual). Baru setelah itu merge ke `master` dan tag.
 
 ## Alur kerja spec (wajib)
 
@@ -214,7 +242,20 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
 - **scope** (opsional): komponen huruf kecil, mis. `email`, `upload`,
   `database`, `cache`, `session`, `spec`, `release`.
 - **Ringkasan:** bahasa Inggris, kalimat perintah ("add", bukan "added"),
-  huruf kecil di awal, tanpa titik, maksimal 72 karakter.
+  huruf kecil di awal, tanpa titik, maksimal 72 karakter (anjuran ≤ 50).
+  Jelas, padat, singkat (spec-021):
+  - Sebut **apa yang berubah**, bisa dipahami tanpa membuka spec. Nomor
+    spec hanya di footer `Refs:`.
+  - Satu hal saja; kalau butuh "and", pecah commit.
+  - Tanpa kata kosong (`update`, `misc`, `changes`, `various`, `wip`) dan
+    tanpa yang sudah tersirat dari type/Git (`merge ... for`).
+  - Rilis (merge ke `master`): `chore(release): X.Y.Z`.
+
+  | Buruk | Baik |
+  |-------|------|
+  | `docs(spec): plan specs 012-018` | `docs(spec): plan next steps toward 1.0.0` |
+  | `chore(release): merge development for 0.1.0` | `chore(release): 0.1.0` |
+  | `fix: update upload` | `fix(upload): detect mime from file content` |
 - **Isi:** bahasa Inggris, baris maksimal 72 karakter, menjelaskan *kenapa*.
   Boleh dilewati untuk perubahan sepele.
 - **Breaking change:** `!` setelah type/scope (`fix(upload)!: ...`) dan footer
@@ -262,13 +303,3 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    CONDUCT)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
-2. **Asal-usul lisensi:** `Pagination::getUrl()` (diadaptasi dari
-   `paginate_links()` WordPress) dan daftar MIME di `Upload` ("Original from
-   Wordpress 3.0") berasal dari WordPress yang berlisensi GPLv2. Periksa atau
-   tulis ulang supaya tidak ada keraguan lisensi.
-3. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
-4. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
-   (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
-   hapus atau rapikan.
-5. PHP 8.4 belum ada
-   di matrix CI.
