@@ -2,6 +2,9 @@
 
 /_tasks            export-ignore
 /CLAUDE.md         export-ignore
+/PRODUCT.md        export-ignore
+/DESIGN.md         export-ignore
+/.impeccable       export-ignore
 /.claude           export-ignore
 /.github           export-ignore
 /tests             export-ignore

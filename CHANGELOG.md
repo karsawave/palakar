@@ -17,6 +17,16 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
   of the code base; no behavior change.
 - Sample app: shared layout `views/layouts/main.php` and
   `views/partials/footer.php` ("Bingkai", see README). No core change.
+- `Gear::VERSION` holds the Palakar version; the sample footer reads it.
+- Sample app: new welcome page in a "catalog sleeve" style: a line plot
+  drawn from the real `panada/` files (one line per file, shaped by its
+  indentation), numbered next steps, and the core listed file by file with
+  line counts. Drawn PALAKAR wordmark and SVG favicon.
+
+### Security
+
+- The sample welcome page no longer prints the absolute application path
+  when `debug` is false.
 
 ### Changed
 

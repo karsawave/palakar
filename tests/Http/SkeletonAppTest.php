@@ -33,11 +33,15 @@ final class SkeletonAppTest extends HttpTestCase
         $response = $this->request(self::$url);
 
         $this->assertSame(200, $response['status']);
-        $this->assertStringContainsString('Palakar has been installed successfully', $response['body']);
+        $this->assertStringContainsString('small enough to read in one evening', $response['body']);
         $this->assertSame(['nosniff'], $response['headers']['x-content-type-options']);
         $this->assertSame(['SAMEORIGIN'], $response['headers']['x-frame-options']);
         $this->assertSame(['strict-origin-when-cross-origin'], $response['headers']['referrer-policy']);
-        $this->assertUsesLayout($response['body'], 'Hello world!');
+        $this->assertUsesLayout($response['body'], 'Palakar ' . \Gear::VERSION);
+        $this->assertStringContainsString('app/views/home.php', $response['body'], 'Relative path, not APP');
+        $this->assertSame(3, substr_count($response['body'], \Gear::VERSION), 'Title, heading and footer read Gear::VERSION');
+        $this->assertStringContainsString('<polyline', $response['body'], 'Core plot is drawn');
+        $this->assertStringContainsString('favicon.svg', $response['body']);
     }
 
     /**
