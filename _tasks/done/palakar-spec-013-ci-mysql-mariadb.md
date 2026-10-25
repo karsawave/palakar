@@ -1,6 +1,6 @@
 # palakar-spec-013: Test MySQL/MariaDB di CI
 
-- **Status:** plan
+- **Status:** done (ACC SPEC 013, 2026-10-25)
 - **Bergantung pada:** -
 
 ## Masalah
@@ -23,12 +23,27 @@ dilewati bila kosong. Tanpa abstraksi test baru.
 - Bila test menemukan bug di `Sql.php`/`PanadaPDO.php` (mis. quoting
   identifier dengan backtick), perbaiki di spec ini dan catat di CHANGELOG.
 
-## Pertanyaan terbuka
+## Jawaban
 
-1. MariaDB saja, MySQL saja, atau keduanya? Usulan: MariaDB 11 saja
-   (satu service, CI tetap cepat).
+ACC tanpa jawaban terpisah = usulan diterima: MariaDB 11 saja.
+
+## Catatan implementasi
+
+- `tests/Unit/Database/MysqlTest.php` mengikuti pola `PgsqlTest`; tidak
+  ada cabang di test lain (hanya `DatabaseTestCase` yang dipakai bersama).
+- Tidak ada bug ditemukan di `Sql.php`/`PanadaPDO.php`, jadi tidak ada
+  perubahan kode dan tidak ada entri CHANGELOG.
 
 ## Verifikasi
 
 CI hijau dengan test MySQL benar-benar jalan (bukan skipped); jumlah
 test dicatat.
+
+## Hasil
+
+- Commit `10efdef`.
+- Lokal (PHP 8.3 + container `mariadb:11`): `MysqlTest` 14 test,
+  48 assertion, OK. `composer test` tanpa server: 151 test, 32 skipped.
+- CI: 8.2–8.5 `success`; log 8.3 `OK (151 tests, 685 assertions)`, tanpa
+  skipped, jadi test MariaDB benar-benar jalan.
+- PHPStan level 2 tanpa error.
