@@ -10,6 +10,8 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-25
+
 ### Changed
 
 - The Composer package no longer ships development files (`_tasks/`,
@@ -101,5 +103,6 @@ Soesman, modernized for PHP 8.2+ (specs 000 to 010).
 - Database drivers mysql, mysqli, pgsql, sqlite, cubrid, mongodb (PDO only).
 - Panada logo and GitHub banner from the welcome page.
 
-[Unreleased]: https://github.com/karsawave/palakar/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/karsawave/palakar/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/karsawave/palakar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/karsawave/palakar/releases/tag/v0.1.0

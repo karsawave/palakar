@@ -5,7 +5,7 @@ dari Panada 1.x ada di `MODERNISASI.md`.
 
 ## Tentang proyek
 
-**Palakar Framework** (`karsawave/palakar`, versi 0.1.0,
+**Palakar Framework** (`karsawave/palakar`, versi 0.2.0,
 https://github.com/karsawave/palakar), fork Panada Framework 1.1.1 (PHP,
 Indonesia, 2010) yang dimodernisasi untuk PHP 8.2+. Folder core tetap bernama
 `panada/` dan namespace tetap `Resources\`/`Drivers\`, supaya aplikasi lama
