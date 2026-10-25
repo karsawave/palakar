@@ -63,3 +63,33 @@ perbaiki lewat spec sendiri, ulangi checklist dari poin 1.
 
 Tidak ada di core. Aplikasi contoh: `views/header.php` dihapus (sudah di
 CHANGELOG `Removed`).
+
+## Hasil checklist (2026-10-25)
+
+Pertanyaan terbuka: ACC tanpa jawaban terpisah = usulan diterima (release
+note GitHub dibuat dari CHANGELOG).
+
+1. CI: dicatat setelah push (lihat di bawah).
+2. Lokal (PHP 8.3): 152 test, 504 assertion, 32 skip (test server tanpa
+   env); PHPStan level 5 bersih; `composer cs` 0 file.
+3. Uji dari paket: `git archive` dari `1c3dc62` (`chore(release): 0.3.0`).
+   Isi: `.editorconfig`, CHANGELOG(-PANADA), CONTRIBUTING, LICENSE,
+   MODERNISASI, README, SECURITY, `app`, `composer.*`, `panada`,
+   `public`; tanpa `docs/`, PRODUCT.md, DESIGN.md, `.impeccable/`,
+   `tests`, `_tasks`, CLAUDE.md. `composer install` lalu `php -S`:
+   - halaman awal 200, judul "Palakar 0.3.0", 45 garis plot; CSS 200
+     `text/css`; favicon 200 `image/svg+xml`;
+   - Guestbook 200; POST tanpa token 403; dengan token 302; entri tampil;
+   - controller sementara yang melempar exception: `debug` true → 500
+     dengan pesan dan path; `debug` false → 500 tanpa pesan, path, atau
+     nama file; halaman awal tanpa path dan tanpa catatan debug;
+   - URL tak dikenal → 404.
+   Catatan: `composer archive` dari working tree ikut mengemas `vendor/`
+   dan cache lokal, jadi tidak mewakili paket Packagist; uji memakai
+   `git archive` (sama dengan arsip tag GitHub).
+4. `composer audit`: tanpa temuan.
+5. Dokumen: `Gear::VERSION` 0.3.0, User-Agent REST `/0.3` (test REST
+   ikut), CHANGELOG `[0.3.0] - 2026-10-25` + link, Backlog CLAUDE.md
+   (ponytail halaman awal). SECURITY.md tidak berubah.
+6. `grep TODO|FIXME|ponytail:` di `panada/`: kosong. Di luar `panada/`:
+   `app/Controllers/Home.php` (dicatat di Backlog).
