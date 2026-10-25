@@ -13,7 +13,7 @@ code{font:13px Consolas,"Courier New",monospace;background:#ddf;color:#c00;paddi
 </style>
 </head>
 <body>
-    <h1><?= ($status ?? 404) === 404 ? 'Page not found!' : 'Error '.e($status) ?></h1>
+    <h1><?= ($status ?? 404) === 404 ? 'Page not found!' : 'Error ' . e($status) ?></h1>
     <?php if (!empty($debug)): ?>
     <p>Message: <code><?= e($message) ?></code></p>
     <?php else: ?>

@@ -24,7 +24,7 @@ final class SessionTest extends TestCase
     {
         $this->assertSame(
             ['lifetime' => 0, 'path' => '/', 'domain' => '', 'secure' => false, 'httponly' => true, 'samesite' => 'Lax'],
-            Native::cookieOptions([])
+            Native::cookieOptions([]),
         );
     }
 
@@ -87,7 +87,7 @@ final class SessionTest extends TestCase
         // Change the payload, keep the signature: must be rejected.
         [$payload, $signature] = explode('.', $cookie);
         $forged = rtrim(strtr(base64_encode(json_encode(['values' => ['user_id' => 1], 'exp' => time() + 60])), '+/', '-_'), '=');
-        $_COOKIE['PAN_SID'] = $forged.'.'.$signature;
+        $_COOKIE['PAN_SID'] = $forged . '.' . $signature;
         $this->assertFalse((new Cookie($config))->getValue('user_id'));
 
         // Signed with another key: rejected.

@@ -30,7 +30,7 @@ final class EncryptionTest extends TestCase
     {
         $encryption = new Encryption();
         $encrypted = $encryption->encrypt('amount=1000');
-        $tampered = substr($encrypted, 0, -2).($encrypted[-2] === 'A' ? 'B' : 'A').$encrypted[-1];
+        $tampered = substr($encrypted, 0, -2) . ($encrypted[-2] === 'A' ? 'B' : 'A') . $encrypted[-1];
 
         $this->assertFalse($encryption->decrypt($tampered));
         $this->assertFalse($encryption->decrypt('not-base64-!!'));

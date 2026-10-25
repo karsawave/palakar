@@ -51,13 +51,13 @@ final class Uri
         $scriptPath = explode('/', $scriptFilename);
         $this->frontController = end($scriptPath);
 
-        $docRoot = str_replace('/'.$this->frontController, '', $documentRoot);
-        $scriptFile = str_replace('/'.$this->frontController, '', $scriptFilename);
-        $requestURI = str_replace('/'.$this->frontController, '', $_SERVER['REQUEST_URI'] ?? '/');
+        $docRoot = str_replace('/' . $this->frontController, '', $documentRoot);
+        $scriptFile = str_replace('/' . $this->frontController, '', $scriptFilename);
+        $requestURI = str_replace('/' . $this->frontController, '', $_SERVER['REQUEST_URI'] ?? '/');
         $this->basePath = str_replace($docRoot, '', $scriptFile);
 
         $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
-        $this->baseUri = $this->requestScheme.$host.$this->basePath.'/';
+        $this->baseUri = $this->requestScheme . $host . $this->basePath . '/';
 
         if ($this->basePath !== '' && str_starts_with($requestURI, $this->basePath)) {
             $requestURI = substr($requestURI, strlen($this->basePath));
@@ -105,7 +105,7 @@ final class Uri
                 return $uriString;
             }
 
-            throw new HttpException('Invalid controller name: '.$uriString);
+            throw new HttpException('Invalid controller name: ' . $uriString);
         }
 
         return $this->defaultController;

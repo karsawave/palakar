@@ -53,7 +53,7 @@ final class Encryption
     {
         $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
 
-        return sodium_bin2base64($nonce.sodium_crypto_secretbox($string, $nonce, $this->key), SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING);
+        return sodium_bin2base64($nonce . sodium_crypto_secretbox($string, $nonce, $this->key), SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING);
     }
 
     public function decrypt(string $string): string|false
@@ -71,7 +71,7 @@ final class Encryption
         return sodium_crypto_secretbox_open(
             substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
             substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
-            $this->key
+            $this->key,
         );
     }
 }

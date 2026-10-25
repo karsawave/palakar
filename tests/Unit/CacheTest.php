@@ -67,7 +67,7 @@ final class CacheTest extends TestCase
         $server = (string) getenv($env);
 
         if ($server === '') {
-            $this->markTestSkipped('Set '.$env.'=host:port to run this test.');
+            $this->markTestSkipped('Set ' . $env . '=host:port to run this test.');
         }
 
         [$host, $port] = explode(':', $server) + [1 => 0];
@@ -129,10 +129,10 @@ final class CacheTest extends TestCase
 
     public function testFacadeErrors(): void
     {
-        foreach ([fn () => new Cache('nope'), fn () => new Cache('default', 'nope'), fn () => new Cache('default', '../Session/Cookie')] as $i => $create) {
+        foreach ([fn() => new Cache('nope'), fn() => new Cache('default', 'nope'), fn() => new Cache('default', '../Session/Cookie')] as $i => $create) {
             try {
                 $create();
-                $this->fail('Attempt #'.$i.' did not fail');
+                $this->fail('Attempt #' . $i . ' did not fail');
             } catch (RunException $e) {
                 $this->assertMatchesRegularExpression('/not defined|Unknown cache driver/', $e->getMessage());
             }

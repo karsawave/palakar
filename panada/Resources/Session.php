@@ -37,7 +37,7 @@ class Session
         $config = Config::session();
 
         if (!isset($config[$connection])) {
-            throw new RunException('Session connection "'.$connection.'" is not defined in app/config/session.php');
+            throw new RunException('Session connection "' . $connection . '" is not defined in app/config/session.php');
         }
 
         $this->config = $config[$connection];
@@ -76,10 +76,10 @@ class Session
      */
     private function init(): void
     {
-        $driver = 'Drivers\\Session\\'.ucwords(strtolower((string) ($this->config['driver'] ?? 'native')));
+        $driver = 'Drivers\\Session\\' . ucwords(strtolower((string) ($this->config['driver'] ?? 'native')));
 
         if (!class_exists($driver)) {
-            throw new RunException('Unknown session driver "'.$this->config['driver'].'"');
+            throw new RunException('Unknown session driver "' . $this->config['driver'] . '"');
         }
 
         $this->driver = new $driver($this->config);

@@ -14,9 +14,9 @@ final class SkeletonAppTest extends HttpTestCase
 
     public static function setUpBeforeClass(): void
     {
-        $database = dirname(__DIR__, 2).'/app/storage/database.sqlite';
+        $database = dirname(__DIR__, 2) . '/app/storage/database.sqlite';
         self::$createdDatabase = !is_file($database);
-        self::$url = self::server(dirname(__DIR__, 2).'/public').'/index.php';
+        self::$url = self::server(dirname(__DIR__, 2) . '/public') . '/index.php';
     }
 
     public static function tearDownAfterClass(): void
@@ -24,7 +24,7 @@ final class SkeletonAppTest extends HttpTestCase
         parent::tearDownAfterClass();
 
         if (self::$createdDatabase) {
-            @unlink(dirname(__DIR__, 2).'/app/storage/database.sqlite');
+            @unlink(dirname(__DIR__, 2) . '/app/storage/database.sqlite');
         }
     }
 
@@ -42,13 +42,13 @@ final class SkeletonAppTest extends HttpTestCase
     public function testInheritedControllerMethodsAreNotRoutable(): void
     {
         foreach (['/home/output/errors', '/home/redirect', '/home/location', '/home/__construct', '/home/outputJSON'] as $path) {
-            $this->assertSame(404, $this->request(self::$url.$path)['status'], $path);
+            $this->assertSame(404, $this->request(self::$url . $path)['status'], $path);
         }
     }
 
     public function testNotFoundPageEscapesTheUrl(): void
     {
-        $response = $this->request(self::$url.'/<script>alert(1)</script>');
+        $response = $this->request(self::$url . '/<script>alert(1)</script>');
 
         $this->assertSame(404, $response['status']);
         $this->assertStringNotContainsString('<script>alert(1)', $response['body']);
@@ -57,7 +57,7 @@ final class SkeletonAppTest extends HttpTestCase
 
     public function testGuestbookFlow(): void
     {
-        $page = $this->request(self::$url.'/guestbook');
+        $page = $this->request(self::$url . '/guestbook');
         $this->assertSame(200, $page['status']);
 
         $cookie = $page['headers']['set-cookie'][0];
@@ -68,16 +68,16 @@ final class SkeletonAppTest extends HttpTestCase
         $token = $this->csrfToken($page['body']);
         $entry = ['name' => 'Budi', 'email' => 'budi@example.com', 'message' => '<script>alert(1)</script> it\'s\'); DROP TABLE guestbook; --'];
 
-        $this->assertSame(403, $this->request(self::$url.'/guestbook', 'POST', $entry)['status'], 'No token');
-        $this->assertSame(403, $this->request(self::$url.'/guestbook', 'POST', ['_token' => str_repeat('0', 64)] + $entry)['status'], 'Wrong token');
+        $this->assertSame(403, $this->request(self::$url . '/guestbook', 'POST', $entry)['status'], 'No token');
+        $this->assertSame(403, $this->request(self::$url . '/guestbook', 'POST', ['_token' => str_repeat('0', 64)] + $entry)['status'], 'Wrong token');
 
-        $invalid = $this->request(self::$url.'/guestbook', 'POST', ['_token' => $token, 'name' => 'Budi']);
+        $invalid = $this->request(self::$url . '/guestbook', 'POST', ['_token' => $token, 'name' => 'Budi']);
         $this->assertSame(200, $invalid['status']);
         $this->assertStringContainsString('Email can not be empty', $invalid['body']);
 
-        $this->assertSame(302, $this->request(self::$url.'/guestbook', 'POST', ['_token' => $token] + $entry)['status']);
+        $this->assertSame(302, $this->request(self::$url . '/guestbook', 'POST', ['_token' => $token] + $entry)['status']);
 
-        $list = $this->request(self::$url.'/guestbook');
+        $list = $this->request(self::$url . '/guestbook');
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt; it&#039;s&#039;); DROP TABLE guestbook; --', $list['body']);
         $this->assertStringNotContainsString('<script>alert(1)', $list['body']);
     }

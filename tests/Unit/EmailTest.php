@@ -17,7 +17,7 @@ final class EmailTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->attachment = str_replace('\\', '/', sys_get_temp_dir()).'/laporan bulanan.txt';
+        $this->attachment = str_replace('\\', '/', sys_get_temp_dir()) . '/laporan bulanan.txt';
         file_put_contents($this->attachment, 'isi laporan');
     }
 
@@ -38,9 +38,9 @@ final class EmailTest extends TestCase
         fclose($socket);
 
         $process = proc_open(
-            [PHP_BINARY, dirname(__DIR__).'/Fixtures/smtp.php', (string) $port, $mode],
+            [PHP_BINARY, dirname(__DIR__) . '/Fixtures/smtp.php', (string) $port, $mode],
             [1 => ['pipe', 'w']],
-            $pipes
+            $pipes,
         );
         $this->assertSame("ready\n", fgets($pipes[1]));
 
@@ -55,14 +55,14 @@ final class EmailTest extends TestCase
 
     private function header(string $transcript, string $name): string
     {
-        preg_match('/^'.$name.': (.*?)\r\n(?![ \t])/ms', $transcript, $match);
+        preg_match('/^' . $name . ': (.*?)\r\n(?![ \t])/ms', $transcript, $match);
 
         return str_replace("\r\n", '', $match[1] ?? '');
     }
 
     public function testSmtpMessage(): void
     {
-        [$sent, $transcript, $email] = $this->smtp(fn (Email $email) => $email
+        [$sent, $transcript, $email] = $this->smtp(fn(Email $email) => $email
             ->setOption(['smtpUsername' => 'budi', 'smtpPassword' => 'rahasia', 'messageType' => 'html'])
             ->from('budi@example.com', 'Budi Santoso')
             ->to('ani@example.com, Citra@Example.com')
@@ -77,11 +77,11 @@ final class EmailTest extends TestCase
 
         $this->assertTrue($sent, implode("\n", $email->printDebug(false)));
 
-        $this->assertStringContainsString("AUTH LOGIN\r\n".base64_encode('budi')."\r\n".base64_encode('rahasia')."\r\n", $transcript);
+        $this->assertStringContainsString("AUTH LOGIN\r\n" . base64_encode('budi') . "\r\n" . base64_encode('rahasia') . "\r\n", $transcript);
         $this->assertStringContainsString("MAIL FROM:<budi@example.com>\r\n", $transcript);
 
         foreach (['ani@example.com', 'citra@example.com', 'dewi@example.com', 'boss@example.com'] as $rcpt) {
-            $this->assertStringContainsString('RCPT TO:<'.$rcpt.">\r\n", $transcript);
+            $this->assertStringContainsString('RCPT TO:<' . $rcpt . ">\r\n", $transcript);
         }
 
         $this->assertSame('ani@example.com, citra@example.com', $this->header($transcript, 'To'));
@@ -110,7 +110,7 @@ final class EmailTest extends TestCase
 
     public function testHeaderInjectionIsBlocked(): void
     {
-        [$sent, $transcript] = $this->smtp(fn (Email $email) => $email
+        [$sent, $transcript] = $this->smtp(fn(Email $email) => $email
             ->mail('ani@example.com', "Halo\r\nBcc: victim@example.com", 'isi', 'budi@example.com', "Budi\r\nX-Evil: 1"));
 
         $this->assertTrue($sent);
@@ -124,7 +124,7 @@ final class EmailTest extends TestCase
 
     public function testFailedLoginStopsBeforeSending(): void
     {
-        [$sent, $transcript] = $this->smtp(fn (Email $email) => $email
+        [$sent, $transcript] = $this->smtp(fn(Email $email) => $email
             ->setOption(['smtpUsername' => 'budi', 'smtpPassword' => 'salah'])
             ->mail('ani@example.com', 'Halo', 'isi', 'budi@example.com'), 'reject-auth');
 
@@ -134,7 +134,7 @@ final class EmailTest extends TestCase
 
     public function testTlsIsRequiredWhenAsked(): void
     {
-        [$sent, $transcript] = $this->smtp(fn (Email $email) => $email
+        [$sent, $transcript] = $this->smtp(fn(Email $email) => $email
             ->setOption(['smtpSecure' => 'tls', 'smtpUsername' => 'budi', 'smtpPassword' => 'rahasia'])
             ->mail('ani@example.com', 'Halo', 'isi', 'budi@example.com'));
 
@@ -145,7 +145,7 @@ final class EmailTest extends TestCase
 
     public function testRejectedRecipientFailsTheSend(): void
     {
-        [$sent, $transcript] = $this->smtp(fn (Email $email) => $email
+        [$sent, $transcript] = $this->smtp(fn(Email $email) => $email
             ->mail('ani@example.com, bad@example.com', 'Halo', 'isi', 'budi@example.com'), 'reject-rcpt');
 
         $this->assertFalse($sent);

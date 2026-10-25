@@ -21,6 +21,6 @@ class Home extends \Resources\Controller
 
     public function show(int $id): string
     {
-        return 'id='.$id.' '.get_debug_type($id);
+        return 'id=' . $id . ' ' . get_debug_type($id);
     }
 }

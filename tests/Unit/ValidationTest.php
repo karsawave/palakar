@@ -11,7 +11,7 @@ final class ValidationTest extends TestCase
 {
     private function form(array $rules): Validation
     {
-        return new class($rules) extends Validation {
+        return new class ($rules) extends Validation {
             public function __construct(private array $rules)
             {
                 parent::__construct();
@@ -25,7 +25,7 @@ final class ValidationTest extends TestCase
             public function noAdmin(string $field, mixed $value, string $label): bool
             {
                 if ($value === 'admin') {
-                    $this->setErrorMessage($field, $label.' is reserved');
+                    $this->setErrorMessage($field, $label . ' is reserved');
 
                     return false;
                 }

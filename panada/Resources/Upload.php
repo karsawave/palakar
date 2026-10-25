@@ -147,7 +147,7 @@ class Upload
             return null;
         }
 
-        $folder = rtrim($this->folderLocation, '/\\').($this->autoCreateFolder ? '/'.date('Y/m') : '');
+        $folder = rtrim($this->folderLocation, '/\\') . ($this->autoCreateFolder ? '/' . date('Y/m') : '');
 
         if (!is_dir($folder) && !@mkdir($folder, 0755, true) && !is_dir($folder)) {
             $this->setError(11);
@@ -183,7 +183,7 @@ class Upload
             });
         }
 
-        if ($this->permittedFileType !== '' && !preg_match('!\.('.$this->permittedFileType.')$!i', $this->file['name'])) {
+        if ($this->permittedFileType !== '' && !preg_match('!\.(' . $this->permittedFileType . ')$!i', $this->file['name'])) {
             return $this->setError(12);
         }
 
@@ -205,11 +205,11 @@ class Upload
         // basename(): a name must never point outside the folder.
         $original = basename(str_replace('\\', '/', $this->file['name']));
         $extension = self::getFileExtension($original);
-        $suffix = $extension === '' ? '' : '.'.$extension;
+        $suffix = $extension === '' ? '' : '.' . $extension;
 
         $name = match (true) {
-            $this->autoRename => bin2hex(random_bytes(8)).$suffix,
-            $this->setFileName !== '' => basename(str_replace('\\', '/', $this->setFileName)).$suffix,
+            $this->autoRename => bin2hex(random_bytes(8)) . $suffix,
+            $this->setFileName !== '' => basename(str_replace('\\', '/', $this->setFileName)) . $suffix,
             default => $original,
         };
 
@@ -232,7 +232,7 @@ class Upload
             'size' => $this->file['size'],
         ];
 
-        if (!move_uploaded_file($this->file['tmp_name'], $folder.'/'.$name)) {
+        if (!move_uploaded_file($this->file['tmp_name'], $folder . '/' . $name)) {
             return $this->setError(1);
         }
 
@@ -242,7 +242,7 @@ class Upload
     private function setError(int $code): bool
     {
         $imageErrors = $code === 14 && $this->image ? implode(', ', $this->image->errorMessages) : '';
-        $this->error = (object) ['code' => $code, 'message' => $this->errorMessages[$code].$imageErrors];
+        $this->error = (object) ['code' => $code, 'message' => $this->errorMessages[$code] . $imageErrors];
 
         return false;
     }

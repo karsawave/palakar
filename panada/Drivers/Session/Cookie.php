@@ -37,7 +37,7 @@ class Cookie implements Interfaces\Session
         $this->sessionName = $this->config['name'];
 
         $secret = Encryption::secret($this->config['secretKey'] ?? null);
-        $this->signingKey = hash('sha256', 'panada-cookie-session|'.$secret, true);
+        $this->signingKey = hash('sha256', 'panada-cookie-session|' . $secret, true);
 
         if (!empty($this->config['isEncrypt'])) {
             $this->encryption = new Encryption($secret);
@@ -124,10 +124,10 @@ class Cookie implements Interfaces\Session
     {
         $payload = rtrim(strtr(base64_encode(json_encode(
             ['values' => $this->values, 'exp' => time() + (int) $this->config['expiration']],
-            JSON_THROW_ON_ERROR
+            JSON_THROW_ON_ERROR,
         )), '+/', '-_'), '=');
 
-        $cookie = $payload.'.'.hash_hmac('sha256', $payload, $this->signingKey);
+        $cookie = $payload . '.' . hash_hmac('sha256', $payload, $this->signingKey);
 
         if ($this->encryption !== null) {
             $cookie = $this->encryption->encrypt($cookie);

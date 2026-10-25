@@ -47,7 +47,7 @@ final class ToolsTest extends TestCase
         $this->assertSame('Budi', (string) Tools::xmlDecode($xml)->user->name);
         $this->assertSame(['user' => ['name' => 'Budi']], Tools::xmlDecode($xml, 'array'));
 
-        $file = sys_get_temp_dir().'/panada-tools-test.xml';
+        $file = sys_get_temp_dir() . '/panada-tools-test.xml';
         file_put_contents($file, $xml);
         $this->assertSame('Budi', (string) Tools::xmlDecode($file)->user->name);
         unlink($file);

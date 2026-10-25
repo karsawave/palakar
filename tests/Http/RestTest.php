@@ -14,7 +14,7 @@ final class RestTest extends HttpTestCase
 {
     private function url(string $path): string
     {
-        return self::server(dirname(__DIR__).'/Fixtures/public').'/api/'.$path;
+        return self::server(dirname(__DIR__) . '/Fixtures/public') . '/api/' . $path;
     }
 
     private function send(string $method, array|string|null $data = null, array $headers = []): array

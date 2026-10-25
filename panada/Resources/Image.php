@@ -95,7 +95,7 @@ class Image
     public function edit(string $fileName): bool
     {
         $this->fileName = $fileName;
-        $this->filePath = $this->folder.'/'.$fileName;
+        $this->filePath = $this->folder . '/' . $fileName;
         $this->errorMessages = [];
 
         if (!$this->preErrorChecker()) {
@@ -150,7 +150,7 @@ class Image
                 max(0, intdiv(imagesx($image) - $this->cropWidth, 2)),
                 max(0, intdiv(imagesy($image) - $this->cropHeight, 2)),
                 $this->cropWidth,
-                $this->cropHeight
+                $this->cropHeight,
             );
             $image = $cropped;
         }
@@ -163,11 +163,11 @@ class Image
         if ($this->folder === '') {
             $this->errorMessages[] = 'No folder located. Please define the folder location.';
         } elseif (!is_dir($this->folder)) {
-            $this->errorMessages[] = 'The folder '.$this->folder.' doesn\'t exists please create it first.';
+            $this->errorMessages[] = 'The folder ' . $this->folder . ' doesn\'t exists please create it first.';
         } elseif (!is_writable($this->folder)) {
-            $this->errorMessages[] = 'The folder '.$this->folder.' is not writable.';
+            $this->errorMessages[] = 'The folder ' . $this->folder . ' is not writable.';
         } elseif (!is_file($this->filePath)) {
-            $this->errorMessages[] = 'File '.$this->filePath.' doesn\'t exists.';
+            $this->errorMessages[] = 'File ' . $this->filePath . ' doesn\'t exists.';
         }
 
         return $this->errorMessages === [];
@@ -214,13 +214,13 @@ class Image
     {
         $folder = $this->saveTo !== '' ? $this->saveTo : $this->folder;
         $extension = Upload::getFileExtension($this->fileName);
-        $name = $this->newFileName !== '' ? $this->newFileName.($extension === '' ? '' : '.'.$extension) : $this->fileName;
+        $name = $this->newFileName !== '' ? $this->newFileName . ($extension === '' ? '' : '.' . $extension) : $this->fileName;
 
         if ($this->stripSpaces) {
             $name = str_replace(' ', '_', $name);
         }
 
-        $path = $folder.'/'.basename($name);
+        $path = $folder . '/' . basename($name);
 
         if (!is_dir($folder) || !is_writable($folder)) {
             $this->errorMessages[] = 'File path invalid.';

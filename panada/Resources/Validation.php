@@ -91,7 +91,7 @@ class Validation
                 foreach ($value as $key => $item) {
                     $item = $this->sanitize($item, $rule['filter'] ?? []);
 
-                    if (!$this->check($field, $item, $label.' #'.$key, $rule, $rules, $fields)) {
+                    if (!$this->check($field, $item, $label . ' #' . $key, $rule, $rules, $fields)) {
                         $return = false;
                         unset($this->validValues[$field]);
 
@@ -157,17 +157,17 @@ class Validation
 
     private function runRule(string $name, string $field, mixed $value, string $label, mixed $parameter): bool
     {
-        $method = 'rule'.ucfirst($name);
+        $method = 'rule' . ucfirst($name);
 
         if (!method_exists($this, $method)) {
-            throw new RunException('Unknown validation rule "'.$name.'" for field '.$field);
+            throw new RunException('Unknown validation rule "' . $name . '" for field ' . $field);
         }
 
         if (!$this->$method($value, $parameter)) {
             $this->setErrorMessage($field, str_replace(
                 ['%label%', '%size%'],
                 [$label, is_scalar($parameter) ? (string) $parameter : ''],
-                $this->ruleErrorMessages[strtolower($name)] ?? '%label% is not valid'
+                $this->ruleErrorMessages[strtolower($name)] ?? '%label% is not valid',
             ));
 
             return false;
@@ -185,7 +185,7 @@ class Validation
         $callable = is_string($callback) && method_exists($this, $callback) ? [$this, $callback] : $callback;
 
         if (!is_callable($callable)) {
-            throw new RunException('Validation callback for '.$field.' is not callable');
+            throw new RunException('Validation callback for ' . $field . ' is not callable');
         }
 
         $passed = (bool) $callable($field, $value, $label);
@@ -206,7 +206,7 @@ class Validation
     protected function sanitize(mixed $value, array $filters = []): mixed
     {
         if (is_array($value)) {
-            return $this->isUploadedFile($value) ? $value : array_map(fn ($item) => $this->sanitize($item, $filters), $value);
+            return $this->isUploadedFile($value) ? $value : array_map(fn($item) => $this->sanitize($item, $filters), $value);
         }
 
         if ($value === null) {
@@ -233,7 +233,7 @@ class Validation
                 'strip_tags' => strip_tags((string) $value),
                 'email' => (string) filter_var($value, FILTER_SANITIZE_EMAIL),
                 'escape' => e($value),
-                default => is_callable($filter) ? $filter($value) : throw new RunException('Unknown filter: '.(is_string($filter) ? $filter : get_debug_type($filter))),
+                default => is_callable($filter) ? $filter($value) : throw new RunException('Unknown filter: ' . (is_string($filter) ? $filter : get_debug_type($filter))),
             };
         }
 
@@ -257,12 +257,12 @@ class Validation
             }
 
             return ($tagOpen !== null || $tagClose !== null)
-                ? $tagOpen.$this->errorMessages[$field].$tagClose
+                ? $tagOpen . $this->errorMessages[$field] . $tagClose
                 : $this->errorMessages[$field];
         }
 
         if ($tagOpen !== null || $tagClose !== null) {
-            return implode('', array_map(fn ($message) => $tagOpen.$message.$tagClose, $this->errorMessages));
+            return implode('', array_map(fn($message) => $tagOpen . $message . $tagClose, $this->errorMessages));
         }
 
         return $this->errorMessages;

@@ -42,7 +42,7 @@ class Redis extends \Redis implements Interfaces\Cache
                 $this->auth($config['password']);
             }
         } catch (\RedisException $e) {
-            throw new RunException('Unable to connect to Redis at '.$host.':'.$port.': '.$e->getMessage(), 0, E_ERROR, null, null, $e);
+            throw new RunException('Unable to connect to Redis at ' . $host . ':' . $port . ': ' . $e->getMessage(), 0, E_ERROR, null, null, $e);
         }
     }
 

@@ -106,7 +106,7 @@ abstract class Sql
             $tables = $tables[0];
         }
 
-        $this->tables = array_map(fn (string $table) => $this->table($table), $tables);
+        $this->tables = array_map(fn(string $table) => $this->table($table), $tables);
 
         return $this;
     }
@@ -121,7 +121,7 @@ abstract class Sql
         $type = strtoupper(trim((string) $type));
 
         if (!in_array($type, self::JOIN_TYPES, true)) {
-            throw new RunException('Invalid join type: '.$type);
+            throw new RunException('Invalid join type: ' . $type);
         }
 
         $this->joins[] = ['type' => $type, 'table' => $this->table($table), 'on' => []];
@@ -142,7 +142,7 @@ abstract class Sql
 
         $operator = $this->operator($operator);
         $this->joins[array_key_last($this->joins)]['on'][] = [
-            $this->column($column).' '.$operator.' '.$this->column($value),
+            $this->column($column) . ' ' . $operator . ' ' . $this->column($value),
             $this->separator($separator),
             [],
         ];
@@ -215,16 +215,16 @@ abstract class Sql
     {
         foreach (explode(',', $column) as $part) {
             if (!preg_match('/^\s*(\S+)(?:\s+(ASC|DESC))?\s*$/i', $part, $match)) {
-                throw new RunException('Invalid ORDER BY: '.$part);
+                throw new RunException('Invalid ORDER BY: ' . $part);
             }
 
             $direction = strtoupper($match[2] ?? '') ?: strtoupper(trim((string) $order));
 
             if (!in_array($direction, ['', 'ASC', 'DESC'], true)) {
-                throw new RunException('Invalid ORDER BY direction: '.$direction);
+                throw new RunException('Invalid ORDER BY direction: ' . $direction);
             }
 
-            $this->orderBy[] = trim($this->column($match[1]).' '.$direction);
+            $this->orderBy[] = trim($this->column($match[1]) . ' ' . $direction);
         }
 
         return $this;
@@ -334,11 +334,11 @@ abstract class Sql
             throw new RunException('insert() needs at least one column');
         }
 
-        $columns = array_map(fn ($column) => $this->column((string) $column, false), array_keys($data));
+        $columns = array_map(fn($column) => $this->column((string) $column, false), array_keys($data));
 
         $this->query(
-            'INSERT INTO '.$this->table($table, false).' ('.implode(', ', $columns).') VALUES ('.$this->placeholders(count($data)).')',
-            array_values($data)
+            'INSERT INTO ' . $this->table($table, false) . ' (' . implode(', ', $columns) . ') VALUES (' . $this->placeholders(count($data)) . ')',
+            array_values($data),
         );
 
         return true;
@@ -359,14 +359,14 @@ abstract class Sql
         $set = [];
 
         foreach (array_keys($data) as $column) {
-            $set[] = $this->column((string) $column, false).' = ?';
+            $set[] = $this->column((string) $column, false) . ' = ?';
         }
 
         [$whereSql, $whereBindings] = $this->writeCondition('update', $where);
 
         $this->query(
-            'UPDATE '.$this->table($table, false).' SET '.implode(', ', $set).' WHERE '.$whereSql,
-            [...array_values($data), ...$whereBindings]
+            'UPDATE ' . $this->table($table, false) . ' SET ' . implode(', ', $set) . ' WHERE ' . $whereSql,
+            [...array_values($data), ...$whereBindings],
         );
 
         return true;
@@ -379,7 +379,7 @@ abstract class Sql
     {
         [$whereSql, $whereBindings] = $this->writeCondition('delete', $where);
 
-        $this->query('DELETE FROM '.$this->table($table, false).' WHERE '.$whereSql, $whereBindings);
+        $this->query('DELETE FROM ' . $this->table($table, false) . ' WHERE ' . $whereSql, $whereBindings);
 
         return true;
     }
@@ -403,51 +403,49 @@ abstract class Sql
     /**
      * @deprecated Errors are always thrown as RunException since PHP 8 support.
      */
-    public function setThrowError(bool $set = false): void
-    {
-    }
+    public function setThrowError(bool $set = false): void {}
 
     /**
      * Turns the SELECT parts into [sql, bindings] and empties the builder.
      */
     protected function compileSelect(): array
     {
-        $sql = 'SELECT '.($this->distinct ? 'DISTINCT ' : '').implode(', ', $this->columns);
+        $sql = 'SELECT ' . ($this->distinct ? 'DISTINCT ' : '') . implode(', ', $this->columns);
         $bindings = [];
 
         if ($this->tables !== []) {
-            $sql .= ' FROM '.implode(', ', $this->tables);
+            $sql .= ' FROM ' . implode(', ', $this->tables);
         }
 
         foreach ($this->joins as $join) {
-            $sql .= ' '.ltrim($join['type'].' JOIN ').$join['table'];
+            $sql .= ' ' . ltrim($join['type'] . ' JOIN ') . $join['table'];
 
             if ($join['on'] !== []) {
-                $sql .= ' ON ('.$this->conditions($join['on'])[0].')';
+                $sql .= ' ON (' . $this->conditions($join['on'])[0] . ')';
             }
         }
 
         if ($this->criteria !== []) {
             [$where, $bindings] = $this->conditions($this->criteria);
-            $sql .= ' WHERE '.$where;
+            $sql .= ' WHERE ' . $where;
         }
 
         if ($this->groupBy !== []) {
-            $sql .= ' GROUP BY '.implode(', ', $this->groupBy);
+            $sql .= ' GROUP BY ' . implode(', ', $this->groupBy);
         }
 
         if ($this->having !== []) {
             [$having, $havingBindings] = $this->conditions($this->having);
-            $sql .= ' HAVING '.$having;
+            $sql .= ' HAVING ' . $having;
             $bindings = [...$bindings, ...$havingBindings];
         }
 
         if ($this->orderBy !== []) {
-            $sql .= ' ORDER BY '.implode(', ', $this->orderBy);
+            $sql .= ' ORDER BY ' . implode(', ', $this->orderBy);
         }
 
         if ($this->limit !== null) {
-            $sql .= ' LIMIT '.$this->limit.($this->offset !== null ? ' OFFSET '.$this->offset : '');
+            $sql .= ' LIMIT ' . $this->limit . ($this->offset !== null ? ' OFFSET ' . $this->offset : '');
         }
 
         $this->reset();
@@ -508,8 +506,8 @@ abstract class Sql
 
         if ($value === null) {
             return match ($operator) {
-                '=', 'IS' => [$column.' IS NULL', []],
-                '!=', '<>', 'IS NOT' => [$column.' IS NOT NULL', []],
+                '=', 'IS' => [$column . ' IS NULL', []],
+                '!=', '<>', 'IS NOT' => [$column . ' IS NOT NULL', []],
                 default => throw new RunException('NULL can only be used with =, !=, IS or IS NOT'),
             };
         }
@@ -521,22 +519,22 @@ abstract class Sql
                 return [$operator === 'IN' ? '1 = 0' : '1 = 1', []];
             }
 
-            return [$column.' '.$operator.' ('.$this->placeholders(count($values)).')', $values];
+            return [$column . ' ' . $operator . ' (' . $this->placeholders(count($values)) . ')', $values];
         }
 
         if ($operator === 'BETWEEN' || $operator === 'NOT BETWEEN') {
             if (!is_array($value) || count($value) !== 2) {
-                throw new RunException($operator.' needs an array with two values');
+                throw new RunException($operator . ' needs an array with two values');
             }
 
-            return [$column.' '.$operator.' ? AND ?', array_values($value)];
+            return [$column . ' ' . $operator . ' ? AND ?', array_values($value)];
         }
 
         if (is_array($value)) {
-            throw new RunException('Operator '.$operator.' expects one value, array given');
+            throw new RunException('Operator ' . $operator . ' expects one value, array given');
         }
 
-        return [$column.' '.$operator.' ?', [$value]];
+        return [$column . ' ' . $operator . ' ?', [$value]];
     }
 
     /**
@@ -550,7 +548,7 @@ abstract class Sql
         $bindings = [];
 
         foreach (array_values($conditions) as $i => [$condition, $separator, $values]) {
-            $sql .= $i === 0 ? $condition : ' '.$conditions[$i - 1][1].' '.$condition;
+            $sql .= $i === 0 ? $condition : ' ' . $conditions[$i - 1][1] . ' ' . $condition;
             array_push($bindings, ...$values);
         }
 
@@ -572,7 +570,7 @@ abstract class Sql
         }
 
         if ($this->criteria === []) {
-            throw new RunException($action.'() without a WHERE condition is refused. Use whereRaw(\'1 = 1\') if you really mean every row.');
+            throw new RunException($action . '() without a WHERE condition is refused. Use whereRaw(\'1 = 1\') if you really mean every row.');
         }
 
         $result = $this->conditions($this->criteria);
@@ -586,7 +584,7 @@ abstract class Sql
         $operator = strtoupper(trim(preg_replace('/\s+/', ' ', $operator)));
 
         if (!in_array($operator, self::OPERATORS, true)) {
-            throw new RunException('Invalid SQL operator: '.$operator);
+            throw new RunException('Invalid SQL operator: ' . $operator);
         }
 
         return $operator;
@@ -597,7 +595,7 @@ abstract class Sql
         $separator = $separator === false ? 'AND' : strtoupper(trim($separator));
 
         if ($separator !== 'AND' && $separator !== 'OR') {
-            throw new RunException('Invalid separator "'.$separator.'", use AND or OR');
+            throw new RunException('Invalid separator "' . $separator . '", use AND or OR');
         }
 
         return $separator;
@@ -614,7 +612,7 @@ abstract class Sql
             return $column;
         }
 
-        throw new RunException('Invalid column name: '.$column);
+        throw new RunException('Invalid column name: ' . $column);
     }
 
     /**
@@ -628,7 +626,7 @@ abstract class Sql
             : '/^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?$/';
 
         if (!preg_match($pattern, $table)) {
-            throw new RunException('Invalid table name: '.$table);
+            throw new RunException('Invalid table name: ' . $table);
         }
 
         return $table;

@@ -45,7 +45,7 @@ namespace Resources;
 class ActiveRecord
 {
     // Define the constants for db relations.
-    const
+    public const
         BELONGS_TO = 1,
         HAS_ONE = 2,
         HAS_MANY = 3,
@@ -102,7 +102,7 @@ class ActiveRecord
         $this->db = new Database($this->connection);
 
         if ($class[0] === 'Modules') {
-            $this->modulPrefix = $class[0].'\\'.$class[1].'\\';
+            $this->modulPrefix = $class[0] . '\\' . $class[1] . '\\';
         }
 
         if ($this->setInstantiateClass === false && $this->relations()) {
@@ -209,11 +209,11 @@ class ActiveRecord
     {
         foreach ([$left, $right] as $column) {
             if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $column)) {
-                throw new RunException('Invalid column name: '.$column);
+                throw new RunException('Invalid column name: ' . $column);
             }
         }
 
-        $this->condition[] = [$left.' = '.$right];
+        $this->condition[] = [$left . ' = ' . $right];
 
         return $this;
     }
@@ -274,11 +274,11 @@ class ActiveRecord
         }
 
         if (!str_starts_with($name, 'getBy') || $name === 'getBy') {
-            throw new RunException('Call to undefined method '.static::class.'::'.$name.'()');
+            throw new RunException('Call to undefined method ' . static::class . '::' . $name . '()');
         }
 
         if ($arguments === []) {
-            throw new RunException($name.'() in Active Record expects 1 parameter, none given.');
+            throw new RunException($name . '() in Active Record expects 1 parameter, none given.');
         }
 
         if (!$results = $this->buildQuery()->where(substr($name, 5), '=', $arguments[0])->getAll()) {
@@ -321,19 +321,19 @@ class ActiveRecord
             return false;
         }
 
-        $class = $this->modulPrefix.'Models\\'.ucwords($relation[1]);
+        $class = $this->modulPrefix . 'Models\\' . ucwords($relation[1]);
         $related = new $class();
         $pk = $this->primaryKey;
 
         return match ($relation[0]) {
-            self::BELONGS_TO => $related->limit(1)->{'getBy'.$related->primaryKey}($this->{$relation[2]}),
-            self::HAS_ONE => $related->limit(1)->{'getBy'.$relation[2]}($this->$pk),
+            self::BELONGS_TO => $related->limit(1)->{'getBy' . $related->primaryKey}($this->{$relation[2]}),
+            self::HAS_ONE => $related->limit(1)->{'getBy' . $relation[2]}($this->$pk),
             self::HAS_MANY => $related->condition($relation[2], '=', $this->$pk, 'AND'),
-            self::MANY_MANY => $related->select($related->table.'.*')
+            self::MANY_MANY => $related->select($related->table . '.*')
                 ->from($relation[2][0])
-                ->condition($relation[2][0].'.'.$relation[2][2], '=', $this->$pk, 'AND')
-                ->conditionColumns($relation[2][0].'.'.$relation[2][1], $related->table.'.'.$related->primaryKey),
-            default => throw new RunException('Unknown relation type for '.static::class.'::$'.$name),
+                ->condition($relation[2][0] . '.' . $relation[2][2], '=', $this->$pk, 'AND')
+                ->conditionColumns($relation[2][0] . '.' . $relation[2][1], $related->table . '.' . $related->primaryKey),
+            default => throw new RunException('Unknown relation type for ' . static::class . '::$' . $name),
         };
     }
 

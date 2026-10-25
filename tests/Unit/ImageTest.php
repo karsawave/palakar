@@ -13,13 +13,13 @@ final class ImageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dir = str_replace('\\', '/', sys_get_temp_dir()).'/panada-image-test';
+        $this->dir = str_replace('\\', '/', sys_get_temp_dir()) . '/panada-image-test';
 
         if (!is_dir($this->dir)) {
             mkdir($this->dir);
         }
 
-        array_map('unlink', glob($this->dir.'/*'));
+        array_map('unlink', glob($this->dir . '/*'));
     }
 
     private function make(string $name, int $width, int $height, string $type = 'png', bool $transparent = false): void
@@ -33,15 +33,15 @@ final class ImageTest extends TestCase
         }
 
         match ($type) {
-            'png' => imagepng($image, $this->dir.'/'.$name),
-            'jpeg' => imagejpeg($image, $this->dir.'/'.$name),
-            'gif' => imagegif($image, $this->dir.'/'.$name),
+            'png' => imagepng($image, $this->dir . '/' . $name),
+            'jpeg' => imagejpeg($image, $this->dir . '/' . $name),
+            'gif' => imagegif($image, $this->dir . '/' . $name),
         };
     }
 
     private function dimensions(string $name): array
     {
-        return array_slice(getimagesize($this->dir.'/'.$name), 0, 2);
+        return array_slice(getimagesize($this->dir . '/' . $name), 0, 2);
     }
 
     public function testResizeKeepsTheRatioInWholePixels(): void
@@ -76,13 +76,13 @@ final class ImageTest extends TestCase
 
         $this->assertTrue((new Image())->setOption(['folder' => $this->dir, 'resizeWidth' => 10])->edit('logo.png'));
 
-        $resized = imagecreatefrompng($this->dir.'/logo.png');
+        $resized = imagecreatefrompng($this->dir . '/logo.png');
         $this->assertSame(127, imagecolorsforindex($resized, imagecolorat($resized, 5, 5))['alpha']);
     }
 
     public function testNotAnImageIsAnErrorNotAWarning(): void
     {
-        file_put_contents($this->dir.'/fake.png', 'not an image');
+        file_put_contents($this->dir . '/fake.png', 'not an image');
         $image = (new Image())->setOption('folder', $this->dir);
 
         $this->assertFalse($image->edit('fake.png'));

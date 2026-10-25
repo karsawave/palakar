@@ -127,15 +127,15 @@ class Request
         }
 
         $allowattributes = is_array($allowattributes) ? $allowattributes : explode(',', $allowattributes);
-        $allowattributes = array_map(fn ($attr) => preg_quote(trim($attr), '/'), $allowattributes);
-        $notAllowed = $allowattributes ? '(?<!'.implode(')(?<!', $allowattributes).')' : '';
+        $allowattributes = array_map(fn($attr) => preg_quote(trim($attr), '/'), $allowattributes);
+        $notAllowed = $allowattributes ? '(?<!' . implode(')(?<!', $allowattributes) . ')' : '';
 
         // Remove every attribute that is not in the allow list.
         // See original idea at http://php.net/manual/en/function.strip-tags.php#91498
         return preg_replace_callback(
             '/<[^>]*>/i',
-            fn (array $matches) => preg_replace('/ [^ =]*'.$notAllowed.'=("[^"]*"|\'[^\']*\')/i', '', $matches[0]),
-            $str
+            fn(array $matches) => preg_replace('/ [^ =]*' . $notAllowed . '=("[^"]*"|\'[^\']*\')/i', '', $matches[0]),
+            $str,
         );
     }
 }

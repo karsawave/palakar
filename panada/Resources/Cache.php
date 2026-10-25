@@ -46,18 +46,18 @@ class Cache
         $config = Config::cache()[$connection] ?? null;
 
         if (!is_array($config)) {
-            throw new RunException('Cache connection "'.$connection.'" is not defined in app/config/cache.php');
+            throw new RunException('Cache connection "' . $connection . '" is not defined in app/config/cache.php');
         }
 
         $driver = strtolower((string) ($specifiedDriver ?: ($config['driver'] ?? '')));
-        $class = 'Drivers\\Cache\\'.ucfirst($driver);
+        $class = 'Drivers\\Cache\\' . ucfirst($driver);
 
         if (isset(self::EXTENSIONS[$driver]) && !extension_loaded(self::EXTENSIONS[$driver])) {
-            throw new RunException('Cache driver "'.$driver.'" needs the '.self::EXTENSIONS[$driver].' PHP extension.');
+            throw new RunException('Cache driver "' . $driver . '" needs the ' . self::EXTENSIONS[$driver] . ' PHP extension.');
         }
 
         if (!preg_match('/^[a-z]+$/', $driver) || !is_subclass_of($class, Interfaces\Cache::class)) {
-            throw new RunException('Unknown cache driver "'.$driver.'" in app/config/cache.php');
+            throw new RunException('Unknown cache driver "' . $driver . '" in app/config/cache.php');
         }
 
         $this->driver = new $class($config);

@@ -21,8 +21,7 @@ class DatabaseHandler implements \SessionHandlerInterface, \SessionUpdateTimesta
         private Database $db,
         private string $table = 'sessions',
         private int $lifetime = 7200,
-    ) {
-    }
+    ) {}
 
     public function open(string $path, string $name): bool
     {

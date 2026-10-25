@@ -47,7 +47,7 @@ class Response
         }
 
         foreach (self::$headers as $name => $value) {
-            header($name.': '.$value, true);
+            header($name . ': ' . $value, true);
         }
     }
 
@@ -72,7 +72,7 @@ class Response
             $returned = json_encode($returned, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         }
 
-        self::$body = $echoed.(is_scalar($returned) || $returned instanceof \Stringable ? (string) $returned : '');
+        self::$body = $echoed . (is_scalar($returned) || $returned instanceof \Stringable ? (string) $returned : '');
     }
 
     public static function setHeader(string $key, string $value, int $statusCode = 200): void
