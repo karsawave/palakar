@@ -1,5 +1,15 @@
 <?php
 
+// `composer serve` (php -S) sends every request here; let it serve existing
+// files such as assets/css/main.css itself, except this front controller.
+if (PHP_SAPI === 'cli-server') {
+    $file = realpath(__DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+
+    if ($file !== false && $file !== __FILE__ && is_file($file)) {
+        return false;
+    }
+}
+
 // Sets the default timezone used by all date/time. Adjust to your location.
 date_default_timezone_set('Asia/Jakarta');
 

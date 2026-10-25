@@ -52,6 +52,15 @@ final class SkeletonAppTest extends HttpTestCase
         $this->assertSame(1, substr_count($body, '</html>'));
     }
 
+    public function testDevServerServesStaticFiles(): void
+    {
+        $response = $this->request(dirname(self::$url) . '/assets/css/main.css');
+
+        $this->assertSame(200, $response['status']);
+        $this->assertStringStartsWith('text/css', $response['headers']['content-type'][0]);
+        $this->assertStringContainsString(':root', $response['body']);
+    }
+
     public function testInheritedControllerMethodsAreNotRoutable(): void
     {
         foreach (['/home/output/errors', '/home/redirect', '/home/location', '/home/__construct', '/home/outputJSON'] as $path) {

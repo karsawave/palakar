@@ -1,6 +1,6 @@
 # palakar-spec-027: `composer serve` melayani file statis
 
-**Status:** plan
+**Status:** done (2026-10-25)
 
 ## Masalah
 
@@ -50,3 +50,18 @@ sendiri menolak path di luar document root.
 ## Breaking change
 
 Tidak ada.
+
+## Hasil
+
+- Pertanyaan terbuka: fixture tidak diubah (sesuai usul).
+- Penyimpangan dari potongan kode di Keputusan: contoh awal membuat
+  `/index.php` dilayani sebagai file oleh `php -S` (body kosong, terdeteksi
+  `testHomePage`). Versi akhir memakai `realpath()` dan mengecualikan
+  `__FILE__`; tujuan dan cakupan sama.
+- Test `testDevServerServesStaticFiles` gagal sebelum perubahan
+  (`text/html`), lulus sesudahnya.
+- Lokal (PHP 8.3): 152 test, 500 assertion, 32 skip (test server tanpa
+  env). PHPStan level 5 tanpa temuan, `composer cs` 0 file.
+- `php -S`: `/assets/css/main.css` 200 `text/css`; `/`, `/index.php`,
+  `/guestbook`, `/index.php/guestbook` 200 lewat Gear; `/check.php` 200;
+  `/..%2f..%2fcomposer.json` dan `/nope` 404.
