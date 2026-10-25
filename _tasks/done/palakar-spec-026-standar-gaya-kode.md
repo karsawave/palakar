@@ -1,6 +1,6 @@
 # palakar-spec-026: standar gaya kode (EditorConfig + PER-CS)
 
-**Status:** plan
+**Status:** done (2026-10-25)
 
 ## Masalah
 
@@ -79,3 +79,22 @@ Tidak ada.
 ## Urutan
 
 Dikerjakan **sebelum** spec-025, supaya view baru Bingkai langsung mengikuti standar dan diff spec-025 tidak tercampur perapian.
+
+## Hasil
+
+- Commit: `36555c6` (alat + dokumen), `d98cef6` (perapian, di
+  `.git-blame-ignore-revs`), dan commit ini (langkah CI + catatan spec).
+  Langkah CI masuk terakhir supaya tidak ada commit dengan CI merah.
+- Pertanyaan terbuka: diterima sesuai usul (ACC SPEC 026).
+  `Import.php` ditambah ke daftar pengecualian strict di CLAUDE.md, karena
+  meneruskan argumen ke kelas vendor lama; perilaku tidak berubah.
+- `.editorconfig` sengaja **tidak** `export-ignore`: berguna untuk aplikasi
+  pengguna dari `create-project`.
+- PHP-CS-Fixer 3.95.27: 71 dari 112 file dirapikan. Aturan yang terpakai:
+  `concat_space` (64), `trailing_comma_in_multiline` (14),
+  `function_declaration` (10), `single_line_empty_body` (6), sisanya ≤ 4.
+- Lokal (PHP 8.3): 151 test, 487 assertion, 32 skip (test server
+  PostgreSQL/MySQL/Redis/Memcached, tanpa env); sama dengan sebelum
+  perapian. PHPStan level 5 tanpa temuan. `composer cs` 0 file.
+  `composer audit` tanpa temuan.
+- CI: belum jalan (belum di-push).
