@@ -25,6 +25,9 @@
  */
 final class Gear
 {
+    /** Palakar version (SemVer); raise it in every release. */
+    public const VERSION = '0.2.0';
+
     public static ?Resources\Uri $uri = null;
 
     private Resources\Uri $uriObj;

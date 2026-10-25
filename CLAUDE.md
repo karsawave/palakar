@@ -186,7 +186,7 @@ menjadi utang yang ditemukan pengguna, bukan kita.
    manual: halaman awal, demo Guestbook (form + CSRF), halaman error
    dengan `debug` true dan false.
 4. **`composer audit`** tanpa temuan.
-5. **Dokumen:** CHANGELOG `[Unreleased]` → `[X.Y.Z] - tanggal`; setiap
+5. **Dokumen:** `Gear::VERSION` dinaikkan ke `X.Y.Z`; CHANGELOG `[Unreleased]` → `[X.Y.Z] - tanggal`; setiap
    breaking change ada di CHANGELOG dan MODERNISASI.md; versi yang
    didukung di SECURITY.md diperbarui.
 6. **Utang tidak tersembunyi:** `grep -rn "TODO\|FIXME\|ponytail:" panada/`;
