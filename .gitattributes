@@ -5,6 +5,7 @@
 /PRODUCT.md        export-ignore
 /DESIGN.md         export-ignore
 /.impeccable       export-ignore
+/docs             export-ignore
 /.claude           export-ignore
 /.github           export-ignore
 /tests             export-ignore
