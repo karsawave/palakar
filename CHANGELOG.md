@@ -21,6 +21,15 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
   `mime` and Email attachment `Content-Type` follow (a renamed `.php` sent
   as `.png` no longer reports `image/png`). `ext-fileinfo` is required.
 - `Pagination::getUrl()` rewritten from scratch; output unchanged.
+- `app/config/security.php` reads `secretKey` from the
+  `PALAKAR_SECRET_KEY` environment variable first.
+
+### Security
+
+- **Breaking:** every response sends `X-Frame-Options: SAMEORIGIN` and
+  `Referrer-Policy: strict-origin-when-cross-origin`. Apps framed by other
+  domains unset `Response::$headers['X-Frame-Options']` (spec-020).
+- CI runs `composer audit`.
 
 ### Removed
 

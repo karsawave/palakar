@@ -35,6 +35,8 @@ final class SkeletonAppTest extends HttpTestCase
         $this->assertSame(200, $response['status']);
         $this->assertStringContainsString('Palakar has been installed successfully', $response['body']);
         $this->assertSame(['nosniff'], $response['headers']['x-content-type-options']);
+        $this->assertSame(['SAMEORIGIN'], $response['headers']['x-frame-options']);
+        $this->assertSame(['strict-origin-when-cross-origin'], $response['headers']['referrer-policy']);
     }
 
     public function testInheritedControllerMethodsAreNotRoutable(): void

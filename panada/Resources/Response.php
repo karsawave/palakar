@@ -14,6 +14,10 @@ class Response
     public static array $headers = [
         'Content-Type' => 'text/html; charset=utf-8',
         'X-Content-Type-Options' => 'nosniff',
+        // Against clickjacking and leaking full URLs to other sites. Apps that
+        // must be framed elsewhere unset() this entry.
+        'X-Frame-Options' => 'SAMEORIGIN',
+        'Referrer-Policy' => 'strict-origin-when-cross-origin',
     ];
 
     public static string $body = '';

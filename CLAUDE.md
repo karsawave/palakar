@@ -111,6 +111,9 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 - **Error:** `debug => false` tidak boleh membocorkan pesan, path, atau trace.
 - **Session:** strict mode, HttpOnly, SameSite; `X-Forwarded-Proto` hanya
   dipercaya bila `trustProxyHeaders` true.
+- **Header default:** `nosniff`, `X-Frame-Options: SAMEORIGIN`,
+  `Referrer-Policy: strict-origin-when-cross-origin`. CSP dan HSTS tidak
+  dikirim core (tergantung aplikasi/web server, spec-020).
 - **Kripto:** pakai libsodium (`Resources\Encryption`), `hash_equals`,
   `random_bytes`. Jangan `unserialize` data dari klien.
 

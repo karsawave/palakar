@@ -52,6 +52,9 @@ jobs:
 
       - run: composer install --no-interaction --no-progress
 
+      # Known vulnerabilities (and abandoned packages) in dependencies.
+      - run: composer audit
+
       - run: composer test
 
       - run: composer analyse

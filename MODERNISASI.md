@@ -35,8 +35,10 @@ Tanpa Composer juga jalan: autoloader bawaan Panada memuat semuanya sendiri.
 Sebelum produksi:
 
 1. `app/config/main.php` → `'debug' => false`.
-2. `app/config/security.php` → isi `secretKey` dengan
-   `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`.
+2. Isi env `PALAKAR_SECRET_KEY` (atau `secretKey` di
+   `app/config/security.php`) dengan
+   `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`. Env lebih aman:
+   rahasia tidak ikut ter-commit ke git.
 3. Hapus `public/check.php`.
 4. `composer install --no-dev` (Whoops tidak ikut terpasang).
 
@@ -542,6 +544,12 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
     Kalau aplikasi Anda membandingkan `mime` dengan string tertentu, periksa
     ulang. Daftar MIME lama berasal dari WordPress (GPLv2) dan dihapus
     (spec-011).
+36. Setiap respons kini membawa `X-Frame-Options: SAMEORIGIN` dan
+    `Referrer-Policy: strict-origin-when-cross-origin`. Aplikasi yang sengaja
+    ditampilkan di iframe domain lain: `unset(\Resources\Response::$headers['X-Frame-Options'])`.
+    Nilai lain atau CSP: `\Resources\Response::setHeader('Content-Security-Policy', '...')`.
+    CSP dan HSTS sengaja tidak dikirim default; isinya tergantung aplikasi
+    dan web server (spec-020).
 
 ---
 

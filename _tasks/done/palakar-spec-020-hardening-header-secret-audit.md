@@ -1,7 +1,16 @@
-# palakar-spec-018: header keamanan, secretKey dari env, composer audit
+# palakar-spec-020: header keamanan, secretKey dari env, composer audit
 
-- **Status:** plan
+- **Status:** done (2026-10-25), commit: lihat `git log --grep spec-020`
 - **Bergantung pada:** -
+- **Catatan:** semula bernomor 018; diganti 020 karena bentrok dengan
+  palakar-spec-018-rilis-1-0-0 yang dibuat bersamaan (keputusan pengguna).
+- **Pertanyaan terbuka:** dijawab lewat ACC, ketiganya sesuai usulan.
+- **Hasil:** 137 test (18 dilewati: PostgreSQL/Redis/Memcached/Memcache
+  tanpa server lokal), PHPStan level 2 tanpa error, `composer audit` tanpa
+  temuan. `PALAKAR_SECRET_KEY` terbaca dari env, fallback ke placeholder
+  bila kosong. CI belum dijalankan (belum di-push). Uji manual Guestbook
+  dengan `composer serve` tidak dilakukan; header dan session sudah
+  dicakup test HTTP.
 
 ## Masalah
 
