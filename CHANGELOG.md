@@ -35,6 +35,8 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 - WordPress-derived code (GPLv2): the extension-to-MIME list in `Upload`
   and the `paginate_links()` adaptation in `Pagination` (spec-011).
+- `panada/Modules/ModSample`, an old sample nothing loaded; the module
+  example lives in `app/Modules` (spec-012).
 
 ## [0.1.0] - 2026-10-25
 

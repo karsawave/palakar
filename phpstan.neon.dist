@@ -2,8 +2,5 @@ parameters:
     level: 2
     paths:
         - panada
-    excludePaths:
-        # Unused leftover sample, see backlog in CLAUDE.md.
-        - panada/Modules/ModSample
     bootstrapFiles:
         - tests/phpstan-bootstrap.php

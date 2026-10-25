@@ -1,6 +1,6 @@
 # palakar-spec-012: Hapus `panada/Modules/ModSample`
 
-- **Status:** plan
+- **Status:** done (ACC SPEC 012, 2026-10-25)
 - **Bergantung pada:** -
 
 ## Masalah
@@ -33,3 +33,11 @@ hijau.
 
 Tidak ada: folder ini tidak pernah di-autoload (PSR-4 hanya `Resources\`
 dan `Drivers\`).
+
+## Hasil
+
+- `composer test`: 137 test, 487 assertion, OK; 18 skipped (PostgreSQL,
+  Redis, Memcached tanpa server lokal; dijalankan di CI).
+- `composer analyse`: PHPStan level 2, tanpa error, kini tanpa
+  `excludePaths`.
+- `grep -r "panada/Modules"` di luar `_tasks/`: hanya entri CHANGELOG.

@@ -279,8 +279,5 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
 2. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
-3. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
-   (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
-   hapus atau rapikan.
-4. PHP 8.4 belum ada
+3. PHP 8.4 belum ada
    di matrix CI.
