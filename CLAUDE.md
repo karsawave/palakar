@@ -19,7 +19,7 @@ lebih pendek dan lebih mudah dibaca.
 Selesai dan teruji (137 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
 Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
 
-1. Kompatibilitas PHP 8.2/8.3 (strict types, typed props, tanpa dynamic property)
+1. Kompatibilitas PHP 8.2–8.5 (strict types, typed props, tanpa dynamic property)
 2. Composer PSR-4 + autoloader Panada sebagai fallback
 3. Database PDO-only, prepared statement otomatis
 4. Validation dengan sanitize otomatis + CSRF bawaan
