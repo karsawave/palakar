@@ -12,6 +12,9 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ### Changed
 
+- The Composer package no longer ships development files (`_tasks/`,
+  `tests/`, `.github/`, `CLAUDE.md`, PHPUnit/PHPStan config), via
+  `export-ignore` in `.gitattributes`.
 - **Breaking:** `Upload::getMimeTypes()` reads the type from the file
   content with ext-fileinfo, not from the extension. It now takes a path
   to an existing file and returns `false` for a bare name. `getFileInfo()`

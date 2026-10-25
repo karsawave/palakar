@@ -1,6 +1,6 @@
 # palakar-spec-019: Bersihkan paket Composer dengan export-ignore
 
-**Status:** plan
+**Status:** done (2026-10-25)
 
 ## Masalah
 
@@ -60,3 +60,13 @@ pengembangan. Tidak memakai bagian `archive` di `composer.json`, karena
 ## Breaking change
 
 Tidak ada.
+
+## Hasil
+
+- `git add --renormalize .` tidak mengubah file; tidak perlu commit terpisah.
+- `git archive` hanya memuat `panada/`, `app/`, `public/`, `composer.*`,
+  `LICENSE`, `CHANGELOG*`, `README.md`, `SECURITY.md`, `CONTRIBUTING.md`,
+  `MODERNISASI.md`.
+- `composer test`: 137 test, 487 assertion, 18 skipped (PostgreSQL/Redis/
+  Memcached tanpa server). `composer analyse`: tanpa error.
+- Commit: lihat `git log --grep "spec-019"`.
