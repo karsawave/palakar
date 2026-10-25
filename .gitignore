@@ -5,3 +5,7 @@
 *.sw*
 .idea/
 .vscode/
+/.php-cs-fixer.cache
+/.impeccable/review/
+/.impeccable/build/
+/.impeccable/hook.cache.json

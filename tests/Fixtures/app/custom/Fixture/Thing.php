@@ -2,6 +2,4 @@
 
 namespace Fixture;
 
-class Thing
-{
-}
+class Thing {}

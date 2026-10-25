@@ -25,6 +25,9 @@
  */
 final class Gear
 {
+    /** Palakar version (SemVer); raise it in every release. */
+    public const VERSION = '0.3.0';
+
     public static ?Resources\Uri $uri = null;
 
     private Resources\Uri $uriObj;
@@ -77,14 +80,14 @@ final class Gear
             return;
         }
 
-        $composer = (defined('VENDOR') ? VENDOR : dirname(GEAR).'/vendor/').'autoload.php';
+        $composer = (defined('VENDOR') ? VENDOR : dirname(GEAR) . '/vendor/') . 'autoload.php';
 
         if (is_file($composer)) {
             require_once $composer;
         }
 
         spl_autoload_register([self::class, 'loader']);
-        require_once GEAR.'helpers.php';
+        require_once GEAR . 'helpers.php';
 
         $registered = true;
     }
@@ -114,7 +117,7 @@ final class Gear
             return;
         }
 
-        $file = $folder.str_replace('\\', '/', $class).'.php';
+        $file = $folder . str_replace('\\', '/', $class) . '.php';
 
         if (is_file($file)) {
             require $file;
@@ -126,13 +129,13 @@ final class Gear
      */
     private function controllerHandler(): void
     {
-        if (!is_file(APP.'Controllers/'.$this->firstUriPath.'.php')) {
+        if (!is_file(APP . 'Controllers/' . $this->firstUriPath . '.php')) {
             $this->subControllerHandler();
 
             return;
         }
 
-        $instance = $this->instantiate('Controllers\\'.$this->firstUriPath);
+        $instance = $this->instantiate('Controllers\\' . $this->firstUriPath);
         $method = $this->uriObj->getMethod();
         $request = $this->uriObj->getRequests() ?: [];
 
@@ -141,7 +144,7 @@ final class Gear
             $method = $this->config['alias']['method'];
 
             if (!$this->isRoutable($instance, $method)) {
-                throw new Resources\HttpException('Method '.$this->uriObj->getMethod().' does not exists in controller '.$this->firstUriPath);
+                throw new Resources\HttpException('Method ' . $this->uriObj->getMethod() . ' does not exists in controller ' . $this->firstUriPath);
             }
         }
 
@@ -153,7 +156,7 @@ final class Gear
      */
     private function subControllerHandler(): void
     {
-        $folder = APP.'Controllers/'.$this->firstUriPath.'/';
+        $folder = APP . 'Controllers/' . $this->firstUriPath . '/';
 
         if (!is_dir($folder)) {
             $this->moduleHandler();
@@ -163,11 +166,11 @@ final class Gear
 
         $controllerClass = $this->classSegment(1) ?? ucwords($this->config['defaultController']);
 
-        if (!is_file($folder.$controllerClass.'.php')) {
-            throw new Resources\HttpException('Controller '.$controllerClass.' does not exists in sub-controller '.$this->firstUriPath.'.');
+        if (!is_file($folder . $controllerClass . '.php')) {
+            throw new Resources\HttpException('Controller ' . $controllerClass . ' does not exists in sub-controller ' . $this->firstUriPath . '.');
         }
 
-        $instance = $this->instantiate('Controllers\\'.$this->firstUriPath.'\\'.$controllerClass);
+        $instance = $this->instantiate('Controllers\\' . $this->firstUriPath . '\\' . $controllerClass);
         $method = $this->uriObj->path(2) ?: 'index';
         $request = array_slice($this->uriObj->path(), 3);
 
@@ -176,7 +179,7 @@ final class Gear
             $method = $this->config['alias']['method'];
 
             if (!$this->isRoutable($instance, $method)) {
-                throw new Resources\HttpException('Method '.$this->uriObj->path(2).' does not exists in controller /'.$this->firstUriPath.'/'.$controllerClass.'.');
+                throw new Resources\HttpException('Method ' . $this->uriObj->path(2) . ' does not exists in controller /' . $this->firstUriPath . '/' . $controllerClass . '.');
             }
         }
 
@@ -188,15 +191,15 @@ final class Gear
      */
     private function moduleHandler(): void
     {
-        $moduleFolder = $this->config['module']['path'].'Modules/'.$this->firstUriPath.'/';
+        $moduleFolder = $this->config['module']['path'] . 'Modules/' . $this->firstUriPath . '/';
         $alias = $this->config['alias']['controller'] ?? null;
 
         if (!is_dir($moduleFolder)) {
-            if ($alias === null || !is_file(APP.'Controllers/'.$alias['class'].'.php')) {
-                throw new Resources\HttpException('Controller, sub-controller or module '.$this->firstUriPath.' does not exists');
+            if ($alias === null || !is_file(APP . 'Controllers/' . $alias['class'] . '.php')) {
+                throw new Resources\HttpException('Controller, sub-controller or module ' . $this->firstUriPath . ' does not exists');
             }
 
-            $instance = $this->instantiate('Controllers\\'.$alias['class']);
+            $instance = $this->instantiate('Controllers\\' . $alias['class']);
             $this->run($instance, $alias['method'], $this->uriObj->path());
 
             return;
@@ -206,9 +209,9 @@ final class Gear
         $method = $this->uriObj->path(2) ?: 'index';
         $request = array_slice($this->uriObj->path(), 3);
 
-        if (!is_file($moduleFolder.'Controllers/'.$controllerClass.'.php')) {
-            if ($alias === null || !is_file($moduleFolder.'Controllers/'.$alias['class'].'.php')) {
-                throw new Resources\HttpException('Controller '.$controllerClass.' does not exists in module '.$this->firstUriPath);
+        if (!is_file($moduleFolder . 'Controllers/' . $controllerClass . '.php')) {
+            if ($alias === null || !is_file($moduleFolder . 'Controllers/' . $alias['class'] . '.php')) {
+                throw new Resources\HttpException('Controller ' . $controllerClass . ' does not exists in module ' . $this->firstUriPath);
             }
 
             $controllerClass = $alias['class'];
@@ -216,14 +219,14 @@ final class Gear
             $request = array_slice($this->uriObj->path(), 1);
         }
 
-        $instance = $this->instantiate('Modules\\'.$this->firstUriPath.'\\Controllers\\'.$controllerClass);
+        $instance = $this->instantiate('Modules\\' . $this->firstUriPath . '\\Controllers\\' . $controllerClass);
 
         if (!$this->isRoutable($instance, $method)) {
             $request = array_slice($this->uriObj->path(), 2);
             $method = $this->config['alias']['method'];
 
             if (!$this->isRoutable($instance, $method)) {
-                throw new Resources\HttpException('Method '.$method.' does not exists in controller '.$moduleFolder.$controllerClass);
+                throw new Resources\HttpException('Method ' . $method . ' does not exists in controller ' . $moduleFolder . $controllerClass);
             }
         }
 
@@ -251,7 +254,7 @@ final class Gear
     private function instantiate(string $class): object
     {
         if (!class_exists($class)) {
-            throw new Resources\RunException('Class '.$class.' not found. Check the namespace and file name.');
+            throw new Resources\RunException('Class ' . $class . ' not found. Check the namespace and file name.');
         }
 
         return new $class();
@@ -287,7 +290,7 @@ final class Gear
         $reflection = new ReflectionMethod($instance, $method);
 
         if (count($request) < $reflection->getNumberOfRequiredParameters()) {
-            throw new Resources\HttpException('Missing URL segment for '.$method.'()');
+            throw new Resources\HttpException('Missing URL segment for ' . $method . '()');
         }
 
         // /post/show/abc for show(int $id) is a wrong URL (404), not a crash (500).
@@ -305,7 +308,7 @@ final class Gear
             };
 
             if (!$valid) {
-                throw new Resources\HttpException('Invalid URL segment for $'.$parameter->getName());
+                throw new Resources\HttpException('Invalid URL segment for $' . $parameter->getName());
             }
         }
 

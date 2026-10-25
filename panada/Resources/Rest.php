@@ -36,7 +36,7 @@ class Rest
     public bool $responseOutputHeader = false;
     public int $timeout = 30;
     public bool $curlSSLVerifypeer = true;
-    public array $requestHeaders = ['User-Agent' => 'Palakar Framework REST API/0.2'];
+    public array $requestHeaders = ['User-Agent' => 'Palakar Framework REST API/0.3'];
 
     /** Request headers curl sent last time, handy for debugging. */
     public string|false $headerSent = false;
@@ -130,7 +130,7 @@ class Rest
      */
     public function setRequestAuthorization(string $signature, string $type = 'Basic'): void
     {
-        $this->setRequestHeaders(['Authorization' => $type.' '.$signature]);
+        $this->setRequestHeaders(['Authorization' => $type . ' ' . $signature]);
     }
 
     /**
@@ -154,13 +154,13 @@ class Rest
         }
 
         if ($method === 'GET' && $data) {
-            $uri .= (parse_url($uri, PHP_URL_QUERY) ? '&' : '?').$data;
+            $uri .= (parse_url($uri, PHP_URL_QUERY) ? '&' : '?') . $data;
         }
 
         $headers = [];
 
         foreach ($this->requestHeaders as $name => $value) {
-            $headers[] = $name.': '.$value;
+            $headers[] = $name . ': ' . $value;
         }
 
         $curl = curl_init($uri);
@@ -201,7 +201,7 @@ class Rest
      */
     public function wrapResponseOutput(mixed $data, string $format = 'json', string $ContentType = 'application'): string
     {
-        Response::$headers['Content-Type'] = $ContentType.'/'.$format.'; charset=utf-8';
+        Response::$headers['Content-Type'] = $ContentType . '/' . $format . '; charset=utf-8';
 
         if ($format === 'xml') {
             return (string) Tools::xmlEncode($data);

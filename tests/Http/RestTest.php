@@ -14,7 +14,7 @@ final class RestTest extends HttpTestCase
 {
     private function url(string $path): string
     {
-        return self::server(dirname(__DIR__).'/Fixtures/public').'/api/'.$path;
+        return self::server(dirname(__DIR__) . '/Fixtures/public') . '/api/' . $path;
     }
 
     private function send(string $method, array|string|null $data = null, array $headers = []): array
@@ -30,7 +30,7 @@ final class RestTest extends HttpTestCase
 
     public function testEveryMethodArrivesWithItsData(): void
     {
-        $this->assertSame(['method' => 'GET', 'data' => ['q' => 'kopi'], 'agent' => 'Palakar Framework REST API/0.2'], $this->send('GET', ['q' => 'kopi']));
+        $this->assertSame(['method' => 'GET', 'data' => ['q' => 'kopi'], 'agent' => 'Palakar Framework REST API/0.3'], $this->send('GET', ['q' => 'kopi']));
         $this->assertSame(['name' => 'Budi'], $this->send('POST', ['name' => 'Budi'])['data']);
         $this->assertSame(['name' => 'Ani'], $this->send('PUT', ['name' => 'Ani'])['data']);
 

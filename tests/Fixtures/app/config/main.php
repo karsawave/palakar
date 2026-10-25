@@ -8,5 +8,5 @@ return [
     'module' => ['path' => APP, 'domainMapping' => []],
     'vendor' => ['path' => VENDOR],
     'alias' => ['method' => 'alias'],
-    'namespace' => ['Fixture' => APP.'custom/'],
+    'namespace' => ['Fixture' => APP . 'custom/'],
 ];

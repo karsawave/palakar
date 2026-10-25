@@ -23,7 +23,7 @@ class Database extends Native
             session_set_save_handler(new DatabaseHandler(
                 new Resources\Database($config['driverConnection'] ?? 'default'),
                 $config['storageName'] ?? 'sessions',
-                (int) ($config['expiration'] ?? 7200)
+                (int) ($config['expiration'] ?? 7200),
             ), true);
         }
 

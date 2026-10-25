@@ -56,7 +56,7 @@ final class ErrorHandler
         }
 
         if ($severity & (E_DEPRECATED | E_USER_DEPRECATED)) {
-            error_log('Deprecated: '.$message.' in '.$file.':'.$line);
+            error_log('Deprecated: ' . $message . ' in ' . $file . ':' . $line);
 
             return true;
         }
@@ -94,7 +94,7 @@ final class ErrorHandler
 
         if (PHP_SAPI === 'cli') {
             Response::$headers['Content-Type'] = 'text/plain; charset=utf-8';
-            $response->setBody($e::class.': '.$e->getMessage()."\n".$e->getFile().':'.$e->getLine()."\n\n".$e->getTraceAsString()."\n");
+            $response->setBody($e::class . ': ' . $e->getMessage() . "\n" . $e->getFile() . ':' . $e->getLine() . "\n\n" . $e->getTraceAsString() . "\n");
 
             return $response;
         }
@@ -115,7 +115,7 @@ final class ErrorHandler
             $response->setBody(Controller::outputError('errors/500', self::viewData($e)));
         } catch (\Throwable) {
             // The error view itself is broken: fall back to plain text.
-            $response->setBody('<h1>500 Internal Server Error</h1>'.(self::$debug ? '<pre>'.e((string) $e).'</pre>' : ''));
+            $response->setBody('<h1>500 Internal Server Error</h1>' . (self::$debug ? '<pre>' . e((string) $e) . '</pre>' : ''));
         }
 
         return $response;

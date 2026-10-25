@@ -9,7 +9,7 @@ return [
     'debug' => true,
 
     // Just put null value if you have enabled the .htaccess file.
-    'indexFile' => INDEX_FILE.'/',
+    'indexFile' => INDEX_FILE . '/',
 
     // Set to true only when the app runs behind a reverse proxy you control
     // (Traefik, Nginx, Cloudflare Tunnel). Palakar will then trust the
@@ -22,7 +22,7 @@ return [
     ],
 
     'vendor' => [
-        'path' => defined('VENDOR') ? VENDOR : dirname(APP).'/vendor/',
+        'path' => defined('VENDOR') ? VENDOR : dirname(APP) . '/vendor/',
     ],
 
     'alias' => [

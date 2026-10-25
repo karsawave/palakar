@@ -1,0 +1,3 @@
+# Style-only commits. Use: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# chore(cs): apply PER-CS 2.0 (spec-026)
+d98cef69719a7e397d74efd819ee58b875fa6a30

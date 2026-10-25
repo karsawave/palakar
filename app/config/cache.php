@@ -18,7 +18,7 @@ return [
                 'port' => 11211,
                 'persistent' => false,
             ],
-       ]
+        ],
     ],
 
     'memcache' => [
@@ -29,7 +29,7 @@ return [
                 'port' => 11211,
                 'persistent' => false,
             ],
-       ]
+        ],
     ],
 
     'redis' => [
@@ -39,8 +39,8 @@ return [
                 'host' => 'localhost',
                 'port' => 6379,
                 'persistent' => false,
-                'timeout' => 2.5
+                'timeout' => 2.5,
             ],
-       ]
+        ],
     ],
 ];

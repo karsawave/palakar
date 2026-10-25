@@ -219,7 +219,7 @@ class Email
     {
         $emails = is_array($emails) ? $emails : explode(',', $emails);
 
-        return array_values(array_filter(array_map(fn ($email) => strtolower(trim((string) $email)), $emails)));
+        return array_values(array_filter(array_map(fn($email) => strtolower(trim((string) $email)), $emails)));
     }
 
     /**
@@ -242,7 +242,7 @@ class Email
 
         foreach ($addresses as $address) {
             if (!filter_var($address, FILTER_VALIDATE_EMAIL)) {
-                $this->debugMessages[] = 'Error: Invalid email address "'.$address.'"';
+                $this->debugMessages[] = 'Error: Invalid email address "' . $address . '"';
 
                 return false;
             }
@@ -250,7 +250,7 @@ class Email
 
         foreach ($this->attachment as $file) {
             if (!is_file($file) || !is_readable($file)) {
-                $this->debugMessages[] = 'Error: Attachment '.$file.' not found';
+                $this->debugMessages[] = 'Error: Attachment ' . $file . ' not found';
 
                 return false;
             }
@@ -281,17 +281,17 @@ class Email
         [$contentHeaders, $body] = $content;
         $domain = substr((string) strrchr($this->fromEmail, '@'), 1);
         $headers = [
-            'From' => ($this->fromName === '' ? '' : $this->encodeName($this->fromName).' ').'<'.$this->fromEmail.'>',
+            'From' => ($this->fromName === '' ? '' : $this->encodeName($this->fromName) . ' ') . '<' . $this->fromEmail . '>',
             'Cc' => implode(', ', $this->rcptCc),
             'Reply-To' => (string) $this->replyTo,
             'Date' => date(DATE_RFC2822),
-            'Message-ID' => '<'.bin2hex(random_bytes(16)).'@'.$domain.'>',
+            'Message-ID' => '<' . bin2hex(random_bytes(16)) . '@' . $domain . '>',
             'X-Priority' => (string) $this->priority,
             'X-Mailer' => 'Palakar Mailer',
             'MIME-Version' => '1.0',
         ] + $contentHeaders;
 
-        return [array_filter($headers, fn ($value) => $value !== ''), $body];
+        return [array_filter($headers, fn($value) => $value !== ''), $body];
     }
 
     /**
@@ -302,7 +302,7 @@ class Email
     private function textPart(string $subtype, string $text): array
     {
         return [
-            ['Content-Type' => 'text/'.$subtype.'; charset=utf-8', 'Content-Transfer-Encoding' => 'quoted-printable'],
+            ['Content-Type' => 'text/' . $subtype . '; charset=utf-8', 'Content-Transfer-Encoding' => 'quoted-printable'],
             quoted_printable_encode(preg_replace('/\r\n|\r|\n/', "\r\n", $text)),
         ];
     }
@@ -316,8 +316,8 @@ class Email
 
         return [
             [
-                'Content-Type' => (Upload::getMimeTypes($file)['type'] ?? 'application/octet-stream').'; name="'.$name.'"',
-                'Content-Disposition' => 'attachment; filename="'.$name.'"',
+                'Content-Type' => (Upload::getMimeTypes($file)['type'] ?? 'application/octet-stream') . '; name="' . $name . '"',
+                'Content-Disposition' => 'attachment; filename="' . $name . '"',
                 'Content-Transfer-Encoding' => 'base64',
             ],
             rtrim(chunk_split(base64_encode((string) file_get_contents($file)), 76, "\r\n")),
@@ -331,14 +331,14 @@ class Email
      */
     private function multipart(string $subtype, array $parts): array
     {
-        $boundary = 'Palakar-'.bin2hex(random_bytes(12));
+        $boundary = 'Palakar-' . bin2hex(random_bytes(12));
         $body = '';
 
         foreach ($parts as [$headers, $content]) {
-            $body .= '--'.$boundary."\r\n".$this->headerLines($headers)."\r\n\r\n".$content."\r\n";
+            $body .= '--' . $boundary . "\r\n" . $this->headerLines($headers) . "\r\n\r\n" . $content . "\r\n";
         }
 
-        return [['Content-Type' => 'multipart/'.$subtype.'; boundary="'.$boundary.'"'], $body.'--'.$boundary.'--'];
+        return [['Content-Type' => 'multipart/' . $subtype . '; boundary="' . $boundary . '"'], $body . '--' . $boundary . '--'];
     }
 
     private function headerLines(array $headers): string
@@ -346,7 +346,7 @@ class Email
         $lines = [];
 
         foreach ($headers as $name => $value) {
-            $lines[] = $name.': '.$value;
+            $lines[] = $name . ': ' . $value;
         }
 
         return implode("\r\n", $lines);
@@ -366,7 +366,7 @@ class Email
     {
         $name = $this->encodeHeader($name);
 
-        return str_starts_with($name, '=?') ? $name : '"'.addcslashes($name, '"\\').'"';
+        return str_starts_with($name, '=?') ? $name : '"' . addcslashes($name, '"\\') . '"';
     }
 
     private function mailerNative(array $headers, string $body): bool
@@ -389,7 +389,7 @@ class Email
     private function smtpSend(array $headers, string $body): bool
     {
         $headers = ['To' => implode(', ', $this->rcptTo), 'Subject' => $this->encodeHeader($this->subject)] + $headers;
-        $data = $this->headerLines($headers)."\r\n\r\n".$body;
+        $data = $this->headerLines($headers) . "\r\n\r\n" . $body;
 
         // A line starting with "." gets a second one, or the server would end
         // the message there (RFC 5321, 4.5.2).
@@ -399,10 +399,10 @@ class Email
             && $this->smtpEhlo()
             && $this->smtpStartTls()
             && $this->smtpLogin()
-            && $this->command('MAIL FROM:<'.$this->fromEmail.'>', [250])
+            && $this->command('MAIL FROM:<' . $this->fromEmail . '>', [250])
             && $this->smtpRecipients()
             && $this->command('DATA', [354])
-            && $this->command($data."\r\n.", [250], '<message>');
+            && $this->command($data . "\r\n.", [250], '<message>');
 
         $this->smtpClose();
 
@@ -411,11 +411,11 @@ class Email
 
     private function smtpConnect(): bool
     {
-        $host = ($this->smtpSecure === 'ssl' ? 'ssl://' : '').$this->smtpHost;
+        $host = ($this->smtpSecure === 'ssl' ? 'ssl://' : '') . $this->smtpHost;
         $connection = @fsockopen($host, $this->smtpPort, $errno, $errstr, $this->timeoutConnection);
 
         if ($connection === false) {
-            $this->debugMessages[] = 'Error: Failed to connect to server! Error number: '.$errno.' ('.$errstr.')';
+            $this->debugMessages[] = 'Error: Failed to connect to server! Error number: ' . $errno . ' (' . $errstr . ')';
 
             return false;
         }
@@ -428,7 +428,7 @@ class Email
 
     private function smtpEhlo(): bool
     {
-        return $this->command('EHLO '.$this->smtpEhloHost, [250]) || $this->command('HELO '.$this->smtpEhloHost, [250]);
+        return $this->command('EHLO ' . $this->smtpEhloHost, [250]) || $this->command('HELO ' . $this->smtpEhloHost, [250]);
     }
 
     /**
@@ -468,7 +468,7 @@ class Email
     private function smtpRecipients(): bool
     {
         foreach ([...$this->rcptTo, ...$this->rcptCc, ...$this->rcptBcc] as $recipient) {
-            if (!$this->command('RCPT TO:<'.$recipient.'>', [250, 251])) {
+            if (!$this->command('RCPT TO:<' . $recipient . '>', [250, 251])) {
                 return false;
             }
         }
@@ -494,8 +494,8 @@ class Email
      */
     private function command(string $command, array $codes, ?string $log = null): bool
     {
-        fwrite($this->smtpConnection, $command."\r\n");
-        $this->debugMessages[] = 'Client: '.($log ?? $command);
+        fwrite($this->smtpConnection, $command . "\r\n");
+        $this->debugMessages[] = 'Client: ' . ($log ?? $command);
 
         return $this->expect($codes);
     }
@@ -514,7 +514,7 @@ class Email
         }
 
         $ok = in_array((int) substr($response, 0, 3), $codes, true);
-        $this->debugMessages[] = ($ok ? 'Success: ' : 'Error: ').trim($response);
+        $this->debugMessages[] = ($ok ? 'Success: ' : 'Error: ') . trim($response);
 
         return $ok;
     }

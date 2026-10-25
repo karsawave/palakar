@@ -9,11 +9,11 @@
 
 [, $port, $mode] = $argv + [2 => ''];
 
-$server = stream_socket_server('tcp://127.0.0.1:'.$port);
+$server = stream_socket_server('tcp://127.0.0.1:' . $port);
 echo "ready\n";
 
 $client = stream_socket_accept($server, 10);
-$reply = fn (string $line) => fwrite($client, $line."\r\n");
+$reply = fn(string $line) => fwrite($client, $line . "\r\n");
 $transcript = '';
 $state = 'command';     // command | username | password | data
 

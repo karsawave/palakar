@@ -24,7 +24,7 @@ trait Configurable
 
             // Only public options; a typo must not create a new property.
             if ($property === null || !$property->isPublic() || $property->isStatic()) {
-                throw new RunException('Unknown option '.static::class.'::$'.$name);
+                throw new RunException('Unknown option ' . static::class . '::$' . $name);
             }
 
             $this->$name = match ((string) $property->getType()) {

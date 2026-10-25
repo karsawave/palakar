@@ -51,8 +51,8 @@ class PanadaPDO extends Sql implements DatabaseInterface
                 ? sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $config['host'] ?? 'localhost', $config['port'] ?? 3306, $database, $config['charset'] ?? 'utf8mb4')
                 : sprintf('mysql:unix_socket=%s;dbname=%s;charset=%s', $config['socket'], $database, $config['charset'] ?? 'utf8mb4'),
             'pgsql' => sprintf("pgsql:host=%s;port=%d;dbname=%s;options='--client_encoding=%s'", $config['host'] ?? 'localhost', $config['port'] ?? 5432, $database, $config['charset'] ?? 'UTF8'),
-            'sqlite' => 'sqlite:'.$database,
-            default => throw new RunException('Unsupported database driver "'.$driver.'". Use mysql, pgsql or sqlite.'),
+            'sqlite' => 'sqlite:' . $database,
+            default => throw new RunException('Unsupported database driver "' . $driver . '". Use mysql, pgsql or sqlite.'),
         };
     }
 
@@ -81,10 +81,10 @@ class PanadaPDO extends Sql implements DatabaseInterface
                 self::dsn($this->config),
                 $this->config['user'] ?? null,
                 $this->config['password'] ?? null,
-                ($this->config['options'] ?? []) + $options
+                ($this->config['options'] ?? []) + $options,
             );
         } catch (PDOException $e) {
-            throw new RunException('Unable to connect to database "'.$this->connection.'": '.$e->getMessage(), 0, E_ERROR, null, null, $e);
+            throw new RunException('Unable to connect to database "' . $this->connection . '": ' . $e->getMessage(), 0, E_ERROR, null, null, $e);
         }
 
         return $this->link;
@@ -106,13 +106,13 @@ class PanadaPDO extends Sql implements DatabaseInterface
             $position = 0;
 
             foreach ($bindings as $key => $value) {
-                $parameter = is_int($key) ? ++$position : ':'.ltrim($key, ':');
+                $parameter = is_int($key) ? ++$position : ':' . ltrim($key, ':');
                 $statement->bindValue($parameter, ...$this->bindable($value, (string) $key));
             }
 
             $statement->execute();
         } catch (PDOException $e) {
-            throw new RunException('Database error: '.$e->getMessage().' | SQL: '.$sql, 0, E_ERROR, null, null, $e);
+            throw new RunException('Database error: ' . $e->getMessage() . ' | SQL: ' . $sql, 0, E_ERROR, null, null, $e);
         }
 
         return $this->lastStatement = $statement;
@@ -256,7 +256,7 @@ class PanadaPDO extends Sql implements DatabaseInterface
             is_float($value) => [(string) $value, PDO::PARAM_STR],
             is_string($value), $value instanceof \Stringable => [(string) $value, PDO::PARAM_STR],
             $value instanceof \DateTimeInterface => [$value->format('Y-m-d H:i:s'), PDO::PARAM_STR],
-            default => throw new RunException('Value bound to "'.$name.'" must be a scalar, got '.get_debug_type($value)),
+            default => throw new RunException('Value bound to "' . $name . '" must be a scalar, got ' . get_debug_type($value)),
         };
     }
 

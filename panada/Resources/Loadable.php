@@ -30,7 +30,7 @@ trait Loadable
         $key = strtolower($name);
 
         if (!isset($namespaces[$key])) {
-            throw new RunException('Undefined property '.static::class.'::$'.$name);
+            throw new RunException('Undefined property ' . static::class . '::$' . $name);
         }
 
         return new PropertiesLoader(explode('\\', static::class), $namespaces[$key]);

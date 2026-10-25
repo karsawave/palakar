@@ -59,10 +59,10 @@ class Tools
      */
     public static function xmlEncode(array|object $data, string $rootNodeName = 'data', ?\SimpleXMLElement $xml = null): string|false
     {
-        $xml ??= new \SimpleXMLElement('<?xml version="1.0" encoding="utf-8"?><'.self::xmlName($rootNodeName).'/>');
+        $xml ??= new \SimpleXMLElement('<?xml version="1.0" encoding="utf-8"?><' . self::xmlName($rootNodeName) . '/>');
 
         foreach ($data as $key => $value) {
-            $key = self::xmlName(is_numeric($key) ? 'unknownNode_'.$key : (string) $key);
+            $key = self::xmlName(is_numeric($key) ? 'unknownNode_' . $key : (string) $key);
 
             if (is_array($value) || is_object($value)) {
                 self::xmlEncode($value, $rootNodeName, $xml->addChild($key));
@@ -82,7 +82,7 @@ class Tools
     {
         $name = preg_replace('/[^A-Za-z0-9_.-]/', '_', $name);
 
-        return preg_match('/^[A-Za-z_]/', $name) ? $name : '_'.$name;
+        return preg_match('/^[A-Za-z_]/', $name) ? $name : '_' . $name;
     }
 
     /**

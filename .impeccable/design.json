@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T12:00:00Z",
+  "title": "Design System: Palakar",
+  "extensions": {
+    "colorMeta": {
+      "sleeve": {
+        "role": "primary",
+        "displayName": "Matte Sleeve Black",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#111111",
+          "#2a2a2a",
+          "#444444",
+          "#666666",
+          "#8c8c8c",
+          "#b3b3b3",
+          "#f2f2f2"
+        ]
+      },
+      "sleeve-ink": {
+        "role": "primary",
+        "displayName": "Sleeve White",
+        "canonical": "#f2f2f2"
+      },
+      "sleeve-muted": {
+        "role": "primary",
+        "displayName": "Sleeve Grey",
+        "canonical": "#b3b3b3"
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Board Grey",
+        "canonical": "#e8e8e6",
+        "tonalRamp": [
+          "#1d1d1c",
+          "#3d3d3b",
+          "#4a4a4a",
+          "#6e6e6c",
+          "#a9a9a6",
+          "#b9b9b6",
+          "#e8e8e6",
+          "#f5f5f4"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#4a4a4a"
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#b9b9b6"
+      },
+      "error": {
+        "role": "neutral",
+        "displayName": "Error Red",
+        "canonical": "#a8200d",
+        "tonalRamp": [
+          "#3a0b05",
+          "#5e1207",
+          "#a8200d",
+          "#d23a24",
+          "#ff5e47",
+          "#ff8f80",
+          "#ffbdb3",
+          "#ffe6e2"
+        ]
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Board Grey (dark)",
+        "canonical": "#1d1d1c"
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "canonical": "#ededeb"
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted Ink (dark)",
+        "canonical": "#a9a9a6"
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "canonical": "#3d3d3b"
+      },
+      "sleeve-dark": {
+        "role": "primary",
+        "displayName": "Matte Sleeve Black (dark)",
+        "canonical": "#0b0b0b"
+      },
+      "error-dark": {
+        "role": "neutral",
+        "displayName": "Error Red (dark)",
+        "canonical": "#ff8f80"
+      },
+      "code-0": {
+        "role": "tertiary",
+        "displayName": "Code Yellow (Core)",
+        "canonical": "#ffd400",
+        "tonalRamp": [
+          "#3d3300",
+          "#5c4d00",
+          "#856f00",
+          "#b39500",
+          "#e0bb00",
+          "#ffd400",
+          "#ffe366",
+          "#fff3bf"
+        ]
+      },
+      "code-1": {
+        "role": "tertiary",
+        "displayName": "Code Orange",
+        "canonical": "#ff6a13"
+      },
+      "code-2": {
+        "role": "tertiary",
+        "displayName": "Code Red",
+        "canonical": "#e4002b"
+      },
+      "code-3": {
+        "role": "tertiary",
+        "displayName": "Code Magenta",
+        "canonical": "#c724b1"
+      },
+      "code-4": {
+        "role": "tertiary",
+        "displayName": "Code Blue",
+        "canonical": "#0085ca"
+      },
+      "code-5": {
+        "role": "tertiary",
+        "displayName": "Code Green",
+        "canonical": "#00a651"
+      },
+      "code-6": {
+        "role": "tertiary",
+        "displayName": "Code Grey",
+        "canonical": "#9ea2a2"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Text H1 on guestbook and error pages."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All running text."
+      },
+      "label": {
+        "displayName": "Spaced Caps",
+        "purpose": "H2 section headings and PLK catalog numbers (uppercase)."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Figure caption, footer."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Code, file paths, pre blocks."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Sleeve H1 only, plain light system text."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "sleeve-two-column",
+        "value": "52rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Form submit (guestbook).",
+      "html": "<button class=\"ds-btn\">Send</button>",
+      "css": ".ds-btn { font: 600 1rem/1.6 system-ui, 'Segoe UI', Roboto, sans-serif; padding: .6rem 1.4rem; background: var(--ink, #111); color: var(--ground, #e8e8e6); border: 0; border-radius: 0; cursor: pointer; } .ds-btn:focus-visible { outline: 2px solid var(--ink, #111); outline-offset: 3px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled input, square, transparent with a muted 1px border.",
+      "html": "<label class=\"ds-label\">Name<input class=\"ds-input\"></label>",
+      "css": ".ds-label { display: block; font: 600 1rem/1.6 system-ui, sans-serif; color: var(--ink, #111); max-width: 40rem; } .ds-input { display: block; width: 100%; font: 400 1rem/1.6 system-ui, sans-serif; padding: .55rem .7rem; background: transparent; color: inherit; border: 1px solid var(--muted, #4a4a4a); border-radius: 0; } .ds-input:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "description": "Wordmark left, two plain text links right.",
+      "html": "<header class=\"ds-nav\"><svg class=\"ds-wordmark\" viewBox=\"-1 -1 148 22\" aria-hidden=\"true\"><path d=\"M0 20V0h14v10H0M22 20V0h14v20M22 10h14M44 0v20h14M66 20V0h14v20M66 10h14M88 0v20M88 10h5l9-10M93 10l9 10M110 20V0h14v20M110 10h14M132 20V0h14v10h-14M139 10l7 10\"/></svg><nav><a href=\"#\">Docs</a><a href=\"#\">GitHub</a></nav></header>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem 0 1rem; color: var(--ink, #111); font-family: system-ui, sans-serif; } .ds-wordmark { height: 1rem; width: auto; fill: none; stroke: currentColor; stroke-width: 2.4; } .ds-nav nav { display: flex; gap: 1.5rem; } .ds-nav a { color: inherit; text-decoration: none; font-size: .875rem; } .ds-nav a:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em; } .ds-nav a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }"
+    },
+    {
+      "name": "Catalog Entry",
+      "kind": "custom",
+      "refersTo": "catalog-entry",
+      "description": "Numbered index row between hairlines; linked rows invert on hover.",
+      "html": "<a class=\"ds-item\" href=\"#\"><span class=\"ds-no\">PLK 01</span> Try the guestbook demo <small>CSRF protection, validation and PDO prepared statements</small></a>",
+      "css": ".ds-item { display: grid; grid-template-columns: 5.5rem 1fr; padding: .8rem .5rem; border-top: 1px solid var(--rule, #b9b9b6); border-bottom: 1px solid var(--rule, #b9b9b6); color: var(--ink, #111); text-decoration: none; font: 600 1rem/1.6 system-ui, sans-serif; } .ds-item small { grid-column: 2; color: var(--muted, #4a4a4a); font-weight: 400; } .ds-no { color: var(--muted, #4a4a4a); font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; } .ds-item:hover { background: var(--ink, #111); color: var(--ground, #e8e8e6); } .ds-item:hover small, .ds-item:hover .ds-no { color: inherit; } .ds-item:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }"
+    },
+    {
+      "name": "Sleeve with Primary Entry",
+      "kind": "card",
+      "refersTo": "sleeve",
+      "description": "The black sleeve: light H1, muted paragraph, primary entry as a ruled row pinned to the bottom.",
+      "html": "<section class=\"ds-sleeve\"><div class=\"ds-text\"><h1 class=\"ds-h1\">Palakar 0.2.0</h1><p class=\"ds-sleeve-p\">A simple and secure PHP framework, small enough to read in one evening.</p><a class=\"ds-primary\" href=\"#\"><span class=\"ds-pno\">PLK 01</span> Try the guestbook demo</a></div></section>",
+      "css": ".ds-sleeve { display: grid; gap: 2rem; padding: clamp(1.25rem, 4vw, 2.5rem); background: #111; color: #f2f2f2; outline: 1px solid var(--rule, #b9b9b6); font: 1rem/1.6 system-ui, sans-serif; } .ds-text { display: flex; flex-direction: column; max-width: 19rem; } .ds-h1 { margin: 0 0 1rem; font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 300; letter-spacing: -.02em; line-height: 1.15; } .ds-sleeve-p { margin: 0 0 2rem; color: #b3b3b3; font-size: .95rem; } .ds-primary { display: grid; grid-template-columns: 5.5rem 1fr; margin-top: auto; padding: .8rem .5rem; border-top: 1px solid #f2f2f2; border-bottom: 1px solid #f2f2f2; color: inherit; text-decoration: none; font-weight: 600; } .ds-pno { color: #b3b3b3; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; } .ds-primary:hover { background: #f2f2f2; color: #111; } .ds-primary:hover .ds-pno { color: inherit; } .ds-primary:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }"
+    },
+    {
+      "name": "Directory Legend",
+      "kind": "chip",
+      "description": "Folder names keyed to code squares; decodes the plot and catalog.",
+      "html": "<ul class=\"ds-legend\"><li style=\"--code:#ffd400\">Core</li><li style=\"--code:#ff6a13\">Resources</li><li style=\"--code:#9ea2a2\">Drivers/Cache</li></ul>",
+      "css": ".ds-legend { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin: 0; padding: 0; list-style: none; font: .85rem/1.6 system-ui, sans-serif; color: var(--ink, #111); } .ds-legend li::before { content: ''; display: inline-block; width: .7em; height: .7em; margin-right: .5em; background: var(--code); border: 1px solid var(--muted, #4a4a4a); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Sleeve",
+    "overview": "The sample UI is a record sleeve: one matte black object on a plain grey board, carrying a single image that is the framework itself drawn as data, and catalog numbers (PLK 01, PLK 02, ...) that index what to do next. Everything outside the sleeve is quiet print: hairline rules, plain system text, small spaced caps for section headings.\n\nThe page stays quiet. A louder version (big wordmark on the sleeve, yellow marker, framed entry, spec table, tick blocks) was built and rejected as too much; the approved build keeps one image and nothing that decorates it. Color appears only as small code squares that mean something (a folder of `panada/`) and are decoded by a legend. The page ground follows the color scheme; the sleeve stays black in both. Constraints: no JavaScript, no external fonts or images, no build, one small stylesheet.",
+    "keyCharacteristics": [
+      "One black sleeve per page at most, carrying the page's single image.",
+      "Hairline rules (1px) as the only structure; no cards, shadows, gradients or radii.",
+      "Catalog numbering (`PLK NN`) as the navigation idiom.",
+      "Color as code: small bordered squares keyed to a legend, never as decoration.",
+      "The stroked wordmark lives in the header only."
+    ],
+    "rules": [
+      {
+        "name": "The Color Is Code Rule",
+        "body": "A hue other than grey appears only when it encodes a directory and a legend on the same page decodes it. There is no brand accent color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Bordered Swatch Rule",
+        "body": "Every code square carries a 1px Muted Ink border so light codes (yellow, grey) stay visible on the light ground.",
+        "section": "colors"
+      },
+      {
+        "name": "The Black Sleeve Rule",
+        "body": "The sleeve does not invert in dark mode; only the board around it changes.",
+        "section": "colors"
+      },
+      {
+        "name": "The Spaced Caps Rule",
+        "body": "Small spaced caps are reserved for section headings and `PLK` catalog numbers. Never set sentences or buttons in them.",
+        "section": "typography"
+      },
+      {
+        "name": "The Printed Object Rule",
+        "body": "If something needs to stand out, it goes on the sleeve or gets a hairline; it never gets a shadow, gradient or blur.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep the page quiet: one image, and nothing added to decorate it.",
+      "**Do** keep all colors as custom properties in `main.css`; the scheme switch only redefines the neutrals and the sleeve.",
+      "**Do** use `PLK NN` catalog numbers for ordered next steps.",
+      "**Do** pair every directory code color with a legend on the same page, and border every code square.",
+      "**Do** separate content with 1px hairlines and whitespace."
+    ],
+    "donts": [
+      "**Don't** add ornaments to the sleeve: no second wordmark, accent markers, frames, stat tables or tick blocks.",
+      "**Don't** add rounded corners, shadows, gradients or card grids.",
+      "**Don't** add a second sleeve or a second image to a page.",
+      "**Don't** use the code colors as decoration, backgrounds or text color.",
+      "**Don't** load external fonts, images or JavaScript."
+    ]
+  }
+}

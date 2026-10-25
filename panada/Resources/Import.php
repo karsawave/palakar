@@ -11,15 +11,16 @@
  *
  * @since   version 1.0.0
  */
+
 namespace Resources;
 
 class Import
 {
-    public static function vendor($filePath, $className = false, $arguments = array())
+    public static function vendor($filePath, $className = false, $arguments = [])
     {
         $config = Config::main();
 
-        if (file_exists($file = $config['vendor']['path'].$filePath.'.php')) {
+        if (file_exists($file = $config['vendor']['path'] . $filePath . '.php')) {
             include_once $file;
         }
 
@@ -58,8 +59,8 @@ class Import
     {
         $config = Config::main();
 
-        if (!is_file($file = $config['vendor']['path'].'autoload.php')) {
-            throw new RunException('Composer autoloader not exists in your vendor folder '.$config['vendor']['path'].'. Run `composer install`.');
+        if (!is_file($file = $config['vendor']['path'] . 'autoload.php')) {
+            throw new RunException('Composer autoloader not exists in your vendor folder ' . $config['vendor']['path'] . '. Run `composer install`.');
         }
 
         require_once $file;

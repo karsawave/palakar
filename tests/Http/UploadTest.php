@@ -16,15 +16,15 @@ final class UploadTest extends HttpTestCase
 
     public static function setUpBeforeClass(): void
     {
-        self::$dir = str_replace('\\', '/', sys_get_temp_dir()).'/panada-upload-test';
+        self::$dir = str_replace('\\', '/', sys_get_temp_dir()) . '/panada-upload-test';
     }
 
     protected function setUp(): void
     {
         parent::setUp();
         self::remove(self::$dir);
-        mkdir(self::$dir.'/files', 0777, true);
-        mkdir(self::$dir.'/src');
+        mkdir(self::$dir . '/files', 0777, true);
+        mkdir(self::$dir . '/src');
     }
 
     public static function tearDownAfterClass(): void
@@ -41,7 +41,7 @@ final class UploadTest extends HttpTestCase
 
         $items = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
+            \RecursiveIteratorIterator::CHILD_FIRST,
         );
 
         foreach ($items as $item) {
@@ -53,7 +53,7 @@ final class UploadTest extends HttpTestCase
 
     private function upload(string $name, string $content = 'halo', array $options = []): array
     {
-        $source = self::$dir.'/src/'.md5($name.$content);
+        $source = self::$dir . '/src/' . md5($name . $content);
         file_put_contents($source, $content);
         $data = ['file' => new \CURLFile($source, 'application/octet-stream', $name)];
 
@@ -65,8 +65,8 @@ final class UploadTest extends HttpTestCase
             }
         }
 
-        $url = self::server(dirname(__DIR__).'/Fixtures/public', ['PANADA_UPLOAD_DIR' => self::$dir.'/files']);
-        $response = $this->request($url.'/api/upload', 'POST', $data);
+        $url = self::server(dirname(__DIR__) . '/Fixtures/public', ['PANADA_UPLOAD_DIR' => self::$dir . '/files']);
+        $response = $this->request($url . '/api/upload', 'POST', $data);
         $this->assertSame(200, $response['status'], $response['body']);
 
         return json_decode($response['body'], true);
@@ -74,7 +74,7 @@ final class UploadTest extends HttpTestCase
 
     private function storedFiles(): array
     {
-        return array_values(array_diff(scandir(self::$dir.'/files'), ['.', '..']));
+        return array_values(array_diff(scandir(self::$dir . '/files'), ['.', '..']));
     }
 
     public function testUploadStoresTheFileWithItsInfo(): void
@@ -84,10 +84,10 @@ final class UploadTest extends HttpTestCase
         $this->assertTrue($result['ok']);
         $this->assertNull($result['error']);
         $this->assertSame(
-            ['extension' => 'txt', 'name' => 'hello_world.txt', 'folder' => self::$dir.'/files', 'mime' => 'text/plain', 'size' => 4],
-            $result['info']
+            ['extension' => 'txt', 'name' => 'hello_world.txt', 'folder' => self::$dir . '/files', 'mime' => 'text/plain', 'size' => 4],
+            $result['info'],
         );
-        $this->assertSame('halo', file_get_contents(self::$dir.'/files/hello_world.txt'));
+        $this->assertSame('halo', file_get_contents(self::$dir . '/files/hello_world.txt'));
     }
 
     public function testFilesTheServerCouldRunAreAlwaysRefused(): void
@@ -140,8 +140,8 @@ final class UploadTest extends HttpTestCase
 
         $this->assertMatchesRegularExpression('/^[a-f0-9]{16}\.txt$/', $first['info']['name']);
         $this->assertNotSame($first['info']['name'], $second['info']['name']);
-        $this->assertSame(self::$dir.'/files/'.date('Y/m'), $first['info']['folder']);
-        $this->assertFileExists($first['info']['folder'].'/'.$first['info']['name']);
+        $this->assertSame(self::$dir . '/files/' . date('Y/m'), $first['info']['folder']);
+        $this->assertFileExists($first['info']['folder'] . '/' . $first['info']['name']);
     }
 
     public function testImageIsEditedAfterUpload(): void
@@ -156,8 +156,8 @@ final class UploadTest extends HttpTestCase
         ]]);
 
         $this->assertTrue($result['ok'], (string) ($result['error']['message'] ?? ''));
-        $this->assertSame([50, 25], array_slice(getimagesize(self::$dir.'/files/photo.png'), 0, 2));
-        $this->assertSame([10, 10], array_slice(getimagesize(self::$dir.'/files/thumb.png'), 0, 2));
+        $this->assertSame([50, 25], array_slice(getimagesize(self::$dir . '/files/photo.png'), 0, 2));
+        $this->assertSame([10, 10], array_slice(getimagesize(self::$dir . '/files/thumb.png'), 0, 2));
     }
 
     public function testErrors(): void
@@ -169,7 +169,7 @@ final class UploadTest extends HttpTestCase
         $this->assertFalse($upload->now(['name' => 'a.txt']));
         $this->assertSame(2, $upload->getError('code'), 'No folder');
 
-        $upload->setOption('folderLocation', self::$dir.'/files');
+        $upload->setOption('folderLocation', self::$dir . '/files');
         $this->assertFalse($upload->now(['name' => '', 'tmp_name' => '', 'error' => UPLOAD_ERR_NO_FILE, 'size' => 0]));
         $this->assertSame('No file was uploaded.', $upload->getError('message'));
     }

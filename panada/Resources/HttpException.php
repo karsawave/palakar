@@ -31,7 +31,7 @@ class HttpException extends \Exception
 
     public function __toString(): string
     {
-        return __CLASS__.": [{$this->code}]: {$this->message}\n";
+        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
     }
 
     public static function outputError(\Throwable $exception): Response
@@ -40,12 +40,12 @@ class HttpException extends \Exception
         $status = ($status >= 400 && $status < 600) ? $status : 404;
 
         if (PHP_SAPI === 'cli') {
-            fwrite(STDERR, 'HTTP '.$status.': '.$exception->getMessage()."\n");
+            fwrite(STDERR, 'HTTP ' . $status . ': ' . $exception->getMessage() . "\n");
         }
 
-        error_log('HTTP '.$status.' '.($_SERVER['REQUEST_URI'] ?? '').': '.$exception->getMessage());
+        error_log('HTTP ' . $status . ' ' . ($_SERVER['REQUEST_URI'] ?? '') . ': ' . $exception->getMessage());
 
-        $view = is_file(APP.'views/errors/'.$status.'.php') ? 'errors/'.$status : 'errors/404';
+        $view = is_file(APP . 'views/errors/' . $status . '.php') ? 'errors/' . $status : 'errors/404';
 
         $response = new Response();
         $response->setStatusCode($status);

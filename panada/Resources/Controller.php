@@ -58,14 +58,14 @@ class Controller
      */
     public function output(string $panadaViewFile, array $data = []): string
     {
-        $panadaFilePath = APP.'views/'.$panadaViewFile.'.php';
+        $panadaFilePath = APP . 'views/' . $panadaViewFile . '.php';
 
         if ($this->childClass['namespaceArray'][0] === 'Modules') {
-            $panadaFilePath = $this->configMain['module']['path'].'Modules/'.$this->childClass['namespaceArray'][1].'/views/'.$panadaViewFile.'.php';
+            $panadaFilePath = $this->configMain['module']['path'] . 'Modules/' . $this->childClass['namespaceArray'][1] . '/views/' . $panadaViewFile . '.php';
         }
 
         if (!is_file($panadaFilePath)) {
-            throw new RunException('View file '.$panadaFilePath.' does not exist');
+            throw new RunException('View file ' . $panadaFilePath . ' does not exist');
         }
 
         if ($data !== []) {
@@ -105,17 +105,17 @@ class Controller
 
     public function location(string $location = ''): string
     {
-        return $this->uri?->getBaseUri().($this->configMain['indexFile'] ?? '').$location;
+        return $this->uri?->getBaseUri() . ($this->configMain['indexFile'] ?? '') . $location;
     }
 
     public function redirect(string $location = '', int $status = 302): string
     {
         if (!str_starts_with($location, 'http')) {
-            $location = $this->location().$location;
+            $location = $this->location() . $location;
         }
 
         Response::setHeader('Location', $location, $status);
 
-        return '<html><head><meta http-equiv="refresh" content="0; url='.e($location).'" /></head></html>';
+        return '<html><head><meta http-equiv="refresh" content="0; url=' . e($location) . '" /></head></html>';
     }
 }

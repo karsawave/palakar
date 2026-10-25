@@ -27,7 +27,7 @@ class RunException extends \ErrorException
 
     public function __toString(): string
     {
-        return __CLASS__.": [{$this->code}]: {$this->message}\n";
+        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
     }
 
     /**
@@ -59,7 +59,7 @@ class RunException extends \ErrorException
                 continue;
             }
 
-            $caller[] = $call['class'].'->'.$call['function'].(isset($call['line']) ? ' line '.$call['line'] : '');
+            $caller[] = $call['class'] . '->' . $call['function'] . (isset($call['line']) ? ' line ' . $call['line'] : '');
         }
 
         return implode(', ', $caller);

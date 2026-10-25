@@ -61,19 +61,19 @@ abstract class DatabaseTestCase extends TestCase
     public function testInvalidIdentifiersAreRejected(): void
     {
         $attempts = [
-            fn () => $this->db->from('users')->orderBy('name; DROP TABLE users')->getAll(),
-            fn () => $this->db->from('users')->orderBy('id', 'DESC; DROP TABLE users')->getAll(),
-            fn () => $this->db->from('users')->where('1=1 OR id', '=', 1)->getAll(),
-            fn () => $this->db->from('users')->where('id', '= 1 OR 1 =', 1)->getAll(),
-            fn () => $this->db->insert('users', ["name) VALUES ('x'); --" => 'x']),
-            fn () => $this->db->update('users; DROP TABLE users', ['name' => 'x'], ['id' => 1]),
-            fn () => $this->db->from('users')->where('id', '=', 1, 'OR 1=1 --')->getAll(),
+            fn() => $this->db->from('users')->orderBy('name; DROP TABLE users')->getAll(),
+            fn() => $this->db->from('users')->orderBy('id', 'DESC; DROP TABLE users')->getAll(),
+            fn() => $this->db->from('users')->where('1=1 OR id', '=', 1)->getAll(),
+            fn() => $this->db->from('users')->where('id', '= 1 OR 1 =', 1)->getAll(),
+            fn() => $this->db->insert('users', ["name) VALUES ('x'); --" => 'x']),
+            fn() => $this->db->update('users; DROP TABLE users', ['name' => 'x'], ['id' => 1]),
+            fn() => $this->db->from('users')->where('id', '=', 1, 'OR 1=1 --')->getAll(),
         ];
 
         foreach ($attempts as $i => $attempt) {
             try {
                 $attempt();
-                $this->fail('Attempt #'.$i.' was not rejected');
+                $this->fail('Attempt #' . $i . ' was not rejected');
             } catch (RunException $e) {
                 $this->assertStringContainsString('Invalid', $e->getMessage());
             }
@@ -138,7 +138,7 @@ abstract class DatabaseTestCase extends TestCase
 
     public function testUpdateOrDeleteWithoutWhereIsRefused(): void
     {
-        foreach ([fn () => $this->db->delete('users'), fn () => $this->db->update('users', ['score' => 0])] as $call) {
+        foreach ([fn() => $this->db->delete('users'), fn() => $this->db->update('users', ['score' => 0])] as $call) {
             try {
                 $call();
                 $this->fail('Write without WHERE was not refused');

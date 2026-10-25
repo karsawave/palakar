@@ -16,8 +16,7 @@ class CacheHandler implements \SessionHandlerInterface
         private Cache $cache,
         private string $prefix = 'sessions_',
         private int $lifetime = 7200,
-    ) {
-    }
+    ) {}
 
     public function open(string $path, string $name): bool
     {
@@ -31,19 +30,19 @@ class CacheHandler implements \SessionHandlerInterface
 
     public function read(string $id): string|false
     {
-        $data = $this->cache->getValue($this->prefix.$id);
+        $data = $this->cache->getValue($this->prefix . $id);
 
         return is_string($data) ? $data : '';
     }
 
     public function write(string $id, string $data): bool
     {
-        return (bool) $this->cache->setValue($this->prefix.$id, $data, $this->lifetime);
+        return (bool) $this->cache->setValue($this->prefix . $id, $data, $this->lifetime);
     }
 
     public function destroy(string $id): bool
     {
-        $this->cache->deleteValue($this->prefix.$id);
+        $this->cache->deleteValue($this->prefix . $id);
 
         return true;
     }

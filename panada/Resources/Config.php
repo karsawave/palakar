@@ -29,8 +29,8 @@ class Config
             return self::$config[$name];
         }
 
-        if (!preg_match('/^[A-Za-z0-9_]+$/', $name) || !is_file($file = APP.'config/'.$name.'.php')) {
-            throw new RunException('Config file app/config/'.$name.'.php does not exist');
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $name) || !is_file($file = APP . 'config/' . $name . '.php')) {
+            throw new RunException('Config file app/config/' . $name . '.php does not exist');
         }
 
         return self::$config[$name] = require $file;

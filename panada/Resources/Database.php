@@ -48,7 +48,7 @@ class Database
         $config = Config::database();
 
         if (!isset($config[$connection])) {
-            throw new RunException('Database connection "'.$connection.'" is not defined in app/config/database.php');
+            throw new RunException('Database connection "' . $connection . '" is not defined in app/config/database.php');
         }
 
         $config = $config[$connection];

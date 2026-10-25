@@ -22,8 +22,8 @@ class Cache extends Native
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_set_save_handler(new CacheHandler(
                 new Resources\Cache($config['driverConnection'] ?? 'default'),
-                ($config['storageName'] ?? 'sessions').'_',
-                (int) ($config['expiration'] ?? 7200)
+                ($config['storageName'] ?? 'sessions') . '_',
+                (int) ($config['expiration'] ?? 7200),
             ), true);
         }
 

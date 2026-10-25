@@ -4,29 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Error 500 - Internal Server Error!</title>
-<style>
-html{background:#ddd;}
-body{background:#fff;color:#333;font-family:"Lucida Grande",Verdana,Arial,sans-serif;margin:1em auto;max-width:1000px;padding:1em 2em;border-radius:11px;border:1px solid #999;}
-h1{border-bottom:1px solid #dadada;color:#666;font:24px Georgia,"Times New Roman",Times,serif;margin:5px 0 0 -4px;padding-top:5px;}
-p{font-size:13px;line-height:18px;}
-pre{font:13px Consolas,"Courier New",monospace;background:#ddf;border:1px solid #d0d0d0;margin:14px 0;padding:10px;border-radius:8px;overflow:auto;white-space:pre;}
-.n{display:inline-block;width:3em;color:#888;}
-.current{background:#fcc;color:#d00;display:block;}
-</style>
+<?php /* Standalone on purpose (no layout); inline style is the fallback when the URI is not known yet. */ ?>
+<style>body{font:1rem/1.6 system-ui,sans-serif;max-width:48rem;margin:auto;padding:0 1rem}pre{overflow:auto}.current{font-weight:700}</style>
+<?php if ($this->uri): ?><link rel="stylesheet" href="<?= e($this->uri->baseUri) ?>assets/css/main.css"><?php endif; ?>
 </head>
 <body>
+<main>
 <h1><?= !empty($debug) ? 'Runtime Error!' : 'Something went wrong' ?></h1>
 <p><strong>Error message</strong>: <?= e($message) ?></p>
 <?php if (!empty($debug)): ?>
 <p><strong><?= e($class) ?></strong> in file:</p>
 <pre><?= e($file) ?> line <?= e($line) ?></pre>
 <?php if ($code): ?>
-<p><strong>Source code</strong></p>
+<h2>Source code</h2>
 <pre><?php foreach ($code as $row): ?><span class="<?= $row['current'] ? 'current' : '' ?>"><span class="n"><?= $row['number'] ?></span><?= e($row['text']) ?></span>
 <?php endforeach; ?></pre>
 <?php endif; ?>
-<p><strong>Debug trace</strong></p>
+<h2>Debug trace</h2>
 <pre><?= e($trace) ?></pre>
 <?php endif; ?>
+</main>
 </body>
 </html>

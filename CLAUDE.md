@@ -16,7 +16,7 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (151 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
+Selesai dan teruji (152 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
 MariaDB 11, Redis, Memcached, APCu; PHPStan level 5 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2–8.5 (strict types, typed props, tanpa dynamic property)
@@ -27,7 +27,10 @@ MariaDB 11, Redis, Memcached, APCu; PHPStan level 5 tanpa baseline):
 6. Session cookie modern (SameSite, Secure auto, HttpOnly, strict mode)
 7. Komponen lama (ActiveRecord, Pagination, Rest, Upload, Image, Email, Tools,
    driver cache): strict types, test, bug dan celah keamanan diperbaiki
-8. CI GitHub Actions (`.github/workflows/ci.yml`)
+8. CI GitHub Actions (`.github/workflows/ci.yml`), termasuk `composer cs` (PER-CS 2.0)
+9. Aplikasi contoh: layout Bingkai, halaman sambutan "sampul katalog"
+   (plot dari file `panada/`), identitas di `DESIGN.md`, fakta produk di
+   `PRODUCT.md`, logo di `docs/`
 
 Riwayat git: satu commit per langkah (`git log -p` untuk membaca alasannya).
 
@@ -38,6 +41,7 @@ composer install                    # Whoops + PHPUnit (dev)
 composer serve                      # php -S localhost:8000 -t public public/index.php
 composer test                       # semua test (unit + http)
 composer analyse                    # PHPStan level 5 (phpstan.neon.dist)
+composer cs                         # PER-CS 2.0 (cs:fix untuk merapikan)
 vendor/bin/phpunit --testsuite unit
 vendor/bin/phpunit --testsuite http
 vendor/bin/phpunit --filter ValidationTest
@@ -48,7 +52,7 @@ PANADA_TEST_MYSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada
 PANADA_TEST_REDIS=127.0.0.1:6379 PANADA_TEST_MEMCACHED=127.0.0.1:11211 composer test
 ```
 
-`composer test` dan `composer analyse` wajib hijau sebelum commit. PHPStan
+`composer test`, `composer analyse`, dan `composer cs` wajib hijau sebelum commit. PHPStan
 tidak memakai baseline; temuan baru diperbaiki, bukan diabaikan.
 
 ## Struktur
@@ -81,7 +85,8 @@ tests/Fixtures/         app + public khusus test (APP terpisah dari app/ asli),
 
 - `declare(strict_types=1)` di semua file baru, **kecuali** file yang hanya
   meneruskan panggilan: `Gear.php`, `Resources/Database.php`,
-  `Resources/Session.php`, `Resources/Cache.php`, `Resources/PropertiesLoader.php`.
+  `Resources/Session.php`, `Resources/Cache.php`, `Resources/PropertiesLoader.php`,
+  `Resources/Import.php` (meneruskan argumen ke kelas vendor lama).
   Segmen URL selalu string; kalau file ini strict, `show(int $id)` jadi TypeError.
 - Komentar dan docblock dalam bahasa Inggris (mengikuti kode asli), singkat,
   menjelaskan *kenapa*. Dokumentasi untuk pengguna dalam bahasa Indonesia.
@@ -164,29 +169,34 @@ mendistribusikan ulang boleh tanpa izin, dengan syarat berikut.
 - Tidak ada force push ke `master` atau `development`. Sebelum commit, cek
   branch aktif (`git branch --show-current`) adalah `development`.
 
-## Rilis (wajib, spec-022)
+## Rilis (wajib, spec-022, spec-024)
 
 Tag `vX.Y.Z` hanya dibuat bila **semua** poin ini terpenuhi, termasuk
 rilis patch. Satu poin gagal: perbaiki di `development`, lalu ulangi dari
 poin 1. Tidak ada "rilis dulu, perbaiki nanti": bug yang lolos rilis
 menjadi utang yang ditemukan pengguna, bukan kita.
 
-1. **CI hijau** di commit yang dirilis: semua versi PHP di matrix dan
+1. **CI hijau di HEAD `development` tepat sebelum merge** (commit
+   terakhir, termasuk commit catatan spec): semua versi PHP di matrix dan
    semua service (PostgreSQL, MariaDB, Redis, Memcached), tanpa test yang
-   dilewati.
-2. **Lokal:** `composer test` dan `composer analyse` hijau.
+   dilewati. `headSha` dari `gh run list --branch development --limit 1`
+   harus sama dengan `git rev-parse HEAD`. Gagal karena infrastruktur
+   (timeout unduh, runner): `gh run rerun --failed`, baru lolos setelah
+   hijau, penyebabnya dicatat di spec rilis.
+2. **Lokal:** `composer test`, `composer analyse`, dan `composer cs` hijau.
 3. **Uji dari paket, bukan dari repo:** `composer create-project` (atau
    `composer archive`) di folder kosong, `composer serve`, lalu buka
    manual: halaman awal, demo Guestbook (form + CSRF), halaman error
    dengan `debug` true dan false.
 4. **`composer audit`** tanpa temuan.
-5. **Dokumen:** CHANGELOG `[Unreleased]` → `[X.Y.Z] - tanggal`; setiap
+5. **Dokumen:** `Gear::VERSION` dinaikkan ke `X.Y.Z`; CHANGELOG `[Unreleased]` → `[X.Y.Z] - tanggal`; setiap
    breaking change ada di CHANGELOG dan MODERNISASI.md; versi yang
    didukung di SECURITY.md diperbarui.
 6. **Utang tidak tersembunyi:** `grep -rn "TODO\|FIXME\|ponytail:" panada/`;
    setiap temuan diperbaiki atau dicatat di Backlog beserta alasannya.
 7. **Hasil dicatat** di spec rilis (hash commit, link run CI, jumlah
-   test, hasil uji manual). Baru setelah itu merge ke `master` dan tag.
+   test, hasil uji manual). Tunggu CI commit catatan itu hijau (poin 1),
+   baru merge ke `master` dan tag.
 
 ## Alur kerja spec (wajib)
 
@@ -303,3 +313,6 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    CONDUCT)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
+2. **Halaman awal membaca seluruh core per request** (`ponytail:` di
+   `app/Controllers/Home.php`): sekitar 6.400 baris dibaca untuk plot. Murah
+   untuk halaman contoh; cache hasilnya bila halaman ini dipakai di produksi.

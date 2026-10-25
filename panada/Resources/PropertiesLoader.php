@@ -29,16 +29,15 @@ final class PropertiesLoader
     public function __construct(
         private array $childNamespace,
         private string $classNamespace,
-    ) {
-    }
+    ) {}
 
     public function __call(string $name, array $arguments = []): object
     {
-        $class = $this->classNamespace.'\\'.ucwords($name);
+        $class = $this->classNamespace . '\\' . ucwords($name);
 
         // Inside a module, the module's own Models/Libraries win.
         if (($this->childNamespace[0] ?? '') === 'Modules' && $this->classNamespace !== 'Resources') {
-            $moduleClass = 'Modules\\'.$this->childNamespace[1].'\\'.$class;
+            $moduleClass = 'Modules\\' . $this->childNamespace[1] . '\\' . $class;
 
             if (class_exists($moduleClass)) {
                 $class = $moduleClass;
@@ -46,10 +45,10 @@ final class PropertiesLoader
         }
 
         if (!class_exists($class)) {
-            throw new RunException('Class '.$class.' not found');
+            throw new RunException('Class ' . $class . ' not found');
         }
 
-        $key = $class.'|'.json_encode($arguments);
+        $key = $class . '|' . json_encode($arguments);
 
         return self::$instances[$key] ??= new $class(...$arguments);
     }

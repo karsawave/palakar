@@ -50,7 +50,7 @@ final class Csrf
      */
     public static function field(): string
     {
-        return '<input type="hidden" name="'.self::FIELD.'" value="'.self::token().'">';
+        return '<input type="hidden" name="' . self::FIELD . '" value="' . self::token() . '">';
     }
 
     public static function isValid(?string $token): bool

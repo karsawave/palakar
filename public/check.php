@@ -10,11 +10,11 @@
  */
 
 define('INDEX_FILE', 'index.php');
-define('APP', dirname(__DIR__).'/app/');
-define('VENDOR', dirname(__DIR__).'/vendor/');
+define('APP', dirname(__DIR__) . '/app/');
+define('VENDOR', dirname(__DIR__) . '/vendor/');
 
-$main = require APP.'config/main.php';
-$security = require APP.'config/security.php';
+$main = require APP . 'config/main.php';
+$security = require APP . 'config/security.php';
 
 if (empty($main['debug'])) {
     http_response_code(404);
@@ -25,15 +25,15 @@ $pdoDrivers = class_exists('PDO') ? PDO::getAvailableDrivers() : [];
 
 // [label, passed, required, note]
 $checks = [
-    ['PHP 8.2 or newer', version_compare(PHP_VERSION, '8.2.0', '>='), true, 'You have '.PHP_VERSION],
+    ['PHP 8.2 or newer', version_compare(PHP_VERSION, '8.2.0', '>='), true, 'You have ' . PHP_VERSION],
     ['PDO extension', extension_loaded('pdo'), true, 'Database access'],
-    ['A PDO driver (mysql, pgsql or sqlite)', (bool) array_intersect(['mysql', 'pgsql', 'sqlite'], $pdoDrivers), true, 'Available: '.(implode(', ', $pdoDrivers) ?: 'none')],
+    ['A PDO driver (mysql, pgsql or sqlite)', (bool) array_intersect(['mysql', 'pgsql', 'sqlite'], $pdoDrivers), true, 'Available: ' . (implode(', ', $pdoDrivers) ?: 'none')],
     ['mbstring extension', extension_loaded('mbstring'), true, 'Validation of non-ASCII text'],
     ['sodium extension', extension_loaded('sodium'), false, 'Encryption and the encrypted cookie session'],
-    ['app/storage is writable', is_writable(APP.'storage'), false, 'Default SQLite database'],
+    ['app/storage is writable', is_writable(APP . 'storage'), false, 'Default SQLite database'],
     ['secretKey changed in app/config/security.php', strlen((string) $security['secretKey']) >= 32 && $security['secretKey'] !== '_put_your_random_string_here_', false, 'Needed by Encryption and the cookie session driver'],
-    ['Composer packages installed', is_file(VENDOR.'autoload.php'), false, 'Optional. Run `composer install`'],
-    ['Whoops error page', is_dir(VENDOR.'filp/whoops'), false, 'Optional, development only'],
+    ['Composer packages installed', is_file(VENDOR . 'autoload.php'), false, 'Optional. Run `composer install`'],
+    ['Whoops error page', is_dir(VENDOR . 'filp/whoops'), false, 'Optional, development only'],
 ];
 ?>
 <!DOCTYPE html>

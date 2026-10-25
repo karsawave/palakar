@@ -87,3 +87,19 @@ Poin 1–9 di atas, masing-masing dengan hasil tertulis.
    User-Agent Rest (`/0.2`) dan test-nya, CLAUDE.md. SECURITY.md tetap
    ("latest 0.x").
 6. `TODO`/`FIXME`/`ponytail:` di `panada/`: kosong.
+7. Hasil di atas dicatat sebelum merge (commit spec di `development`).
+8. Merge `development` → `master` (`--no-ff`, commit `955a179`), tag
+   `v0.2.0`, GitHub Release
+   https://github.com/karsawave/palakar/releases/tag/v0.2.0.
+9. CI `master` dan tag `v0.2.0`: `success`. Packagist: `v0.2.0`, `v0.1.0`.
+   `composer create-project karsawave/palakar . 0.2.0` di folder kosong:
+   berhasil, "version 0.2.0", tanpa file development.
+
+## Catatan setelah rilis
+
+Run CI untuk commit spec `af56840` (sebelum merge) sempat gagal di job
+8.4: `composer install` timeout (curl error 28) saat mengunduh dependency
+dari GitHub, sebelum test jalan. Commit itu hanya mengubah file spec.
+Terlewat saat rilis karena hanya run `f96cd8c` yang dicek. Job dijalankan
+ulang (`gh run rerun --failed`): 8.2–8.5 `success`. Pelajaran: cek run
+commit terakhir tepat sebelum merge, bukan hanya commit rilis.

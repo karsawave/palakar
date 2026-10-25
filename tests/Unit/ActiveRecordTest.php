@@ -22,7 +22,7 @@ final class ActiveRecordTest extends TestCase
         $db = new Database('ar');
 
         foreach (['users', 'post', 'profile', 'tag', 'post_tag'] as $table) {
-            $db->query('DROP TABLE IF EXISTS '.$table);
+            $db->query('DROP TABLE IF EXISTS ' . $table);
         }
 
         $db->query('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, score INTEGER)');

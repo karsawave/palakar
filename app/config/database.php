@@ -14,7 +14,7 @@ return [
     // Works out of the box: a SQLite file inside app/storage/.
     'default' => [
         'driver' => 'sqlite',
-        'database' => APP.'storage/database.sqlite',
+        'database' => APP . 'storage/database.sqlite',
     ],
 
     /*

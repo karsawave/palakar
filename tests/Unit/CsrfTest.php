@@ -23,7 +23,7 @@ final class CsrfTest extends TestCase
 
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $token);
         $this->assertSame($token, Csrf::token());
-        $this->assertStringContainsString('name="_token" value="'.$token.'"', csrf_field());
+        $this->assertStringContainsString('name="_token" value="' . $token . '"', csrf_field());
 
         $new = Csrf::regenerate();
         $this->assertNotSame($token, $new);
@@ -55,7 +55,7 @@ final class CsrfTest extends TestCase
 
             try {
                 Csrf::verifyRequest('form/save');
-                $this->fail('Token '.var_export($token, true).' was accepted');
+                $this->fail('Token ' . var_export($token, true) . ' was accepted');
             } catch (HttpException $e) {
                 $this->assertSame(403, $e->getCode());
             }

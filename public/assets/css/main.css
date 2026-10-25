@@ -1,14 +1,101 @@
-html{background:#ddd;;}
-body{background:#fff;color:#333;font-family:"Lucida Grande",Verdana,Arial,sans-serif;margin:1em auto;width:700px;padding:1em 2em;border-radius:11px;border:1px solid #999;}
-a{color:#2583ad;text-decoration:none;}
-a:hover{color:#d54e21;}
-a img{border:0;}
-h1{border-bottom:1px solid #dadada;clear:both;color:#666;font:24px Georgia,"Times New Roman",Times,serif;margin:5px 0 0 -4px; padding-top:5px;}
-h1.logo{margin:7px 0 20px 0;border-bottom:none; text-align:center;}
-h2{font-size:16px;}p,li,dd,dt,td{padding-bottom:2px;font-size:12px;line-height:18px;}
-h3{font-size:14px;}
-ul,ol,dl{padding:5px 5px 5px 22px; }
-p{text-align: justify;}
-code{font:14px Consolas,Courier New,Verdana;background:#ddf;color:#c00;border:1px solid #D0D0D0;display:block;margin:14px 0;padding:10px;border-radius:8px;}
-#foot {text-align: left; margin-top: 1.8em; border-top: 1px solid #dadada; padding-top: 1em; font-size: 0.7em;}
-#foot span.right {float:right;}
+/* Palakar sample theme: a matte black catalog sleeve on a grey board.
+   Change the colors here; text contrast meets WCAG 2.2 AA. */
+:root {
+    --ground: #e8e8e6;
+    --ink: #111111;
+    --muted: #4a4a4a;
+    --rule: #b9b9b6;
+    --sleeve: #111111;
+    --sleeve-ink: #f2f2f2;
+    --sleeve-muted: #b3b3b3;
+    --error: #a8200d;
+    --font: system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: light dark;
+    accent-color: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ground: #1d1d1c;
+        --ink: #ededeb;
+        --muted: #a9a9a6;
+        --rule: #3d3d3b;
+        --sleeve: #0b0b0b;
+        --error: #ff8f80;
+    }
+}
+
+/* Directory color codes, decoded by the legend. */
+.c0 { --code: #ffd400; } .c1 { --code: #ff6a13; } .c2 { --code: #e4002b; } .c3 { --code: #c724b1; }
+.c4 { --code: #0085ca; } .c5 { --code: #00a651; } .c6 { --code: #9ea2a2; }
+
+*, *::before, *::after { box-sizing: border-box; }
+::selection { background: var(--ink); color: var(--ground); }
+
+body { margin: 0 auto; max-width: 68rem; padding: 0 1.25rem; background: var(--ground); color: var(--ink); font: 1rem/1.6 var(--font); overflow-wrap: break-word; caret-color: var(--ink); }
+a { color: inherit; text-underline-offset: .2em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+h1, h2 { line-height: 1.15; text-wrap: balance; }
+h2, .no, .logo span { font-size: .75rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+h2 { margin: 3.5rem 0 1rem; }
+code { font: .875em var(--mono); }
+pre { font: .875rem/1.5 var(--mono); padding: .75rem; overflow: auto; border: 1px solid var(--rule); }
+
+.lewati { position: absolute; left: -999rem; }
+.lewati:focus { position: static; display: inline-block; padding: .5rem; }
+
+header.situs { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem 0 1rem; }
+.wordmark { display: block; width: auto; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2.4; }
+header nav { display: flex; gap: 1.5rem; }
+header nav a { text-decoration: none; font-size: .875rem; }
+footer.situs { margin: 4rem 0 2rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .8rem; }
+
+/* Forms (guestbook). */
+form, .errors, .entry { max-width: 40rem; }
+label { display: block; font-weight: 600; }
+input, textarea, button { font: inherit; color: inherit; }
+input, textarea { width: 100%; padding: .55rem .7rem; background: transparent; border: 1px solid var(--muted); }
+button { padding: .6rem 1.4rem; background: var(--ink); color: var(--ground); border: 0; font-weight: 600; cursor: pointer; }
+.errors { color: var(--error); }
+.entry { padding: .75rem 0; border-top: 1px solid var(--rule); }
+.entry small { color: var(--muted); }
+
+/* Welcome page: the sleeve. */
+.sleeve { display: grid; gap: 2rem; padding: clamp(1.25rem, 4vw, 2.5rem); background: var(--sleeve); color: var(--sleeve-ink); outline: 1px solid var(--rule); }
+@media (min-width: 52rem) { .sleeve { grid-template-columns: 19rem 1fr; } }
+.sleeve-text { display: flex; flex-direction: column; }
+.sleeve h1 { margin: 0 0 1rem; font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 300; letter-spacing: -.02em; }
+.sleeve p { margin: 0 0 2rem; color: var(--sleeve-muted); font-size: .95rem; }
+.plot { margin: 0; }
+.plot svg { display: block; width: 100%; height: auto; }
+.plot polygon { fill: var(--sleeve); }
+.plot polyline { fill: none; stroke: var(--sleeve-ink); stroke-width: 1.1; stroke-linejoin: round; }
+.plot .f:hover polyline { stroke: var(--code); stroke-width: 2.2; }
+.plot figcaption { margin-top: 1rem; color: var(--sleeve-muted); font-size: .8rem; }
+
+/* Catalog items. */
+.item { display: grid; grid-template-columns: 5.5rem 1fr; padding: .8rem .5rem; border-top: 1px solid var(--rule); text-decoration: none; font-weight: 600; }
+.item small { grid-column: 2; color: var(--muted); font-weight: 400; }
+a.item:hover { background: var(--ink); color: var(--ground); }
+a.item:hover small { color: inherit; }
+.no { color: var(--muted); }
+.item.primary { margin-top: auto; border-color: var(--sleeve-ink); border-bottom: 1px solid; }
+.item.primary .no { color: var(--sleeve-muted); }
+.item.primary:hover { background: var(--sleeve-ink); color: var(--sleeve); }
+.index { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--rule); }
+
+.legend, .catalog { margin: 0; padding: 0; list-style: none; }
+.legend { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-bottom: 1.25rem; font-size: .85rem; }
+.legend li::before, .catalog li::before { content: ""; display: inline-block; width: .7em; height: .7em; margin-right: .5em; background: var(--code); border: 1px solid var(--muted); }
+.catalog { columns: 3 15rem; column-gap: 2.5rem; font-size: .9rem; }
+.catalog li { display: flex; align-items: center; padding: .2rem 0; border-bottom: 1px solid var(--rule); break-inside: avoid; }
+.catalog a { text-decoration: none; }
+.catalog a:hover { text-decoration: underline; }
+.catalog span { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .85rem; }
+
+/* Error page source listing (debug mode). */
+.n { display: inline-block; width: 3em; color: var(--muted); }
+.current { display: block; color: var(--error); font-weight: 700; }

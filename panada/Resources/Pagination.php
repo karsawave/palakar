@@ -151,7 +151,7 @@ class Pagination
      */
     private function text(int|string $value, bool $active): string|array
     {
-        return $this->noHref ? ['link' => '', 'value' => $value, 'active' => $active] : '<span>'.$value.'</span>';
+        return $this->noHref ? ['link' => '', 'value' => $value, 'active' => $active] : '<span>' . $value . '</span>';
     }
 
     /**
@@ -166,6 +166,6 @@ class Pagination
 
     private function item(string $link, int|string $value): string|array
     {
-        return $this->noHref ? ['link' => $link, 'value' => $value, 'active' => false] : '<a href="'.e($link).'">'.$value.'</a>';
+        return $this->noHref ? ['link' => $link, 'value' => $value, 'active' => false] : '<a href="' . e($link) . '">' . $value . '</a>';
     }
 }

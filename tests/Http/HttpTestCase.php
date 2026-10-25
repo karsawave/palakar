@@ -37,7 +37,7 @@ abstract class HttpTestCase extends TestCase
      */
     protected static function server(string $public, array $env = []): string
     {
-        $key = $public.'|'.json_encode($env);
+        $key = $public . '|' . json_encode($env);
 
         if (isset(self::$servers[$key])) {
             return self::$servers[$key]['url'];
@@ -49,11 +49,11 @@ abstract class HttpTestCase extends TestCase
 
         $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
         $process = proc_open(
-            [PHP_BINARY, '-d', 'opcache.enable=0', '-S', '127.0.0.1:'.$port, '-t', $public, $public.'/index.php'],
+            [PHP_BINARY, '-d', 'opcache.enable=0', '-S', '127.0.0.1:' . $port, '-t', $public, $public . '/index.php'],
             [0 => ['pipe', 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']],
             $pipes,
             null,
-            $env + getenv()
+            $env + getenv(),
         );
 
         for ($i = 0; $i < 50; $i++) {
@@ -65,7 +65,7 @@ abstract class HttpTestCase extends TestCase
             usleep(100_000);
         }
 
-        $url = 'http://127.0.0.1:'.$port;
+        $url = 'http://127.0.0.1:' . $port;
         self::$servers[$key] = ['process' => $process, 'url' => $url];
 
         return $url;
@@ -80,7 +80,7 @@ abstract class HttpTestCase extends TestCase
         $curl = curl_init($url);
 
         if ($this->cookies !== []) {
-            $headers[] = 'Cookie: '.implode('; ', array_map(fn ($k, $v) => $k.'='.$v, array_keys($this->cookies), $this->cookies));
+            $headers[] = 'Cookie: ' . implode('; ', array_map(fn($k, $v) => $k . '=' . $v, array_keys($this->cookies), $this->cookies));
         }
 
         curl_setopt_array($curl, [
@@ -100,7 +100,7 @@ abstract class HttpTestCase extends TestCase
 
         if ($data !== []) {
             // A CURLFile makes it a multipart upload, which needs the raw array.
-            $upload = array_filter($data, fn ($value) => $value instanceof \CURLFile) !== [];
+            $upload = array_filter($data, fn($value) => $value instanceof \CURLFile) !== [];
             curl_setopt($curl, CURLOPT_POSTFIELDS, $upload ? $data : http_build_query($data));
         }
 

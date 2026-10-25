@@ -31,6 +31,6 @@ trait KeyNamespace
             $this->setValue($namespace, $version);
         }
 
-        return $version.'_'.$key;
+        return $version . '_' . $key;
     }
 }

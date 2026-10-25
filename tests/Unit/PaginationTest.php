@@ -72,7 +72,7 @@ final class PaginationTest extends TestCase
      */
     public function testEdgeCases(): void
     {
-        $values = fn (array $options) => array_column($this->pagination($options + ['noHref' => true])->getUrl(), 'value');
+        $values = fn(array $options) => array_column($this->pagination($options + ['noHref' => true])->getUrl(), 'value');
         $prev = '&laquo; Previous';
         $next = 'Next &raquo;';
 
