@@ -46,7 +46,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_pgsql, pdo_sqlite, gd, sodium, curl, mbstring, redis, memcached, apcu
+          extensions: fileinfo, pdo_pgsql, pdo_sqlite, gd, sodium, curl, mbstring, redis, memcached, apcu
           ini-values: apc.enable_cli=1
           coverage: none
 

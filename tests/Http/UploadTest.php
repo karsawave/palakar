@@ -113,8 +113,16 @@ final class UploadTest extends HttpTestCase
 
     public function testUnknownOrMissingExtension(): void
     {
-        $this->assertSame('application/octet-stream', $this->upload('data.xyz')['info']['mime']);
+        $this->assertSame('application/octet-stream', $this->upload('data.xyz', "\x00\x01\x02\xff")['info']['mime']);
         $this->assertSame(['extension' => '', 'name' => 'README'], array_slice($this->upload('README')['info'], 0, 2));
+    }
+
+    public function testMimeComesFromTheContentNotTheName(): void
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        $this->assertSame('image/png', $this->upload('photo.txt', $png)['info']['mime']);
+        $this->assertSame('text/plain', $this->upload('fake.png', 'halo')['info']['mime']);
     }
 
     public function testNamesCannotLeaveTheFolder(): void

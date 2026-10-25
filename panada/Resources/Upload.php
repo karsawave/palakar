@@ -223,7 +223,7 @@ class Upload
             'extension' => $extension,
             'name' => $name,
             'folder' => $folder,
-            'mime' => self::getMimeTypes($name)['type'] ?? 'application/octet-stream',
+            'mime' => self::getMimeTypes($this->file['tmp_name'])['type'] ?? 'application/octet-stream',
             'size' => $this->file['size'],
         ];
 
@@ -243,81 +243,24 @@ class Upload
     }
 
     /**
-     * Mime type from the file extension. Original from Wordpress 3.0
-     * get_allowed_mime_types() function in wp-includes/functions.php.
+     * Mime type of an existing file, read from its content (ext-fileinfo),
+     * so a renamed file cannot pretend to be another type. false when the
+     * file cannot be read.
+     *
+     * Before spec-011 this guessed from the extension with a list taken from
+     * WordPress 3.0 get_allowed_mime_types() (GPL); that list is gone.
      *
      * @return array{type: string, ext: string}|false
      */
-    public static function getMimeTypes(string $file_name = ''): array|false
+    public static function getMimeTypes(string $path = ''): array|false
     {
-        $mimes = [
-            'jpg|jpeg|jpe' => 'image/jpeg',
-            'gif' => 'image/gif',
-            'png' => 'image/png',
-            'bmp' => 'image/bmp',
-            'tif|tiff' => 'image/tiff',
-            'ico' => 'image/x-icon',
-            'asf|asx|wax|wmv|wmx' => 'video/asf',
-            'avi' => 'video/avi',
-            'divx' => 'video/divx',
-            'flv' => 'video/x-flv',
-            'mov|qt' => 'video/quicktime',
-            'mpeg|mpg|mpe' => 'video/mpeg',
-            'txt|asc|c|cc|h' => 'text/plain',
-            'csv' => 'text/csv',
-            'tsv' => 'text/tab-separated-values',
-            'rtx' => 'text/richtext',
-            'css' => 'text/css',
-            'htm|html' => 'text/html',
-            'mp3|m4a|m4b' => 'audio/mpeg',
-            'mp4|m4v' => 'video/mp4',
-            'ra|ram' => 'audio/x-realaudio',
-            'wav' => 'audio/wav',
-            'ogg|oga' => 'audio/ogg',
-            'ogv' => 'video/ogg',
-            'mid|midi' => 'audio/midi',
-            'wma' => 'audio/wma',
-            'mka' => 'audio/x-matroska',
-            'mkv' => 'video/x-matroska',
-            'rtf' => 'application/rtf',
-            'js' => 'application/javascript',
-            'pdf' => 'application/pdf',
-            'doc|docx' => 'application/msword',
-            'pot|pps|ppt|pptx|ppam|pptm|sldm|ppsm|potm' => 'application/vnd.ms-powerpoint',
-            'wri' => 'application/vnd.ms-write',
-            'xla|xls|xlsx|xlt|xlw|xlam|xlsb|xlsm|xltm' => 'application/vnd.ms-excel',
-            'mdb' => 'application/vnd.ms-access',
-            'mpp' => 'application/vnd.ms-project',
-            'docm|dotm' => 'application/vnd.ms-word',
-            'pptx|sldx|ppsx|potx' => 'application/vnd.openxmlformats-officedocument.presentationml',
-            'xlsx|xltx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml',
-            'docx|dotx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml',
-            'onetoc|onetoc2|onetmp|onepkg' => 'application/onenote',
-            'swf' => 'application/x-shockwave-flash',
-            'class' => 'application/java',
-            'tar' => 'application/x-tar',
-            'zip' => 'application/zip',
-            'gz|gzip' => 'application/x-gzip',
-            'exe' => 'application/x-msdownload',
-            // openoffice formats
-            'odt' => 'application/vnd.oasis.opendocument.text',
-            'odp' => 'application/vnd.oasis.opendocument.presentation',
-            'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
-            'odg' => 'application/vnd.oasis.opendocument.graphics',
-            'odc' => 'application/vnd.oasis.opendocument.chart',
-            'odb' => 'application/vnd.oasis.opendocument.database',
-            'odf' => 'application/vnd.oasis.opendocument.formula',
-            // wordperfect formats
-            'wp|wpd' => 'application/wordperfect',
-        ];
-
-        foreach ($mimes as $extensions => $type) {
-            if (preg_match('!\.('.$extensions.')$!i', $file_name, $match)) {
-                return ['type' => $type, 'ext' => $match[1]];
-            }
+        if ($path === '' || !is_file($path)) {
+            return false;
         }
 
-        return false;
+        $type = (new \finfo(FILEINFO_MIME_TYPE))->file($path);
+
+        return $type === false ? false : ['type' => $type, 'ext' => self::getFileExtension($path)];
     }
 
     public function getFileInfo(): array

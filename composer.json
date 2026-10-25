@@ -31,7 +31,8 @@
     "require": {
         "php": ">=8.2",
         "ext-pdo": "*",
-        "ext-mbstring": "*"
+        "ext-mbstring": "*",
+        "ext-fileinfo": "*"
     },
     "require-dev": {
         "filp/whoops": "^2.16",

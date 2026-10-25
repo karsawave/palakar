@@ -23,6 +23,10 @@ declare(strict_types=1);
  * @license     http://www.opensource.org/licenses/bsd-license.php
  * @author	Iskandar Soesman <k4ndar@yahoo.com>. Thanks to Wordpress {@link http://codex.wordpress.org/Function_Reference/paginate_links}
  *
+ * The original getUrl() was adapted from WordPress paginate_links(). It was
+ * rewritten from scratch in Palakar (spec-011) so no GPL code is left; the
+ * thanks above is kept as history.
+ *
  * @since	Version 0.1
  */
 
@@ -82,38 +86,72 @@ class Pagination
             return [];
         }
 
-        $endSize = max(1, $this->endSize);
-        $midSize = max(0, $this->midSize);
         $current = $this->current;
         $links = [];
-        $dots = false;
 
         if ($this->prevNext && $current > 1) {
             $links[] = $this->item($this->link($current - 1), $this->prevText);
         }
 
-        for ($n = 1; $n <= $pages; $n++) {
-            if ($n === $current) {
-                if ($this->showNumber) {
-                    $links[] = $this->noHref ? ['link' => '', 'value' => $n, 'active' => true] : '<span>'.$n.'</span>';
-                    $dots = true;
-                }
-            } elseif ($this->showAll || $n <= $endSize || ($current && abs($n - $current) <= $midSize) || $n > $pages - $endSize) {
-                if ($this->showNumber) {
-                    $links[] = $this->item($this->link($n), $n);
-                    $dots = true;
-                }
-            } elseif ($dots) {
-                $links[] = $this->noHref ? ['link' => '', 'value' => $this->groupSeparator, 'active' => false] : '<span>'.$this->groupSeparator.'</span>';
-                $dots = false;
+        $previous = 0;
+
+        foreach ($this->shownPages($pages) as $page) {
+            // The first and last page are always shown, so a gap is never at an end.
+            if ($page - $previous > 1) {
+                $links[] = $this->text($this->groupSeparator, false);
             }
+
+            $links[] = $page === $current ? $this->text($page, true) : $this->item($this->link($page), $page);
+            $previous = $page;
         }
 
-        if ($this->prevNext && $current && $current < $pages) {
+        if ($this->prevNext && $current > 0 && $current < $pages) {
             $links[] = $this->item($this->link($current + 1), $this->nextText);
         }
 
         return $links;
+    }
+
+    /**
+     * Page numbers to show, ascending: both ends, and the pages near the current one.
+     *
+     * @return list<int>
+     */
+    private function shownPages(int $pages): array
+    {
+        if (!$this->showNumber) {
+            return [];
+        }
+
+        if ($this->showAll) {
+            return range(1, $pages);
+        }
+
+        $ends = max(1, $this->endSize);
+        $shown = array_merge(range(1, min($ends, $pages)), range(max(1, $pages - $ends + 1), $pages));
+
+        if ($this->current > 0) {
+            $mid = max(0, $this->midSize);
+            $from = max(1, $this->current - $mid);
+            $to = min($pages, $this->current + $mid);
+
+            if ($from <= $to) {
+                $shown = array_merge($shown, range($from, $to));
+            }
+        }
+
+        $shown = array_unique($shown);
+        sort($shown);
+
+        return $shown;
+    }
+
+    /**
+     * Text without a link: the current page or the group separator.
+     */
+    private function text(int|string $value, bool $active): string|array
+    {
+        return $this->noHref ? ['link' => '', 'value' => $value, 'active' => $active] : '<span>'.$value.'</span>';
     }
 
     /**

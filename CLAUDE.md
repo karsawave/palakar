@@ -16,7 +16,7 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (135 test, PHP 8.3 lokal; CI: PHP 8.2 + 8.3, PostgreSQL 16,
+Selesai dan teruji (137 test, PHP 8.3 lokal; CI: PHP 8.2 + 8.3, PostgreSQL 16,
 Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2/8.3 (strict types, typed props, tanpa dynamic property)
@@ -262,13 +262,9 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    CONDUCT)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
-2. **Asal-usul lisensi:** `Pagination::getUrl()` (diadaptasi dari
-   `paginate_links()` WordPress) dan daftar MIME di `Upload` ("Original from
-   Wordpress 3.0") berasal dari WordPress yang berlisensi GPLv2. Periksa atau
-   tulis ulang supaya tidak ada keraguan lisensi.
-3. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
-4. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
+2. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
+3. `panada/Modules/ModSample` adalah sisa contoh lama yang tidak dipakai
    (module aktif ada di `app/Modules`, dikecualikan dari PHPStan); putuskan
    hapus atau rapikan.
-5. PHP 8.4 belum ada
+4. PHP 8.4 belum ada
    di matrix CI.

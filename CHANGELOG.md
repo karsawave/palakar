@@ -10,6 +10,20 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `Upload::getMimeTypes()` reads the type from the file
+  content with ext-fileinfo, not from the extension. It now takes a path
+  to an existing file and returns `false` for a bare name. `getFileInfo()`
+  `mime` and Email attachment `Content-Type` follow (a renamed `.php` sent
+  as `.png` no longer reports `image/png`). `ext-fileinfo` is required.
+- `Pagination::getUrl()` rewritten from scratch; output unchanged.
+
+### Removed
+
+- WordPress-derived code (GPLv2): the extension-to-MIME list in `Upload`
+  and the `paginate_links()` adaptation in `Pagination` (spec-011).
+
 ## [0.1.0] - 2026-10-25
 
 First version of Palakar, a fork of Panada Framework 1.1.1 by Iskandar

@@ -533,6 +533,15 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
     API/0.1`, judul halaman error Whoops, halaman awal, dan contoh nama
     database di `app/config/database.php` (`palakar`). Logo dan banner Panada
     dihapus dari `public/assets/img`.
+35. `Upload::getMimeTypes($path)` membaca tipe dari **isi file** (ekstensi
+    `fileinfo`, kini wajib), bukan dari ekstensi nama. Argumennya harus path
+    file yang ada; nama saja (`'foto.jpg'`) menghasilkan `false`. Akibatnya
+    `getFileInfo()['mime']` dan `Content-Type` lampiran Email bisa berbeda
+    dari dulu, mis. `.csv` → `text/plain`, `.docx` →
+    `application/vnd.openxmlformats-officedocument.wordprocessingml.document`.
+    Kalau aplikasi Anda membandingkan `mime` dengan string tertentu, periksa
+    ulang. Daftar MIME lama berasal dari WordPress (GPLv2) dan dihapus
+    (spec-011).
 
 ---
 
