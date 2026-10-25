@@ -217,7 +217,20 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
 - **scope** (opsional): komponen huruf kecil, mis. `email`, `upload`,
   `database`, `cache`, `session`, `spec`, `release`.
 - **Ringkasan:** bahasa Inggris, kalimat perintah ("add", bukan "added"),
-  huruf kecil di awal, tanpa titik, maksimal 72 karakter.
+  huruf kecil di awal, tanpa titik, maksimal 72 karakter (anjuran ≤ 50).
+  Jelas, padat, singkat (spec-021):
+  - Sebut **apa yang berubah**, bisa dipahami tanpa membuka spec. Nomor
+    spec hanya di footer `Refs:`.
+  - Satu hal saja; kalau butuh "and", pecah commit.
+  - Tanpa kata kosong (`update`, `misc`, `changes`, `various`, `wip`) dan
+    tanpa yang sudah tersirat dari type/Git (`merge ... for`).
+  - Rilis (merge ke `master`): `chore(release): X.Y.Z`.
+
+  | Buruk | Baik |
+  |-------|------|
+  | `docs(spec): plan specs 012-018` | `docs(spec): plan next steps toward 1.0.0` |
+  | `chore(release): merge development for 0.1.0` | `chore(release): 0.1.0` |
+  | `fix: update upload` | `fix(upload): detect mime from file content` |
 - **Isi:** bahasa Inggris, baris maksimal 72 karakter, menjelaskan *kenapa*.
   Boleh dilewati untuk perubahan sepele.
 - **Breaking change:** `!` setelah type/scope (`fix(upload)!: ...`) dan footer
