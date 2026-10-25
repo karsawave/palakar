@@ -10,9 +10,9 @@ Catatan perubahan dari Panada 1.1.1 (2015) ke versi modern ini. Filosofi tetap:
 3.500 baris termasuk komentar, dan folder `panada/` justru lebih kecil dari
 versi lama (9.334 → 6.480 baris).
 
-Status: 135 test PHPUnit (unit + HTTP sungguhan) dan PHPStan level 2 tanpa
-temuan di seluruh `panada/`. CI (GitHub Actions, PHP 8.2 dan 8.3) juga
-menjalankan test PostgreSQL 16, Redis, Memcached, dan APCu.
+Status: 152 test PHPUnit (unit + HTTP sungguhan) dan PHPStan level 5 tanpa
+temuan di seluruh `panada/`. CI (GitHub Actions, PHP 8.2 sampai 8.5) juga
+menjalankan test PostgreSQL 16, MariaDB 11, Redis, Memcached, dan APCu.
 
 Riwayat git dibuat satu commit per langkah, jadi setiap perubahan bisa dibaca
 terpisah dengan `git log -p`.
@@ -558,7 +558,7 @@ Wajib dibaca sebelum memindahkan aplikasi Panada 1.x:
 ```bash
 composer install
 composer test                      # = vendor/bin/phpunit
-composer analyse                   # PHPStan level 2
+composer analyse                   # PHPStan level 5
 
 # termasuk PostgreSQL, Redis, Memcached (dilewati kalau env kosong):
 PANADA_TEST_PGSQL="host=127.0.0.1;dbname=panada_test;user=panada;password=panada" \

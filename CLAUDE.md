@@ -16,7 +16,7 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (151 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
+Selesai dan teruji (152 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
 MariaDB 11, Redis, Memcached, APCu; PHPStan level 5 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2–8.5 (strict types, typed props, tanpa dynamic property)
@@ -27,7 +27,10 @@ MariaDB 11, Redis, Memcached, APCu; PHPStan level 5 tanpa baseline):
 6. Session cookie modern (SameSite, Secure auto, HttpOnly, strict mode)
 7. Komponen lama (ActiveRecord, Pagination, Rest, Upload, Image, Email, Tools,
    driver cache): strict types, test, bug dan celah keamanan diperbaiki
-8. CI GitHub Actions (`.github/workflows/ci.yml`)
+8. CI GitHub Actions (`.github/workflows/ci.yml`), termasuk `composer cs` (PER-CS 2.0)
+9. Aplikasi contoh: layout Bingkai, halaman sambutan "sampul katalog"
+   (plot dari file `panada/`), identitas di `DESIGN.md`, fakta produk di
+   `PRODUCT.md`, logo di `docs/`
 
 Riwayat git: satu commit per langkah (`git log -p` untuk membaca alasannya).
 

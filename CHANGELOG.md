@@ -22,17 +22,16 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
   drawn from the real `panada/` files (one line per file, shaped by its
   indentation), numbered next steps, and the core listed file by file with
   line counts. Drawn PALAKAR wordmark and SVG favicon.
-
-### Security
-
-- The sample welcome page no longer prints the absolute application path
-  when `debug` is false.
+- Palakar logo in `docs/` (light, dark, and on black).
 
 ### Changed
 
 - Sample app views: semantic HTML (skip link, `<main>`, one `<h1>`),
   responsive theme with WCAG 2.2 AA contrast and dark mode. Error pages load
   the same stylesheet.
+- README rewritten: logo, feature list, quick start with
+  `composer create-project`, a first controller and view, development
+  commands. Outdated PHPStan level and test counts fixed in the docs.
 
 ### Fixed
 
@@ -43,6 +42,11 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 - Sample app `views/header.php`, replaced by the layout. Applications that
   call `output('header')` keep their own copy.
+
+### Security
+
+- The sample welcome page no longer prints the absolute application path
+  when `debug` is false.
 
 ## [0.2.0] - 2026-10-25
 
