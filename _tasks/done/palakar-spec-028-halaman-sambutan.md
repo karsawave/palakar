@@ -179,3 +179,4 @@ Dikembalikan ke komposisi tenang yang sebelumnya disetujui:
   `app/views/partials/wordmark.php`, `public/assets/favicon.svg`.
 - Belum terverifikasi: CI (belum di-push saat catatan ini), browser lama
   Android, pembaca layar sungguhan.
+- Commit: `6078d14` (Gear::VERSION), `36e0197` (halaman sambutan).
