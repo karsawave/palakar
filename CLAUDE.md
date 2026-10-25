@@ -313,3 +313,6 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    CONDUCT)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
+2. **Halaman awal membaca seluruh core per request** (`ponytail:` di
+   `app/Controllers/Home.php`): sekitar 6.400 baris dibaca untuk plot. Murah
+   untuk halaman contoh; cache hasilnya bila halaman ini dipakai di produksi.
