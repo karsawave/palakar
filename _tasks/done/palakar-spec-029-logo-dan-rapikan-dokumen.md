@@ -1,6 +1,6 @@
 # palakar-spec-029: logo Palakar dan merapikan dokumen
 
-**Status:** plan
+**Status:** done (2026-10-25)
 
 ## Masalah
 
@@ -63,3 +63,19 @@
 ## Breaking change
 
 Tidak ada.
+
+## Hasil
+
+- Commit: `4080aec` (logo), `b6f0d72` (README, MODERNISASI, CLAUDE.md,
+  CHANGELOG).
+- Pertanyaan terbuka: sesuai usul (tanda + wordmark; folder `docs/`,
+  `export-ignore`).
+- Logo `docs/logo-light.svg`, `docs/logo-dark.svg`, `docs/logo.svg`
+  dirender di Edge headless di atas latar putih, `#0d1117`, dan hitam:
+  terbaca.
+- Contoh `Hello` di README dicoba di `php -S`: `/hello` → "Hello, world!",
+  `/hello/index/Budi` → "Hello, Budi!"; file percobaan dihapus.
+- CONTRIBUTING.md dan SECURITY.md sudah sesuai; tidak diubah.
+- Lokal: 152 test, 32 skip; PHPStan level 5 bersih; `composer cs` 0 file.
+- Belum terverifikasi: tampilan logo `<picture>` di GitHub (dicek setelah
+  push), CI.
