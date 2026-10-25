@@ -195,6 +195,11 @@ class Upload
         return pathinfo($file, PATHINFO_EXTENSION);
     }
 
+    /**
+     * Fills getFileInfo as a side effect.
+     *
+     * @phpstan-impure
+     */
     private function upload(string $folder): bool
     {
         // basename(): a name must never point outside the folder.
