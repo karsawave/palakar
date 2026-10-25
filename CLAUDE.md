@@ -16,7 +16,7 @@ lebih pendek dan lebih mudah dibaca.
 
 ## Status saat ini
 
-Selesai dan teruji (137 test, PHP 8.3 lokal; CI: PHP 8.2 + 8.3, PostgreSQL 16,
+Selesai dan teruji (137 test, PHP 8.3 lokal; CI: PHP 8.2–8.5, PostgreSQL 16,
 Redis, Memcached, APCu; PHPStan level 2 tanpa baseline):
 
 1. Kompatibilitas PHP 8.2/8.3 (strict types, typed props, tanpa dynamic property)
@@ -279,5 +279,3 @@ Co-Authored-By: Claude ... <noreply@anthropic.com> (bila dibantu AI)
    dan kabari upstream soal celah Panada 1.x yang
    dijelaskan di MODERNISASI.md. (Ganti merek ke Palakar: selesai, spec-001.)
 2. Test MySQL/MariaDB (sejauh ini hanya SQLite dan PostgreSQL yang diuji).
-3. PHP 8.4 belum ada
-   di matrix CI.
