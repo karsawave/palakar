@@ -122,6 +122,9 @@ class Validation
 
     /**
      * Run every rule of one field, stop at the first failure.
+     * Fills validValues/unsetValues as a side effect.
+     *
+     * @phpstan-impure
      */
     private function check(string $field, mixed $value, string $label, array $rule, array $rules, array $fields): bool
     {
