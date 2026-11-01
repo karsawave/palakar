@@ -209,3 +209,14 @@ Legend: flex row of folder names, each led by a bordered 0.7em code square. Cata
 - **Don't** add a second sleeve or a second image to a page.
 - **Don't** use the code colors as decoration, backgrounds or text color.
 - **Don't** load external fonts, images or JavaScript.
+
+## GitHub Pages (`docs/index.html`)
+
+The project page is for first-time visitors, not the sample app, so it
+keeps the palette, system type, square corners and hairlines but drops
+the sleeve and `PLK` numbering, which mean nothing to a newcomer. One
+centered column: headline, two buttons (filled "Mulai", outlined
+"GitHub"), one install line, a 3×2 hairline grid of reasons, one code
+sample. The square ridge mark (`docs/favicon.svg`) sits beside the
+wordmark in the header and is the favicon. Same constraints: no
+JavaScript, no external fonts or images, one file.
