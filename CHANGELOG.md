@@ -10,6 +10,11 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Changed
+
+- GitHub Pages headline is now the product name; the description moves to
+  the line below.
+
 ## [0.3.4] - 2026-11-02
 
 ### Changed

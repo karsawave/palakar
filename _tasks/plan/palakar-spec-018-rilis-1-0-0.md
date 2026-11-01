@@ -19,6 +19,8 @@ dan tidak ada breaking change yang masih direncanakan.
 - `README.md`, `CLAUDE.md`: versi dan status.
 - Merge `development` → `master` (merge, bukan rebase), tag `v1.0.0`.
 - `SECURITY.md`: versi yang didukung.
+- `docs/index.html`: pangkat versi di h1, `Palakar Framework<sup
+  aria-label="versi 1">1</sup>` (ditunda dari spec-043 karena 0.x).
 
 ## Pertanyaan terbuka
 
