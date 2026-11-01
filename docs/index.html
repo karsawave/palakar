@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Palakar Framework</title>
-<meta name="description" content="Framework PHP 8.2+ yang ringkas: core 45 file, query di-bind, CSRF bawaan, berjalan di shared hosting. Fork dari Panada Framework 1.1.1.">
+<meta name="description" content="Framework PHP 8.2+ yang kecil dan mudah dibaca. Core 45 file, tanpa dependency wajib. Fork dari Panada Framework 1.1.1.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 :root {
@@ -74,8 +74,8 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
 
 <main id="isi">
 <section class="hero">
-  <h1>Framework PHP 8.2+ yang ringkas dan mudah ditelusuri.</h1>
-  <p class="lead">Core terdiri dari 45 file (sekitar 6.400 baris). Query di-bind dan token CSRF diperiksa secara bawaan. Dapat berjalan di shared hosting tanpa Composer.</p>
+  <h1>Framework PHP yang kecil dan mudah dibaca.</h1>
+  <p class="lead">Core 45 file, tanpa dependency wajib.</p>
   <div class="cta">
     <a class="btn primary" href="https://github.com/karsawave/palakar#quick-start">Panduan mulai</a>
     <a class="btn" href="https://github.com/karsawave/palakar">Kode di GitHub</a>
@@ -85,21 +85,14 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
   <p class="meta">v0.3.3 · PHP 8.2–8.5 · BSD-3-Clause</p>
 </section>
 
-<h2>Cocok untuk</h2>
+<h2>Fitur</h2>
 <div class="grid">
-  <div><h3>Mempelajari cara kerja framework</h3><p>Alur request dapat diikuti dari <code>Gear.php</code> hingga controller, tanpa container DI atau middleware.</p></div>
-  <div><h3>Shared hosting</h3><p>Unggah <code>app/</code>, <code>panada/</code>, dan <code>public/</code>, lalu arahkan document root ke <code>public/</code>. Composer tidak diperlukan di server.</p></div>
-  <div><h3>Migrasi dari Panada 1.x</h3><p>Namespace <code>Resources\</code> dan struktur <code>Controllers</code>/<code>Models</code> dipertahankan. Catatan migrasi ke PHP 8.2+ tersedia di <a href="https://github.com/karsawave/palakar/blob/master/MODERNISASI.md"><code>MODERNISASI.md</code></a>.</p></div>
-</div>
-
-<h2>Fitur inti</h2>
-<div class="grid">
-  <div><h3>Routing di satu file</h3><p><code>Gear.php</code>, 326 baris: URL ke controller, method, dan argumen.</p></div>
-  <div><h3>Query selalu di-bind</h3><p>Nilai lewat placeholder. <code>update()</code> dan <code>delete()</code> tanpa WHERE ditolak.</p></div>
-  <div><h3>CSRF dicek sebelum controller</h3><p>POST, PUT, dan DELETE butuh token, kecuali rute di <code>security.php</code>.</p></div>
-  <div><h3>Controller kelas biasa</h3><p>Tanpa container DI dan middleware. Method yang mengembalikan array otomatis dikirim sebagai JSON.</p></div>
-  <div><h3>Diuji di PHP 8.2 sampai 8.5</h3><p>152 test di CI, juga dengan PostgreSQL, MariaDB, Redis, dan Memcached.</p></div>
-  <div><h3>Output lewat <code>e()</code></h3><p>Helper <code>e()</code> untuk escape output di view. Aplikasi contoh memakainya untuk setiap data dari pengguna.</p></div>
+  <div><h3>Routing di satu file</h3><p><code>Gear.php</code>, 326 baris.</p></div>
+  <div><h3>Query selalu di-bind</h3><p>Nilai dikirim lewat placeholder.</p></div>
+  <div><h3>CSRF bawaan</h3><p>Token diperiksa sebelum controller jalan.</p></div>
+  <div><h3>Tanpa container DI</h3><p>Controller adalah kelas PHP biasa.</p></div>
+  <div><h3>Shared hosting</h3><p>Server tidak perlu Composer.</p></div>
+  <div><h3>Dari Panada 1.x</h3><p>Catatan migrasi di <a href="https://github.com/karsawave/palakar/blob/master/MODERNISASI.md"><code>MODERNISASI.md</code></a>.</p></div>
 </div>
 
 <h2>Contoh controller</h2>
@@ -115,7 +108,6 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
 </main>
 
 <footer>
-  Nama Palakar berasal dari <i>palaka</i> (penjaga) dan <i>karsa</i> (kehendak).<br>
   Fork dari Panada Framework 1.1.1 karya Iskandar Soesman ·
   <a href="https://github.com/karsawave/palakar/blob/master/LICENSE">BSD-3-Clause</a> ·
   <a href="https://github.com/karsawave/palakar">github.com/karsawave/palakar</a>
