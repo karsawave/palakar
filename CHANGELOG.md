@@ -10,6 +10,11 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Changed
+
+- GitHub Pages project page redesigned for first-time visitors (clear
+  headline, two actions, install line, six reasons); square logo favicon.
+
 ## [0.3.1] - 2026-11-01
 
 ### Added
