@@ -10,6 +10,12 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-02
+
+### Changed
+
+- GitHub Pages copy shortened to a headline, one line and six features.
+
 ## [0.3.3] - 2026-11-01
 
 ### Changed
@@ -164,7 +170,8 @@ Soesman, modernized for PHP 8.2+ (specs 000 to 010).
 - Database drivers mysql, mysqli, pgsql, sqlite, cubrid, mongodb (PDO only).
 - Panada logo and GitHub banner from the welcome page.
 
-[Unreleased]: https://github.com/karsawave/palakar/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/karsawave/palakar/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/karsawave/palakar/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/karsawave/palakar/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/karsawave/palakar/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/karsawave/palakar/compare/v0.3.0...v0.3.1
