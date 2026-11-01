@@ -1,6 +1,6 @@
 # palakar-spec-030: Rilis 0.3.0
 
-- **Status:** plan
+- **Status:** done (ACC SPEC 030, 2026-10-25)
 - **Dibuat:** 2026-10-25
 - **Bergantung pada:** spec-022/024 (checklist rilis), spec-025 s.d. spec-029
 
@@ -69,7 +69,7 @@ CHANGELOG `Removed`).
 Pertanyaan terbuka: ACC tanpa jawaban terpisah = usulan diterima (release
 note GitHub dibuat dari CHANGELOG).
 
-1. CI: dicatat setelah push (lihat di bawah).
+1. CI hijau di `b08b753` (HEAD `development` saat merge): PHP 8.2–8.5, 152 test, tanpa skip. https://github.com/karsawave/palakar/actions/runs/40212213377
 2. Lokal (PHP 8.3): 152 test, 504 assertion, 32 skip (test server tanpa
    env); PHPStan level 5 bersih; `composer cs` 0 file.
 3. Uji dari paket: `git archive` dari `1c3dc62` (`chore(release): 0.3.0`).
@@ -93,3 +93,15 @@ note GitHub dibuat dari CHANGELOG).
    (ponytail halaman awal). SECURITY.md tidak berubah.
 6. `grep TODO|FIXME|ponytail:` di `panada/`: kosong. Di luar `panada/`:
    `app/Controllers/Home.php` (dicatat di Backlog).
+7. Dicatat di sini; CI commit catatan (`b08b753`) hijau sebelum merge.
+
+## Publikasi
+
+- Merge `development` → `master`: `e66f20f` (merge, bukan rebase); tag
+  `v0.3.0`; push `master` + tag.
+- CI `master` hijau: https://github.com/karsawave/palakar/actions/runs/40212741035
+- Release GitHub: https://github.com/karsawave/palakar/releases/tag/v0.3.0
+  (isi dari CHANGELOG 0.3.0).
+- `composer create-project karsawave/palakar cp 0.3.0` dari Packagist di
+  folder kosong: berhasil, `Gear::VERSION = '0.3.0'`, isi paket tanpa file
+  development, `composer audit` tanpa temuan.
