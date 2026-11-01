@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Palakar Framework</title>
-<meta name="description" content="Framework PHP 8.2+ dengan core 45 file, sekitar 6.400 baris. Fork dari Panada Framework 1.1.1.">
+<meta name="description" content="Framework PHP 8.2+ yang bisa kamu pahami sampai ke dalam: core 45 file, jalan di shared hosting. Fork dari Panada Framework 1.1.1.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 :root {
@@ -74,8 +74,8 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
 
 <main id="isi">
 <section class="hero">
-  <h1>Framework PHP 8.2+ dengan core 45 file.</h1>
-  <p class="lead">Sekitar 6.400 baris di folder <code>panada/</code>. Kalau ada perilaku yang tidak jelas, jawabannya ada di salah satu file itu.</p>
+  <h1>Framework PHP yang bisa kamu pahami sampai ke dalam.</h1>
+  <p class="lead">Core-nya 45 file, sekitar 6.400 baris. Query di-bind dan CSRF dicek otomatis sejak instalasi, dan aplikasimu jalan di shared hosting tanpa Composer.</p>
   <div class="cta">
     <a class="btn primary" href="https://github.com/karsawave/palakar#quick-start">Panduan mulai</a>
     <a class="btn" href="https://github.com/karsawave/palakar">Kode di GitHub</a>
@@ -85,14 +85,21 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
   <p class="meta">v0.3.3 · PHP 8.2–8.5 · BSD-3-Clause</p>
 </section>
 
-<h2>Isi core</h2>
+<h2>Untuk siapa</h2>
+<div class="grid">
+  <div><h3>Kamu yang ingin paham, bukan menghafal</h3><p>Saat ada error, buka file-nya dan baca. Tanpa container DI dan middleware: alur request bisa diikuti dari <code>Gear.php</code> sampai controller.</p></div>
+  <div><h3>Kamu yang memakai shared hosting</h3><p>Upload <code>app/</code>, <code>panada/</code>, dan <code>public/</code>, arahkan document root ke <code>public/</code>. Tanpa SSH, tanpa Composer di server.</p></div>
+  <div><h3>Kamu yang masih memakai Panada 1.x</h3><p>Namespace <code>Resources\</code> dan folder <code>Controllers</code>/<code>Models</code> tetap. Catatan pindah ke PHP 8.2+ ada di <a href="https://github.com/karsawave/palakar/blob/master/MODERNISASI.md"><code>MODERNISASI.md</code></a>.</p></div>
+</div>
+
+<h2>Yang ada di dalamnya</h2>
 <div class="grid">
   <div><h3>Routing di satu file</h3><p><code>Gear.php</code>, 326 baris: URL ke controller, method, dan argumen.</p></div>
   <div><h3>Query selalu di-bind</h3><p>Nilai lewat placeholder. <code>update()</code> dan <code>delete()</code> tanpa WHERE ditolak.</p></div>
   <div><h3>CSRF dicek sebelum controller</h3><p>POST, PUT, dan DELETE butuh token, kecuali rute di <code>security.php</code>.</p></div>
   <div><h3>Controller kelas biasa</h3><p>Tanpa container DI dan middleware. Method yang mengembalikan array otomatis dikirim sebagai JSON.</p></div>
   <div><h3>Diuji di PHP 8.2 sampai 8.5</h3><p>152 test di CI, juga dengan PostgreSQL, MariaDB, Redis, dan Memcached.</p></div>
-  <div><h3>Server tidak perlu Composer</h3><p>Upload <code>app/</code>, <code>panada/</code>, dan <code>public/</code> tanpa <code>vendor/</code>; autoloader bawaan mengambil alih. Cocok untuk shared hosting.</p></div>
+  <div><h3>Output lewat <code>e()</code></h3><p>Helper escape untuk semua data di view; view contoh memakainya di setiap output dari pengguna.</p></div>
 </div>
 
 <h2>Contoh controller</h2>
@@ -108,6 +115,7 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
 </main>
 
 <footer>
+  Palakar: <i>palaka</i> (penjaga) + <i>karsa</i> (kehendak).<br>
   Fork dari Panada Framework 1.1.1 karya Iskandar Soesman ·
   <a href="https://github.com/karsawave/palakar/blob/master/LICENSE">BSD-3-Clause</a> ·
   <a href="https://github.com/karsawave/palakar">github.com/karsawave/palakar</a>

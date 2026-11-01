@@ -10,6 +10,10 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Changed
+
+- GitHub Pages copy now leads with who Palakar is for and why.
+
 ## [0.3.3] - 2026-11-01
 
 ### Changed
