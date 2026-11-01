@@ -75,3 +75,12 @@ Tidak ada.
 5. `Gear::VERSION` dan meta halaman 0.3.5; angka dicek: 45 file,
    `Gear.php` 326. Rest UA `/0.3` dan SECURITY.md tidak berubah.
 6. `grep TODO|FIXME|ponytail: panada/`: 0.
+
+## Hasil publikasi (2026-11-02)
+
+7. CI commit catatan checklist hijau (headSha = HEAD) sebelum merge.
+8. Merge `--no-ff` ke `master` (`1f4ffce`), tag `v0.3.5`, push.
+   Release note: https://github.com/karsawave/palakar/releases/tag/v0.3.5
+9. CI `master` hijau; Packagist menampilkan `v0.3.5`.
+10. https://karsawave.github.io/palakar/ menampilkan h1 "Palakar
+    Framework" dan `v0.3.5`.
