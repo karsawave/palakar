@@ -10,6 +10,11 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Changed
+
+- README and the GitHub Pages site explain how to install and run Palakar
+  without Composer (source ZIP; no `vendor/` needed at runtime).
+
 ## [0.3.2] - 2026-11-01
 
 ### Changed
