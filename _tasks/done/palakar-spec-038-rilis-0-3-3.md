@@ -79,3 +79,15 @@ Tidak ada.
    baris, `Gear.php` 326, 152 test. Rest UA `/0.3` dan SECURITY.md
    tidak berubah.
 6. `grep TODO|FIXME|ponytail: panada/`: 0.
+
+## Hasil publikasi (2026-11-01)
+
+7. CI commit catatan checklist hijau (headSha = HEAD) sebelum merge.
+8. Merge `--no-ff` ke `master` (`18fb48b`), tag `v0.3.3`, push.
+   Release note: https://github.com/karsawave/palakar/releases/tag/v0.3.3
+9. CI `master` hijau; Packagist menampilkan `v0.3.3`.
+10. https://karsawave.github.io/palakar/ menampilkan "Server tidak perlu
+    Composer", link `releases/latest`, dan `v0.3.3`.
+    ZIP sumber `archive/refs/tags/v0.3.3.zip` diunduh: isi sama dengan
+    paket Composer, tanpa `docs/`, `tests/`, `vendor/`. `php -S` tanpa
+    Composer: "Palakar 0.3.3", Guestbook POST 302 + entri tampil.
