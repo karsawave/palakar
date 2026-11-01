@@ -1,6 +1,6 @@
 # palakar-spec-044: Rilis 0.3.5
 
-- **Status:** plan
+- **Status:** done (ACC SPEC 044, 2026-11-02)
 - **Dibuat:** 2026-11-02
 - **Bergantung pada:** spec-022/024 (checklist rilis), spec-043
 
@@ -58,3 +58,20 @@ Tidak ada (pola sama dengan spec-042).
 
 Tidak ada.
 
+
+## Hasil checklist (2026-11-02)
+
+1. CI hijau di `cc3d564` (`chore(release): 0.3.5`): PHP 8.2–8.5, 152
+   test, 702 assertion, tanpa skip.
+   https://github.com/karsawave/palakar/actions/runs/41330935567
+   CI commit catatan ini: dicek sebelum merge (headSha = HEAD).
+2. Lokal (PHP 8.3): 152 test, 504 assertion, 32 skip (test server tanpa
+   env); PHPStan bersih; `composer cs` 0 file.
+3. Uji dari paket (`git archive` `cc3d564`), isi sama dengan 0.3.4,
+   tanpa `docs/`. Dengan dan tanpa `composer install`, hasil identik:
+   "Palakar 0.3.5", CSS 200, Guestbook tanpa token 403, dengan token
+   302 + entri tampil, 404 dengan `debug` true/false tanpa bocor path.
+4. `composer audit`: tanpa temuan.
+5. `Gear::VERSION` dan meta halaman 0.3.5; angka dicek: 45 file,
+   `Gear.php` 326. Rest UA `/0.3` dan SECURITY.md tidak berubah.
+6. `grep TODO|FIXME|ponytail: panada/`: 0.
