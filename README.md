@@ -40,6 +40,14 @@ Open http://localhost:8000/ for the welcome page and
 http://localhost:8000/check.php to check your server. The default database
 is SQLite in `app/storage/`, so the guestbook demo works without any setup.
 
+**No Composer?** Download the source ZIP from the
+[latest release](https://github.com/karsawave/palakar/releases/latest)
+and run `php -S localhost:8000 -t public public/index.php`. Palakar needs
+no Composer packages at runtime: without `vendor/` it uses its own
+autoloader. To deploy to shared hosting, upload `app/`, `panada/` and
+`public/`, point the document root at `public/`, and make `app/storage/`
+writable.
+
 A first page
 ------------
 

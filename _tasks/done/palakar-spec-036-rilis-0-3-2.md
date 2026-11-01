@@ -76,3 +76,14 @@ Tidak ada.
    baris, `Gear.php` 326, 152 test. Rest UA `/0.3` dan SECURITY.md
    tidak berubah.
 6. `grep TODO|FIXME|ponytail: panada/`: 0.
+
+## Hasil publikasi (2026-11-01)
+
+7. CI commit catatan checklist hijau (headSha = HEAD) sebelum merge.
+8. Merge `--no-ff` ke `master` (`615b7b9`), tag `v0.3.2`, push.
+   Release note: https://github.com/karsawave/palakar/releases/tag/v0.3.2
+9. CI `master` hijau; Packagist menampilkan `v0.3.2`.
+10. https://karsawave.github.io/palakar/ menampilkan judul "Framework PHP
+    8.2+ dengan core 45 file." dan `v0.3.2`; `favicon.svg` 200.
+    Tampilan visual dicek lewat screenshot lokal (spec-034/035), belum
+    dibuka di browser sungguhan oleh Claude.

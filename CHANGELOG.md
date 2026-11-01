@@ -10,6 +10,13 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-01
+
+### Changed
+
+- README and the GitHub Pages site explain how to install and run Palakar
+  without Composer (source ZIP; no `vendor/` needed at runtime).
+
 ## [0.3.2] - 2026-11-01
 
 ### Changed
@@ -157,7 +164,8 @@ Soesman, modernized for PHP 8.2+ (specs 000 to 010).
 - Database drivers mysql, mysqli, pgsql, sqlite, cubrid, mongodb (PDO only).
 - Panada logo and GitHub banner from the welcome page.
 
-[Unreleased]: https://github.com/karsawave/palakar/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/karsawave/palakar/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/karsawave/palakar/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/karsawave/palakar/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/karsawave/palakar/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/karsawave/palakar/compare/v0.2.0...v0.3.0
