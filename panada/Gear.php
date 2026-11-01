@@ -26,7 +26,7 @@
 final class Gear
 {
     /** Palakar version (SemVer); raise it in every release. */
-    public const VERSION = '0.3.2';
+    public const VERSION = '0.3.3';
 
     public static ?Resources\Uri $uri = null;
 
