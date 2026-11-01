@@ -10,6 +10,11 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ## [Unreleased]
 
+### Added
+
+- Project page for GitHub Pages in `docs/index.html` (static, no
+  JavaScript, served from `master` `/docs`).
+
 ## [0.3.0] - 2026-10-25
 
 ### Added

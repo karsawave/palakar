@@ -7,6 +7,8 @@
 
 <p align="center">A simple and secure PHP 8.2+ framework whose whole core is readable in one evening.</p>
 
+<p align="center"><a href="https://karsawave.github.io/palakar/">karsawave.github.io/palakar</a></p>
+
 ---
 
 Palakar has no DI container, no middleware stack, no template engine and no

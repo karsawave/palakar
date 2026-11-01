@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palakar Framework</title>
+<meta name="description" content="Framework PHP 8.2+ yang kecil dan aman. Seluruh core bisa dibaca dalam semalam.">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<style>
+:root {
+  --sleeve: #111111; --sleeve-ink: #f2f2f2; --sleeve-muted: #b3b3b3;
+  --ground: #e8e8e6; --ink: #111111; --muted: #4a4a4a; --rule: #b9b9b6;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --sleeve: #0b0b0b; --ground: #1d1d1c; --ink: #ededeb; --muted: #a9a9a6; --rule: #3d3d3b; }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font: 400 1rem/1.6 system-ui, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 68rem; margin: 0 auto; padding: 0 1.25rem; }
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--ink); color: var(--ground); padding: .5rem 1rem; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid var(--rule); }
+header nav a { font-size: .875rem; text-decoration: none; margin-left: 1rem; }
+header nav a:hover { text-decoration: underline; }
+.mark { font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: .75rem; text-decoration: none; }
+.sleeve { background: var(--sleeve); color: var(--sleeve-ink); outline: 1px solid var(--rule); padding: clamp(1.25rem, 4vw, 2.5rem); margin-top: 2rem; display: grid; gap: 2rem; }
+@media (min-width: 52rem) { .sleeve { grid-template-columns: 19rem 1fr; align-items: end; } }
+.sleeve img { width: 100%; max-width: 30rem; height: auto; display: block; }
+h1 { font-weight: 300; font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+.sleeve p { color: var(--sleeve-muted); font-size: .95rem; margin: 0; }
+h2 { font-size: .75rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; margin: 3.5rem 0 1rem; }
+ol.cat { list-style: none; margin: 0; padding: 0; max-width: 40rem; }
+ol.cat li { display: grid; grid-template-columns: 5.5rem 1fr; border-top: 1px solid var(--rule); padding: .8rem .5rem; }
+ol.cat li:last-child { border-bottom: 1px solid var(--rule); }
+.no { font-size: .75rem; font-weight: 600; letter-spacing: .14em; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: .2rem; }
+.t { font-weight: 600; }
+.d { color: var(--muted); display: block; }
+pre { font: .875em/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; border: 1px solid var(--rule); padding: 1rem; overflow-x: auto; margin: .5rem 0 0; }
+code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .875em; }
+footer { margin: 3.5rem 0 2rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: .8rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<a class="skip" href="#isi">Langsung ke isi</a>
+<div class="wrap">
+<header>
+  <a class="mark" href="./">Palakar</a>
+  <nav aria-label="Tautan">
+    <a href="https://github.com/karsawave/palakar">GitHub</a>
+    <a href="https://packagist.org/packages/karsawave/palakar">Packagist</a>
+  </nav>
+</header>
+
+<main id="isi">
+<section class="sleeve" aria-labelledby="judul">
+  <div>
+    <h1 id="judul">Palakar Framework</h1>
+    <p>Framework PHP 8.2+ yang kecil dan aman. Tanpa container DI, middleware stack, template engine, atau build step: seluruh core bisa dibaca dalam semalam.</p>
+  </div>
+  <img src="logo.svg" alt="" width="480" height="128">
+</section>
+
+<h2>Mulai</h2>
+<ol class="cat">
+  <li><span class="no">PLK 01</span><span><span class="t">Buat proyek</span><pre><code>composer create-project karsawave/palakar app</code></pre></span></li>
+  <li><span class="no">PLK 02</span><span><span class="t">Jalankan</span><pre><code>cd app
+composer serve</code></pre><span class="d">Buka http://localhost:8000. Database default SQLite, tanpa setup.</span></span></li>
+  <li><span class="no">PLK 03</span><span><a class="t" href="https://github.com/karsawave/palakar#readme">Baca README</a><span class="d">Struktur folder, konfigurasi, dan demo Guestbook.</span></span></li>
+</ol>
+
+<h2>Isi core</h2>
+<ol class="cat">
+  <li><span class="no">PLK 04</span><span><span class="t">PHP 8.2–8.5</span><span class="d">Strict types, diuji di CI untuk setiap versi.</span></span></li>
+  <li><span class="no">PLK 05</span><span><span class="t">Database PDO</span><span class="d">MySQL, PostgreSQL, SQLite. Semua nilai otomatis lewat prepared statement.</span></span></li>
+  <li><span class="no">PLK 06</span><span><span class="t">CSRF bawaan</span><span class="d">Diperiksa sebelum controller jalan untuk setiap request selain GET/HEAD/OPTIONS.</span></span></li>
+  <li><span class="no">PLK 07</span><span><span class="t">Validasi dan sanitize</span><span class="d">Input dibersihkan otomatis; output view dicetak lewat <code>e()</code>.</span></span></li>
+  <li><span class="no">PLK 08</span><span><span class="t">Session dan error yang aman</span><span class="d">Cookie HttpOnly, SameSite, strict mode. Halaman error tidak membocorkan path saat <code>debug</code> mati.</span></span></li>
+  <li><span class="no">PLK 09</span><span><span class="t">Composer opsional</span><span class="d">Autoloader sendiri tetap jalan di shared hosting tanpa Composer.</span></span></li>
+</ol>
+
+<h2>Contoh controller</h2>
+<pre><code>&lt;?php
+
+namespace Controllers;
+
+use Resources;
+
+class Hello extends Resources\Controller
+{
+    // GET /hello/name/Budi  →  {"hello":"Budi"}
+    public function name(string $who = 'dunia'): array
+    {
+        return ['hello' =&gt; $who];
+    }
+}</code></pre>
+</main>
+
+<footer>
+  Palakar adalah fork dari Panada Framework 1.1.1 karya Iskandar Soesman.
+  Lisensi <a href="https://github.com/karsawave/palakar/blob/master/LICENSE">BSD-3-Clause</a>.
+  Kode, isu, dan dukungan: <a href="https://github.com/karsawave/palakar">github.com/karsawave/palakar</a>.
+</footer>
+</div>
+</body>
+</html>
