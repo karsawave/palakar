@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Palakar Framework</title>
-<meta name="description" content="Framework PHP 8.2+ yang kecil dan aman. Seluruh core bisa dibaca dalam semalam.">
+<meta name="description" content="Framework PHP 8.2+ dengan core 45 file, sekitar 6.400 baris. Fork dari Panada Framework 1.1.1.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 :root {
@@ -74,27 +74,27 @@ footer { margin: 4rem 0 0; padding: 1.5rem 0 2.5rem; border-top: 1px solid var(-
 
 <main id="isi">
 <section class="hero">
-  <h1>Framework PHP yang bisa dibaca dalam semalam.</h1>
-  <p class="lead">Kecil, aman sejak awal, dan tanpa sihir tersembunyi. Setiap perilaku bisa ditelusuri ke satu file pendek.</p>
+  <h1>Framework PHP 8.2+ dengan core 45 file.</h1>
+  <p class="lead">Sekitar 6.400 baris di folder <code>panada/</code>. Kalau ada perilaku yang tidak jelas, jawabannya ada di salah satu file itu.</p>
   <div class="cta">
-    <a class="btn primary" href="https://github.com/karsawave/palakar#readme">Mulai</a>
-    <a class="btn" href="https://github.com/karsawave/palakar">GitHub</a>
+    <a class="btn primary" href="https://github.com/karsawave/palakar#readme">Panduan mulai</a>
+    <a class="btn" href="https://github.com/karsawave/palakar">Kode di GitHub</a>
   </div>
   <pre class="install"><span>$ </span><code>composer create-project karsawave/palakar app</code></pre>
   <p class="meta">v0.3.1 · PHP 8.2–8.5 · BSD-3-Clause</p>
 </section>
 
-<h2>Kenapa Palakar</h2>
+<h2>Isi core</h2>
 <div class="grid">
-  <div><h3>Kecil dan terbaca</h3><p>Seluruh core sekitar 6.400 baris. Cukup satu malam untuk memahaminya.</p></div>
-  <div><h3>Aman bawaan</h3><p>Query PDO selalu di-bind, CSRF dicek otomatis, output di-escape.</p></div>
-  <div><h3>Tanpa sihir</h3><p>Tanpa container DI, middleware stack, template engine, atau build step.</p></div>
-  <div><h3>PHP modern</h3><p>Strict types, diuji di PHP 8.2 sampai 8.5 pada setiap commit.</p></div>
-  <div><h3>Composer opsional</h3><p>Punya autoloader sendiri, tetap jalan tanpa Composer.</p></div>
-  <div><h3>Ramah shared hosting</h3><p>SQLite siap pakai, tanpa layanan tambahan.</p></div>
+  <div><h3>Routing di satu file</h3><p><code>Gear.php</code>, 326 baris: URL ke controller, method, dan argumen.</p></div>
+  <div><h3>Query selalu di-bind</h3><p>Nilai lewat placeholder. <code>update()</code> dan <code>delete()</code> tanpa WHERE ditolak.</p></div>
+  <div><h3>CSRF dicek sebelum controller</h3><p>POST, PUT, dan DELETE butuh token, kecuali rute di <code>security.php</code>.</p></div>
+  <div><h3>Controller kelas biasa</h3><p>Tanpa container DI dan middleware. Return array, dikirim sebagai JSON.</p></div>
+  <div><h3>Diuji di PHP 8.2 sampai 8.5</h3><p>152 test di CI, juga dengan PostgreSQL, MariaDB, Redis, dan Memcached.</p></div>
+  <div><h3>Jalan tanpa Composer</h3><p>Autoloader sendiri, database default SQLite di <code>app/storage/</code>.</p></div>
 </div>
 
-<h2>Sesederhana ini</h2>
+<h2>Contoh controller</h2>
 <pre class="ex"><code>class Hello extends Resources\Controller
 {
     public function hi(string $who = 'dunia'): array
