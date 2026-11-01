@@ -12,7 +12,8 @@ Framework itself is in [CHANGELOG-PANADA](CHANGELOG-PANADA).
 
 ### Changed
 
-- GitHub Pages copy now leads with who Palakar is for and why.
+- GitHub Pages copy rewritten: who Palakar suits and why, in a plain
+  descriptive tone.
 
 ## [0.3.3] - 2026-11-01
 
