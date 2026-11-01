@@ -1,6 +1,6 @@
 # palakar-spec-033: Rilis 0.3.1
 
-- **Status:** plan
+- **Status:** done (ACC SPEC 033, 2026-11-01)
 - **Dibuat:** 2026-11-01
 - **Bergantung pada:** spec-022/024 (checklist rilis), spec-031, spec-032
 
@@ -61,3 +61,29 @@ perbaiki lewat spec sendiri, ulangi dari poin 1.
 ## Breaking change
 
 Tidak ada.
+
+## Hasil checklist (2026-11-01)
+
+Pertanyaan terbuka: ACC tanpa jawaban terpisah = usulan diterima (Claude
+mengaktifkan Pages lewat `gh api`; release note GitHub dari CHANGELOG).
+
+1. CI hijau di `564cc95` (`chore(release): 0.3.1`): PHP 8.2–8.5, 152
+   test, 702 assertion, tanpa skip.
+   https://github.com/karsawave/palakar/actions/runs/41322808768
+   CI untuk commit catatan ini: dicek sebelum merge (headSha = HEAD).
+2. Lokal (PHP 8.3): 152 test, 504 assertion, 32 skip (test server tanpa
+   env); PHPStan bersih; `composer cs` 0 file.
+3. Uji dari paket: `git archive` dari `564cc95`. Isi: `.editorconfig`,
+   CHANGELOG(-PANADA), CONTRIBUTING, LICENSE, MODERNISASI, README,
+   SECURITY, `app`, `composer.*`, `panada`, `public`; tanpa `docs/`.
+   `composer install` lalu `php -S`:
+   - halaman awal 200, judul "Palakar 0.3.1"; `assets/css/main.css` 200
+   - Guestbook: POST tanpa token 403; dengan token 302, entri tampil
+   - URL tak dikenal 404; `debug` false: tanpa path/trace di respons
+   - Catatan jujur: percobaan pertama saya salah path CSS dan lupa field
+     `email` (404/200); diulang dengan nilai benar, hasil di atas.
+4. `composer audit`: tanpa temuan.
+5. `Gear::VERSION` 0.3.1, `docs/index.html` 0.3.1, CHANGELOG `[0.3.1]`;
+   User-Agent Rest `/0.3` tetap (minor sama); SECURITY.md "latest 0.x"
+   tidak perlu diubah.
+6. `grep TODO|FIXME|ponytail: panada/`: 0.
