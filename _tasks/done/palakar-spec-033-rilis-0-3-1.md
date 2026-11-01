@@ -87,3 +87,15 @@ mengaktifkan Pages lewat `gh api`; release note GitHub dari CHANGELOG).
    User-Agent Rest `/0.3` tetap (minor sama); SECURITY.md "latest 0.x"
    tidak perlu diubah.
 6. `grep TODO|FIXME|ponytail: panada/`: 0.
+
+## Hasil publikasi (2026-11-01)
+
+7. CI commit catatan checklist hijau (headSha = HEAD) sebelum merge.
+8. Merge `--no-ff` ke `master` (`75b069e`), tag `v0.3.1`, push.
+   Release note: https://github.com/karsawave/palakar/releases/tag/v0.3.1
+9. CI `master` hijau; Packagist menampilkan `v0.3.1`.
+10. Pages diaktifkan lewat `gh api` (source `master` `/docs`), build
+    `built`. https://karsawave.github.io/palakar/ → 200, judul "Palakar
+    Framework", sleeve "Palakar 0.3.1", favicon 200.
+    **Belum diverifikasi:** tampilan visual (terang/gelap, 360px, urutan
+    Tab) belum dibuka di browser oleh Claude; perlu dicek pemilik.
