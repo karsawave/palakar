@@ -1,6 +1,6 @@
 # palakar-spec-036: Rilis 0.3.2
 
-- **Status:** plan
+- **Status:** done (ACC SPEC 036, 2026-11-01)
 - **Dibuat:** 2026-11-01
 - **Bergantung pada:** spec-022/024 (checklist rilis), spec-034, spec-035
 
@@ -58,3 +58,21 @@ Tidak ada (pola sama dengan spec-033).
 ## Breaking change
 
 Tidak ada.
+
+## Hasil checklist (2026-11-01)
+
+1. CI hijau di `d0baf47` (`chore(release): 0.3.2`): PHP 8.2–8.5, 152
+   test, 702 assertion, tanpa skip.
+   https://github.com/karsawave/palakar/actions/runs/41326074221
+   CI commit catatan ini: dicek sebelum merge (headSha = HEAD).
+2. Lokal (PHP 8.3): 152 test, 504 assertion, 32 skip (test server tanpa
+   env); PHPStan bersih; `composer cs` 0 file.
+3. Uji dari paket (`git archive` `d0baf47`): isi sama dengan 0.3.1,
+   tanpa `docs/`. Halaman awal "Palakar 0.3.2", CSS 200; Guestbook tanpa
+   token 403, dengan token 302 dan entri tampil; 404 dengan `debug`
+   true dan false, tanpa path/trace saat false.
+4. `composer audit`: tanpa temuan.
+5. `Gear::VERSION` dan meta halaman 0.3.2; angka dicek: 45 file, 6.434
+   baris, `Gear.php` 326, 152 test. Rest UA `/0.3` dan SECURITY.md
+   tidak berubah.
+6. `grep TODO|FIXME|ponytail: panada/`: 0.
